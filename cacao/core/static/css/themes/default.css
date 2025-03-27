@@ -1,0 +1,32 @@
+/*
+  default.css
+  Defines the default theme variables and simple styling overrides.
+*/
+
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --font-color: #333;
+    --bg-color: #fff;
+    --font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--font-color);
+    font-family: var(--font-family);
+}
+
+/* Simple button style */
+button {
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in;
+}
+
+button:hover {
+    background-color: var(--secondary-color);
+}

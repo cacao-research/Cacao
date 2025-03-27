@@ -1,0 +1,2 @@
+[console_scripts]
+cacao = cacao.cli:run_cli

@@ -1,0 +1,12 @@
+{
+    "documentation": {
+      "output_dir": "./docs",
+      "formats": ["html", "md"],
+      "include": ["components", "api"]
+    },
+    "theme": {
+      "css": "./src/custom.css",
+      "js": "./src/custom_behaviors.js"
+    }
+  }
+  

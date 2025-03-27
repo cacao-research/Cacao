@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cacao App</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+</head>
+<body>
+  <div id="app">
+    <!-- The UI will be rendered here -->
+  </div>
+  
+  <!-- Refresh overlay with message -->
+  <div class="refresh-overlay">
+    <div class="spinner"></div>
+    <div class="message">Refreshing...</div>
+  </div>
+  
+  <!-- Manual refresh button -->
+  <button class="manual-refresh" title="Force Refresh (Ctrl+R)" onclick="window.CacaoWS.requestServerRefresh()">↻</button>
+  
+  <script src="/static/js/websocket.js"></script>
+  <script src="/static/js/cacao-core.js"></script>
+  <script>
+    // Debug flag to show console logs
+    window.CACAO_DEBUG = true;
+    
+4    // Initialize WebSocket connection
+    window.CacaoWS.connect(`ws://${window.location.hostname}:1633`);
+
+    // Fetch the UI definition from the API endpoint and render it.
+    fetch('/api/ui?_=' + new Date().getTime(), {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+         if(window.CACAO_DEBUG) {
+           console.log("[Cacao] Initial UI data:", data);
+         }
+         
+         if(window.CacaoCore && typeof window.CacaoCore.render === "function") {
+           window.CacaoCore.render(data);
+           console.log("[Cacao] Initial render complete");
+         } else {
+           document.getElementById('app').innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+           console.error("[Cacao] CacaoCore not available");
+         }
+      })
+      .catch(err => {
+         document.getElementById('app').innerHTML = "<p>Error loading UI.</p>";
+         console.error("[Cacao] Failed to load UI:", err);
+      });
+  </script>
+</body>
+</html>
