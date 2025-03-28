@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cacao",
-    version="1.0.1",
+    version='0.0.1',
     description="Cacao is a high-performance, reactive web framework for Python, designed to simplify building interactive dashboards and data apps.",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
