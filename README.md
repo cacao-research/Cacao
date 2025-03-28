@@ -12,6 +12,9 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **JSON UI Definitions**: Define UIs using pure Python dictionaries
 - **State Management**: Reactive state handling with automatic UI updates
 - **Component System**: Create reusable, composable UI components with type-based state isolation
+- **Progressive Web App (PWA)**: Built-in PWA capabilities with offline support
+- **Session Management**: Persistent session state across page refreshes
+- **Desktop Application Mode**: Run Cacao apps as native desktop applications
 
 ### Extensions
 - **Authentication**: Built-in auth system with multiple provider support
@@ -29,6 +32,9 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **Theme Support**: Customizable themes with hot-reload support
 - **Type Safety**: Full TypeScript-like type hints in Python
 - **Developer Tools**: Built-in debugging and development tools
+- **PWA Support**: Make your app installable with offline capabilities
+- **Session Persistence**: Maintain state across page refreshes
+- **Desktop Mode**: Run as a standalone desktop application
 
 ## 🧩 Component State Management
 
@@ -84,9 +90,13 @@ cacao/
 │   ├── server.py          # HTTP and WebSocket servers
 │   ├── state.py           # State management system
 │   ├── diffing.py         # UI diffing algorithm
+│   ├── pwa.py            # PWA support functionality
+│   ├── session.py        # Session persistence management
 │   └── static/            # Static assets
 │       ├── js/            # Client-side JavaScript
-│       └── css/           # Stylesheets
+│       ├── css/           # Stylesheets
+│       └── icons/         # PWA icons
+├── desktop.py            # Desktop application support
 ├── ui/                    # UI component system
 │   ├── components/        # Built-in components
 │   │   ├── base.py       # Base component classes
@@ -110,17 +120,23 @@ cacao/
 
 ```bash
 # Install the package in development mode
-pip install -e .
+pip install cacao
 ```
 
 ### Running the Development Server
 
 ```bash
 # Run with the CLI
-python -m cacao serve
+cacao serve
 
 # Or with verbose logging
-python -m cacao serve -v
+cacao serve -v
+
+# Run as a PWA with session persistence
+cacao serve --pwa
+
+# Run as a desktop application
+cacao desktop
 
 # Or directly from main.py
 python main.py
@@ -243,6 +259,95 @@ class MyComponent(Component):
             }
         }
 ```
+
+## 🌐 Progressive Web App (PWA) Support
+
+Cacao includes built-in PWA capabilities, allowing your applications to be installed on devices and work offline:
+
+```python
+from cacao import run
+from cacao.core.server import CacaoServer
+
+# Run with PWA support enabled
+server = CacaoServer(
+    verbose=True,
+    enable_pwa=True,  # Enable PWA support
+    persist_sessions=True  # Enable session persistence
+)
+server.run()
+```
+
+### PWA Configuration
+
+The PWA support can be customized in your cacao.json configuration:
+
+```json
+{
+    "pwa": {
+        "name": "Cacao App",
+        "short_name": "Cacao",
+        "description": "A Cacao Progressive Web App",
+        "theme_color": "#6B4226",
+        "background_color": "#F5F5F5",
+        "display": "standalone",
+        "start_url": "/"
+    }
+}
+```
+
+### PWA Features
+
+- **Offline Support**: Applications continue to work without an internet connection
+- **Installation**: Users can install your app on mobile and desktop devices
+- **Service Worker**: Automatic service worker generation for resource caching
+- **PWA Manifest**: Auto-generated manifest.json with customizable options
+
+## 💾 Session Management
+
+Cacao's session management system provides persistent state across page refreshes:
+
+```python
+from cacao import run
+
+# Run with session persistence
+run(persist_sessions=True, session_storage="memory")  # or "file"
+```
+
+### Session Storage Options
+
+- **Memory Storage**: Sessions are stored in memory (default, cleared on server restart)
+- **File Storage**: Sessions are stored in files (persists through server restarts)
+
+### Session Features
+
+- **Automatic State Persistence**: App state automatically persists across page refreshes
+- **Session Expiration**: Configurable session timeout (defaults to 24 hours)
+- **Cross-Tab State**: State can be shared across browser tabs (same session)
+- **Security**: Sessions are secured with HTTP-only cookies
+
+## 🖥️ Desktop Application Mode
+
+Run your Cacao application as a native desktop application with window controls:
+
+```python
+from cacao import run_desktop
+
+# Launch as a desktop application
+run_desktop(
+    title="Cacao Desktop App",
+    width=1024,
+    height=768,
+    resizable=True,
+    fullscreen=False
+)
+```
+
+### Desktop Features
+
+- **Native Window**: Runs in a native OS window without browser UI
+- **Window Controls**: Customize window size, title, and behavior
+- **Automatic Server**: Built-in Cacao server runs in the background
+- **Cross-Platform**: Works on Windows, macOS, and Linux
 
 ## ❓ Troubleshooting
 

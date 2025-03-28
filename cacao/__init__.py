@@ -2,11 +2,12 @@
 Cacao - A high-performance, reactive web framework for Python
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.1"
 
 from .core import (
     mix,
     run,
+    run_desktop,
     State,
     StateChange,
     Component,
@@ -16,6 +17,7 @@ from .core import (
 __all__ = [
     "mix",
     "run",
+    "run_desktop",
     "State",
     "StateChange",
     "Component",

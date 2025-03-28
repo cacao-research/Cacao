@@ -1,10 +1,12 @@
-from cacao import mix, run, State, Component
+from cacao import mix, run, State, Component, run_desktop
 from cacao.core.server import CacaoServer
+from cacao.core.pwa import PWASupport
 from datetime import datetime
 
 # Create separate reactive states for each component
 counter_state = State(0)
 timestamp_state = State(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+online_state = State(True)  # New state for online/offline status
 
 # Create a counter component
 class Counter(Component):
@@ -124,12 +126,7 @@ def on_timestamp_change(new_value):
 
 @mix("/")
 def home():
-    """
-    Main page handler.
-    
-    The server injects _state into the returned dictionary,
-    which is then passed to the component's render method.
-    """
+    """Main page handler with PWA support."""
     # Create components
     counter_component = Counter()
     timer_component = Timer()
@@ -144,7 +141,7 @@ def home():
             {
                 "type": "navbar",
                 "props": {
-                    "brand": "Cacao Demo",
+                    "brand": "Cacao PWA Demo",
                     "links": [
                         {"name": "Home", "url": "/"},
                         {"name": "About", "url": "/about"},
@@ -155,12 +152,11 @@ def home():
             {
                 "type": "hero",
                 "props": {
-                    "title": "Cacao with State Management",
-                    "subtitle": "Edit this file to see hot reload in action. The components below use reactive state!",
+                    "title": "Cacao Progressive Web App 2",
+                    "subtitle": "This app works offline! Try turning off your network connection.",
                     "backgroundImage": "/static/images/hero.jpg"
                 }
             },
-            # Call render() with the UI state
             counter_component.render(ui_state),
             timer_component.render(ui_state),
             {
@@ -170,7 +166,7 @@ def home():
                         {
                             "type": "text",
                             "props": {
-                                "content": "Try editing this text or removing elements to test hot reload."
+                                "content": "This app can be installed on your device! Look for the install prompt in your browser."
                             }
                         }
                     ]
@@ -179,7 +175,7 @@ def home():
             {
                 "type": "footer",
                 "props": {
-                    "text": "© 2025 Cacao Framework - Last Update: " + str(id(home))
+                    "text": "© 2025 Cacao Framework - PWA Enabled"
                 }
             }
         ]
@@ -188,6 +184,12 @@ def home():
     return ui_def
 
 if __name__ == "__main__":
-    # Run with verbose=True to see detailed logs
-    server = CacaoServer(verbose=True)
-    server.run()
+    # Run with PWA support enabled
+
+    run_desktop(
+        title="Cacao Desktop App",
+        width=1024,
+        height=768,
+        resizable=True,
+        fullscreen=False
+    )

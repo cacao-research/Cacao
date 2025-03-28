@@ -19,6 +19,8 @@ import traceback
 from datetime import datetime
 from typing import Any, Dict, Callable, Set, Optional
 from urllib.parse import parse_qs, urlparse
+from .session import SessionManager
+from .pwa import PWASupport
 
 # Initialize colorama for Windows support
 colorama.init()
@@ -33,13 +35,26 @@ class Colors:
     BOLD = '\033[1m'
 
 class CacaoServer:
-    def __init__(self, host: str = "localhost", http_port: int = 1634, ws_port: int = 1633, verbose: bool = True):
+    def __init__(self, host: str = "localhost", http_port: int = 1634, ws_port: int = 1633, 
+                 verbose: bool = True, enable_pwa: bool = False, 
+                 persist_sessions: bool = True, session_storage: str = "memory"):
         self.host = host
         self.http_port = http_port
         self.ws_port = ws_port
+        self.verbose = verbose
+        self.enable_pwa = enable_pwa
+        
+        # Initialize PWA support if enabled
+        self.pwa = PWASupport() if enable_pwa else None
+        
+        # Initialize session management
+        self.session_manager = SessionManager(
+            storage_type=session_storage,
+            persist_on_refresh=persist_sessions
+        )
+        
         self.websocket_clients: Set[websockets.WebSocketServerProtocol] = set()
         self.file_watcher_task = None
-        self.verbose = verbose
         self.route_cache = {}
         self.last_reload_time = 0
         self.version_counter = 0
@@ -76,17 +91,36 @@ class CacaoServer:
         print(formatted_message)
 
     async def _handle_websocket(self, websocket: websockets.WebSocketServerProtocol):
-        """Handle WebSocket connections and messages."""
+        """Handle WebSocket connections and messages with session support."""
         self._log(f"Client connected", "info", "🌟")
         
+        # Create or restore session
+        session_id = None
+        if hasattr(websocket, "request_headers"):
+            cookies = websocket.request_headers.get("cookie", "")
+            session_id = self._extract_session_id(cookies)
+            
+        if not session_id:
+            session_id = self.session_manager.create_session()
+            
+        # Store session ID with websocket
+        websocket.session_id = session_id
         self.websocket_clients.add(websocket)
+        
         try:
+            # Get session state
+            session = self.session_manager.get_session(session_id)
+            if session and session.get("state"):
+                # Restore state from session
+                self.state.update(session["state"])
+            
             # Send initial state to new client
             await websocket.send(json.dumps({
                 "type": "ui_update",
                 "force": True,
                 "version": self.version_counter,
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                "session_id": session_id
             }))
             
             async for message in websocket:
@@ -99,6 +133,13 @@ class CacaoServer:
                             "force": True,
                             "version": self.version_counter
                         }))
+                    
+                    # Update session state after any state changes
+                    if hasattr(websocket, "session_id"):
+                        self.session_manager.update_session_state(
+                            websocket.session_id,
+                            self.state
+                        )
                 except Exception as e:
                     self._log(f"Error processing WebSocket message: {str(e)}", "error", "❌")
         except websockets.exceptions.ConnectionClosed:
@@ -107,6 +148,19 @@ class CacaoServer:
             self._log(f"WebSocket error: {str(e)}", "error", "❌")
         finally:
             self.websocket_clients.remove(websocket)
+
+    def _extract_session_id(self, cookies: str) -> Optional[str]:
+        """Extract session ID from cookies string."""
+        if not cookies:
+            return None
+            
+        cookie_pairs = cookies.split(";")
+        for pair in cookie_pairs:
+            if "=" in pair:
+                name, value = pair.strip().split("=", 1)
+                if name == "cacao_session":
+                    return value
+        return None
 
     async def broadcast(self, message: str) -> None:
         """Broadcast a message to all connected WebSocket clients."""
@@ -172,7 +226,7 @@ class CacaoServer:
             self.file_watcher_task = asyncio.create_task(self._watch_files())
 
     async def _handle_http(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        """Handle HTTP requests with robust error handling."""
+        """Handle HTTP requests with session and PWA support."""
         try:
             # Set a timeout for reading the request
             try:
@@ -223,21 +277,38 @@ class CacaoServer:
                 if len(header_parts) == 2:
                     headers[header_parts[0].strip().lower()] = header_parts[1].strip()
 
+            # Handle PWA routes if enabled
+            if self.enable_pwa:
+                if path == "/manifest.json":
+                    return await self._serve_manifest(writer)
+                elif path == "/service-worker.js":
+                    return await self._serve_service_worker(writer)
+                elif path == "/offline.html":
+                    return await self._serve_offline_page(writer)
+            
+            # Handle session cookie
+            session_id = None
+            if "cookie" in headers:
+                session_id = self._extract_session_id(headers["cookie"])
+                
+            if not session_id:
+                session_id = self.session_manager.create_session()
+            
             # Serve static files
             if path.startswith("/static/"):
                 return await self._serve_static_file(path, writer)
-
+            
             # Handle actions via GET request
             if path == "/api/action":
-                return await self._handle_action(query_params, writer)
-
+                return await self._handle_action(query_params, writer, session_id)
+            
             # Serve UI definition
             if path == "/api/ui":
-                return await self._serve_ui_definition(query_params, writer)
-
+                return await self._serve_ui_definition(query_params, writer, session_id)
+            
             # Serve HTML template
             if "accept" in headers and "text/html" in headers["accept"]:
-                return await self._serve_html_template(writer)
+                return await self._serve_html_template(writer, session_id)
 
             # Fallback 404
             writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
@@ -290,8 +361,8 @@ class CacaoServer:
             writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
             await writer.drain()
 
-    async def _handle_action(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter) -> None:
-        """Handle actions via GET request with query parameters."""
+    async def _handle_action(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
+        """Handle actions via GET request with session support."""
         try:
             action = query_params.get('action', [''])[0]
             component_type = query_params.get('component_type', ['unknown'])[0]
@@ -310,6 +381,10 @@ class CacaoServer:
             else:
                 self._log(f"Unknown action or component type: {action} / {component_type}", "warning", "⚠️")
             
+            # Update session state after action
+            if session_id:
+                self.session_manager.update_session_state(session_id, self.state)
+            
             # Send success response
             response_data = json.dumps({
                 "success": True,
@@ -321,6 +396,7 @@ class CacaoServer:
             response = (
                 "HTTP/1.1 200 OK\r\n"
                 "Content-Type: application/json\r\n"
+                f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
                 f"Content-Length: {len(response_data)}\r\n"
                 "\r\n"
                 f"{response_data}"
@@ -348,7 +424,7 @@ class CacaoServer:
             writer.write(response.encode())
             await writer.drain()
 
-    async def _serve_ui_definition(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter) -> None:
+    async def _serve_ui_definition(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
         """Serve the UI definition with version tracking."""
         try:
             # Force reload if requested
@@ -392,6 +468,7 @@ class CacaoServer:
                 "Cache-Control: no-cache, no-store, must-revalidate\r\n"
                 "Pragma: no-cache\r\n"
                 "Expires: 0\r\n"
+                f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
                 f"Content-Length: {len(json_body)}\r\n"
                 "\r\n"
                 f"{json_body}"
@@ -408,23 +485,116 @@ class CacaoServer:
             self._log(f"UI error: {str(e)}", "error", "❌")
             await writer.drain()
 
-    async def _serve_html_template(self, writer: asyncio.StreamWriter) -> None:
-        """Serve the main HTML template."""
+    async def _serve_html_template(self, writer: asyncio.StreamWriter, session_id: str) -> None:
+        """Serve the main HTML template with PWA and session support."""
         index_path = os.path.join(os.getcwd(), "cacao", "core", "static", "index.html")
         try:
-            with open(index_path, "rb") as f:
+            with open(index_path, "r") as f:
                 content = f.read()
+                
+            # Add PWA meta tags if enabled
+            if self.enable_pwa:
+                pwa_meta = """
+                    <link rel="manifest" href="/manifest.json">
+                    <meta name="theme-color" content="#6B4226">
+                    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+                """
+                content = content.replace("</head>", f"{pwa_meta}</head>")
+                
+                # Add service worker registration
+                sw_script = """
+                    <script>
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.register('/service-worker.js')
+                                .then(registration => console.log('ServiceWorker registered'))
+                                .catch(err => console.error('ServiceWorker registration failed:', err));
+                        }
+                    </script>
+                """
+                content = content.replace("</body>", f"{sw_script}</body>")
+            
             response = (
                 f"HTTP/1.1 200 OK\r\n"
                 f"Content-Type: text/html\r\n"
+                f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
                 f"Content-Length: {len(content)}\r\n"
                 "\r\n"
-            ).encode("utf-8") + content
-            writer.write(response)
+                f"{content}"
+            )
+            writer.write(response.encode())
             await writer.drain()
         except FileNotFoundError:
             writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
             await writer.drain()
+
+    async def _serve_manifest(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the PWA manifest.json file."""
+        if not self.pwa:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        manifest = self.pwa.generate_manifest()
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            f"Content-Length: {len(manifest)}\r\n"
+            "\r\n"
+            f"{manifest}"
+        )
+        writer.write(response.encode())
+        await writer.drain()
+
+    async def _serve_service_worker(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the PWA service worker script."""
+        if not self.pwa:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        sw_code = self.pwa.generate_service_worker()
+        if not sw_code:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/javascript\r\n"
+            f"Content-Length: {len(sw_code)}\r\n"
+            "\r\n"
+            f"{sw_code}"
+        )
+        writer.write(response.encode())
+        await writer.drain()
+
+    async def _serve_offline_page(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the offline fallback page."""
+        offline_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Offline - Cacao App</title>
+            <style>
+                body { font-family: sans-serif; text-align: center; padding: 40px; }
+                h1 { color: #6B4226; }
+            </style>
+        </head>
+        <body>
+            <h1>You are offline</h1>
+            <p>Please check your internet connection to continue using this application.</p>
+        </body>
+        </html>
+        """
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n"
+            f"Content-Length: {len(offline_html)}\r\n"
+            "\r\n"
+            f"{offline_html}"
+        )
+        writer.write(response.encode())
+        await writer.drain()
 
     async def _run_servers(self):
         """Start and run all server components."""

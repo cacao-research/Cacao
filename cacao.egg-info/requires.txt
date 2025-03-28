@@ -1,4 +1,0 @@
-websockets
-asyncio
-watchfiles
-colorama
