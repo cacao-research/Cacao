@@ -2,7 +2,7 @@
 Cacao - A high-performance, reactive web framework for Python
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from .core import (
     mix,
