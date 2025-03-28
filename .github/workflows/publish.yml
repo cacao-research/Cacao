@@ -46,17 +46,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION
-          git commit -m "Version to v${{ steps.bump_version.outputs.new_version }} [skip ci]"
+          git commit -m "📦 Version to v${{ steps.bump_version.outputs.new_version }} [skip ci]"
           git push origin main
 
       ### Step 4: Update setup.py with the New Version ###
-      - name: Update setup.py Version
+      - name: Update Version Files
         run: |
           NEW_VERSION=${{ steps.bump_version.outputs.new_version }}
           # Update the version in setup.py
           sed -i "s/version=['\"][^'\"]*['\"],/version='${NEW_VERSION}',/" setup.py
-          git add setup.py
-          git commit -m "Update setup.py to version ${NEW_VERSION} [skip ci]" || echo "No changes to commit"
+          # Update the version in __init__.py
+          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"${NEW_VERSION}\"/" cacao/__init__.py
+          
+          # Add changes to git
+          git add setup.py cacao/__init__.py
+          git commit -m "📦 Update versions to ${NEW_VERSION} [skip ci]" || echo "No changes to commit"
           git push origin main
 
       ### Step 6: Create GitHub Release ###

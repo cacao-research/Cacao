@@ -1,14 +1,22 @@
 from setuptools import setup, find_packages
+import pathlib
+
+# Get the directory containing this file
+HERE = pathlib.Path(__file__).parent
+
+# Read the README file
+long_description = (HERE / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="cacao",
-    version='0.0.1',
+    version="1.0.1",
     description="Cacao is a high-performance, reactive web framework for Python, designed to simplify building interactive dashboards and data apps.",
-    long_description=open("README.md", encoding="utf-8").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     author="Juan Denis",
     author_email="Juan@vene.co",
     python_requires=">=3.7",
+    url="https://github.com/jhd3197/Cacao",
     license="MIT",
     classifiers=[
         "Programming Language :: Python :: 3",
