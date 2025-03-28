@@ -10,7 +10,6 @@ import json
 import os
 import sys
 import time
-import websockets
 import watchfiles
 import colorama
 import importlib
@@ -21,6 +20,12 @@ from typing import Any, Dict, Callable, Set, Optional
 from urllib.parse import parse_qs, urlparse
 from .session import SessionManager
 from .pwa import PWASupport
+
+from .. import __version__
+
+# Using standard websockets import for version 15.0.1
+import websockets
+from websockets.server import serve
 
 # Initialize colorama for Windows support
 colorama.init()
@@ -53,7 +58,7 @@ class CacaoServer:
             persist_on_refresh=persist_sessions
         )
         
-        self.websocket_clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.websocket_clients: Set = set()  # Remove type annotation to avoid reference issue
         self.file_watcher_task = None
         self.route_cache = {}
         self.last_reload_time = 0
@@ -69,7 +74,8 @@ class CacaoServer:
     def _print_banner(self):
         banner = f"""
 {Colors.YELLOW}
-🍫 Starting Cacao Server 🍫
+🍫  Starting Cacao Server v{__version__}  🍫
+
 ---------------------------
 🌐 HTTP Server: http://{self.host}:{self.http_port}
 🔌 WebSocket Server: ws://{self.host}:{self.ws_port}
@@ -90,7 +96,7 @@ class CacaoServer:
         formatted_message = f"{color}{timestamp} {emoji} {message}{Colors.ENDC}"
         print(formatted_message)
 
-    async def _handle_websocket(self, websocket: websockets.WebSocketServerProtocol):
+    async def _handle_websocket(self, websocket):
         """Handle WebSocket connections and messages with session support."""
         self._log(f"Client connected", "info", "🌟")
         
@@ -600,8 +606,8 @@ class CacaoServer:
         """Start and run all server components."""
         self._print_banner()
         
-        # Start WebSocket server
-        ws_server = await websockets.serve(
+        # Start WebSocket server using the newer API
+        ws_server = await serve(
             self._handle_websocket,
             self.host,
             self.ws_port

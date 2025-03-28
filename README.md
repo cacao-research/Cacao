@@ -349,6 +349,85 @@ run_desktop(
 - **Automatic Server**: Built-in Cacao server runs in the background
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 
+## 🧪 Testing Framework
+
+Cacao includes a comprehensive testing framework built on pytest, making it easy to validate your application's behavior:
+
+```python
+# Run all tests with the test manager
+python test.py
+
+# Run specific test files
+python test.py test/test_state.py test/test_server.py
+
+# Run tests matching a pattern
+python test.py -k "component"
+```
+
+### Test Organization
+
+Tests are organized by subsystem for clear separation of concerns:
+
+- **`test_components.py`**: Component creation and rendering
+- **`test_integration.py`**: Component and state integration
+- **`test_plugins.py`**: Plugin system functionality
+- **`test_pwa.py`**: Progressive Web App features
+- **`test_server.py`**: HTTP and WebSocket server
+- **`test_session.py`**: Session management and persistence
+- **`test_state.py`**: Reactive state management
+- **`test_ui_components.py`**: UI component system
+
+### Writing Tests
+
+Cacao follows the Arrange-Act-Assert pattern for clear, readable tests:
+
+```python
+def test_state_reactivity():
+    # Arrange
+    counter = State(0)
+    
+    # Act
+    counter.set(5)
+    
+    # Assert
+    assert counter.value == 5
+
+def test_component_rendering():
+    # Arrange
+    button = Button(label="Click me")
+    
+    # Act
+    rendered = button.render()
+    
+    # Assert
+    assert rendered["type"] == "button"
+    assert rendered["props"]["label"] == "Click me"
+```
+
+### Test Fixtures
+
+The testing framework provides useful fixtures to simplify testing:
+
+```python
+@pytest.fixture
+def test_state():
+    """Fixture for creating a test state instance"""
+    return State(initial_value=0)
+
+@pytest.fixture
+def test_component():
+    """Fixture for creating a basic test component"""
+    class TestComponent(Component):
+        def render(self):
+            return {
+                "type": "div",
+                "props": {"content": "Test Component"}
+            }
+    return TestComponent()
+```
+
+Use the test runner to automatically discover and execute tests while suppressing warnings and providing clear output.
+
 ## ❓ Troubleshooting
 
 If hot reload isn't working:
