@@ -1,3 +1,5 @@
+![image](https://github.com/user-attachments/assets/830a00ca-7948-42ff-9196-adb58357c536)
+
 # 🍫 Cacao
 
 Cacao is a modern, high-performance web framework for building reactive Python apps with real-time capabilities. Designed for developers who want full control without sacrificing simplicity, Cacao blends a clean decorator-based API with a powerful component and state management system — all backed by JSON-defined UIs and WebSocket-driven live updates.
