@@ -2,60 +2,71 @@
 
 ## Emoji System
 
-### Mapped Categories (Preferred)
-**Core Framework**
-🍫 `:chocolate_bar:` - Foundational/structural changes  
-🛠️ `:tools:` - Architectural refactoring  
-⚙️ `:gear:` - Configuration changes  
+### Core Categories (Primary)
+**Framework & Features**
+🍫 `:chocolate_bar:` - Core framework changes and major updates
+🍪 `:cookie:` - Frontend/Performance improvements
+🍯 `:honey_pot:` - Deployment and configuration changes
+🎯 `:dart:` - Hitting targets, meeting goals
+🚀 `:rocket:` - Major feature launches
+⚡ `:zap:` - Performance improvements
 
-**Features**
-🚀 `:rocket:` - New feature implementation  
-🎁 `:gift:` - Feature enhancements  
-🔧 `:wrench:` - Bug fixes  
+**Development & Infrastructure**
+🌱 `:seedling:` - Documentation and README updates
+☕ `:coffee:` - Development tooling and infrastructure
+🫘 `:beans:` - Frontend completion milestones
+🆕 `:new:` - New features or major additions
+🔧 `:wrench:` - Configuration changes
+🔨 `:hammer:` - Development tools
+🛠️ `:hammer_and_wrench:` - Fixes and improvements
 
-**Infrastructure**
-📦 `:package:` - Dependency updates  
-🏗️ `:building_construction:` - Build system changes  
-🧪 `:test_tube:` - Experimental features  
+**Code Quality**
+✨ `:sparkles:` - New features or enhancements
+🧹 `:broom:` - Code cleanup/refactoring
+🎨 `:art:` - Improving code structure/format
+🔍 `:magnifying_glass:` - Code review changes
+🐛 `:bug:` - Bug fixes
+🧪 `:test_tube:` - Testing improvements
 
-**UI/UX**
-🎨 `:artist:` - Visual/styling changes  
-💄 `:lipstick:` - UI polish/minor tweaks  
-🖥️ `:desktop:` - Desktop mode changes  
+**Documentation & UI**
+📚 `:books:` - Documentation updates
+💄 `:lipstick:` - UI and style improvements
+🎭 `:performing_arts:` - UI/UX enhancements
+💡 `:bulb:` - New ideas, creative solutions
+📝 `:memo:` - Writing docs or comments
 
-**Data**
-💾 `:floppy_disk:` - Data persistence  
-📊 `:chart:` - Analytics/metrics  
-🔐 `:lock:` - Security-related changes  
-
-### General Purpose List
-✨ `:sparkles:` - Minor improvements/cleanup  
-📚 `:books:` - Documentation updates  
-🚧 `:construction:` - Work in progress  
-✅ `:white_check_mark:` - Test additions  
-⏩ `:fast_forward:` - Performance optimizations  
-🔖 `:bookmark:` - Version tagging  
-🧹 `:broom:` - Code cleanup/refactoring  
-🌐 `:globe:` - Localization/internationalization  
-🤖 `:robot:` - Automation scripts  
+**Special Cases**
+🔒 `:lock:` - Security improvements
+🌐 `:globe_with_meridians:` - Internationalization/localization
+📊 `:bar_chart:` - Analytics and data
+🚧 `:construction:` - Work in progress
+🔖 `:bookmark:` - Version tags/releases
+🤖 `:robot:` - Automation updates
+♻️ `:recycle:` - Code refactoring
+⚙️ `:gear:` - Configuration changes
 
 ### Usage Guidelines
-1. **Primary Category**: Use mapped emojis when they clearly apply  
-2. **Secondary Impact**: Add 1 general-purpose emoji if relevant   
-4. **Fallback**: Use general list if no mapped category fits  
-5. **Validation**: Check against previous 10 commits for consistency  
+1. **Core Framework**: Use food-themed emojis (🍫, 🍪, 🍯) for significant framework changes
+2. **Documentation**: Use 🌱 for documentation and README updates
+3. **Development**: Use ☕ for development infrastructure
+4. **Frontend**: Use 🫘 for frontend milestones
+5. **Features**: Use ✨ or 🚀 for new features based on size
+6. **Fixes**: Use 🐛 for bugs, 🔧 for configuration
+7. **Code Quality**: Use 🧹 or ♻️ for refactoring
+8. **UI/UX**: Use 💄 or 🎭 for visual changes
+9. **Security**: Always use 🔒 for security-related commits
+10. **Testing**: Use 🧪 for test-related changes
 
-## Example Output
-**User:** "Commit for adding theme system and documentation"  
-**Assistant:**  
+## Example Commits
 ```
-📚 Implement theme engine + styleguide docs  
-🔖 Theme system v1 + documentation foundation  
-🌐 Add theme localization support  
-🛠️ Refactor theme subsystem architecture  
-💄 Polish theme selector UI component  
-📦 Update theme dependency packages  
-🧪 Experimental dark mode implementation  
-📊 Add theme usage metrics tracking  
-🔧 Fix theme cascade priority bug  
-✨ Minor theme system improvements
+🍫 Add new core framework feature
+🚀 Launch major platform update
+✨ Add user authentication system
+🔧 Update configuration settings
+🌱 Improve API documentation
+☕ Upgrade development dependencies
+🐛 Fix user login issue
+💄 Update component styling
+🔒 Implement security patches
+📊 Add analytics tracking
+```
