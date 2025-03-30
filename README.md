@@ -2,9 +2,14 @@
 
 # 🍫 Cacao
 
+## Description
+
 Cacao is a modern, high-performance web framework for building reactive Python apps with real-time capabilities. Designed for developers who want full control without sacrificing simplicity, Cacao blends a clean decorator-based API with a powerful component and state management system — all backed by JSON-defined UIs and WebSocket-driven live updates.
 
 Whether you're creating dashboards, internal tools, or interactive data apps, Cacao offers a fully Pythonic development experience with robust features like hot reload, real-time communication, and seamless frontend-backend integration.
+
+> **⚠️ Warning:** Cacao is currently in early development. Features and APIs are subject to change, and breaking changes may occur in future updates. Use with caution in production environments.
+
 
 ## 🏗️ Architecture
 
@@ -17,6 +22,7 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **Progressive Web App (PWA)**: Built-in PWA capabilities with offline support
 - **Session Management**: Persistent session state across page refreshes
 - **Desktop Application Mode**: Run Cacao apps as native desktop applications
+- **Hybrid Mode Support**: Run the same codebase in both web and desktop environments
 
 ### Extensions
 - **Authentication**: Built-in auth system with multiple provider support
@@ -37,6 +43,7 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **PWA Support**: Make your app installable with offline capabilities
 - **Session Persistence**: Maintain state across page refreshes
 - **Desktop Mode**: Run as a standalone desktop application
+- **Hybrid Mode**: Switch between web and desktop modes with the same codebase
 
 ## 🧩 Component State Management
 
@@ -150,35 +157,50 @@ Define your UI using Python dictionaries with automatic hot reload:
 
 ```python
 from cacao import mix, State, Component
+from typing import Dict, Any, Optional
 
 # Define a reactive state
-counter = State(0)
+counter_state = State(0)
 
 # Create a reusable component
 class Counter(Component):
-    def render(self):
+    def __init__(self):
+        """Initialize the counter component."""
+        super().__init__()
+    
+    def render(self, ui_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Render the counter component."""
         return {
             "type": "section",
             "props": {
                 "children": [
                     {
                         "type": "text",
-                        "props": {"content": f"Count: {counter.value}"}
+                        "props": {"content": f"Count: {counter_state.value}"}
                     },
                     {
                         "type": "button",
                         "props": {
                             "label": "Increment",
-                            "onClick": lambda: counter.set(counter.value + 1)
+                            "action": "increment_counter"
                         }
                     }
                 ]
             }
         }
 
+# Register event handler
+@mix.event("increment_counter")
+async def handle_increment(event: Dict[str, Any]) -> None:
+    """Handle counter increment action."""
+    counter_state.update(counter_state.value + 1)
+
 # Define a route
 @mix("/")
-def home():
+def home() -> Dict[str, Any]:
+    """Main page handler."""
+    counter = Counter()
+    
     return {
         "layout": "column",
         "children": [
@@ -192,7 +214,7 @@ def home():
                     ]
                 }
             },
-            Counter(),  # Use the custom component
+            counter.render(),  # Use the custom component
             {
                 "type": "footer",
                 "props": {"text": "© 2025 Cacao Framework"}
@@ -223,18 +245,27 @@ If you need to force a refresh, you can:
 Cacao provides a flexible, component-aware state management system:
 
 ```python
+from cacao import State
+from datetime import datetime
+
 # Create separate states for different components
 counter_state = State(0)
 timestamp_state = State(datetime.now())
 
-# Component-specific state updates
-@counter_state.subscribe
-def on_counter_change(new_value):
-    print(f"Counter changed to: {new_value}")
+# Update state values
+counter_state.update(5)
+timestamp_state.update(datetime.now())
 
-@timestamp_state.subscribe
-def on_timestamp_change(new_value):
-    print(f"Timestamp updated to: {new_value}")
+# Component-specific state updates via event handlers
+@mix.event("increment_counter")
+async def handle_increment(event):
+    counter_state.update(counter_state.value + 1)
+    print(f"Counter changed to: {counter_state.value}")
+
+@mix.event("refresh_timestamp")
+async def handle_refresh(event):
+    timestamp_state.update(datetime.now())
+    print(f"Timestamp updated to: {timestamp_state.value}")
 ```
 
 ## 🧱 Component System
@@ -243,19 +274,41 @@ Create reusable components with the Component base class:
 
 ```python
 from cacao import Component
+from typing import Dict, Any, Optional
 
 class MyComponent(Component):
     def __init__(self, title: str):
+        """Initialize the component with a title."""
+        super().__init__()
         self.title = title
+        self.component_type = "my-component"  # Unique component type for state isolation
     
-    def render(self):
+    def render(self, ui_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Render the component.
+        
+        Args:
+            ui_state: Optional state from the UI definition
+            
+        Returns:
+            JSON UI definition for the component
+        """
         return {
             "type": "section",
+            "component_type": self.component_type,  # Include component type in output
             "props": {
                 "children": [
                     {
                         "type": "text",
                         "props": {"content": self.title}
+                    },
+                    {
+                        "type": "button",
+                        "props": {
+                            "label": "Click Me",
+                            "action": "component_action",
+                            "params": {"component_id": id(self)}  # Pass component ID in action
+                        }
                     }
                 ]
             }
@@ -344,12 +397,82 @@ run_desktop(
 )
 ```
 
+### Hybrid Mode Applications
+
+Cacao supports creating applications that can run in both web browser and desktop modes using the same codebase. This hybrid approach allows you to develop once and deploy in multiple environments:
+
+```python
+if __name__ == "__main__":
+    import argparse
+    
+    # Set up command line argument parsing
+    parser = argparse.ArgumentParser(description="Cacao Hybrid App")
+    parser.add_argument("--mode", choices=["web", "desktop"], default="web",
+                       help="Run mode: 'web' for browser or 'desktop' for PWA window")
+    parser.add_argument("--width", type=int, default=800, help="Window width (desktop mode only)")
+    parser.add_argument("--height", type=int, default=600, help="Window height (desktop mode only)")
+    
+    args = parser.parse_args()
+    
+    # Common port configuration for both modes
+    http_port = 1644
+    ws_port = 1643
+    
+    if args.mode == "web":
+        print(f"* Running in web browser mode on http://localhost:{http_port}")
+        app.brew(http_port=http_port, ws_port=ws_port)
+    else:
+        print("* Running in desktop application mode")
+        from cacao import run_desktop
+        
+        # Launch as desktop application
+        run_desktop(
+            title="My Hybrid App",
+            width=args.width,
+            height=args.height,
+            resizable=True,
+            fullscreen=False,
+            http_port=http_port,
+            ws_port=ws_port
+        )
+```
+
+Run the application in different modes:
+
+```bash
+# Run in web browser mode (default)
+python my_app.py
+
+# Run in desktop mode
+python my_app.py --mode desktop
+
+# Run in desktop mode with custom dimensions
+python my_app.py --mode desktop --width 1200 --height 800
+```
+
+This approach ensures consistent behavior across both modes while giving users the flexibility to choose the mode that best suits their needs.
+
 ### Desktop Features
 
 - **Native Window**: Runs in a native OS window without browser UI
 - **Window Controls**: Customize window size, title, and behavior
 - **Automatic Server**: Built-in Cacao server runs in the background
 - **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Hybrid Support**: Same codebase can run in both web and desktop modes
+
+### Example Implementation
+
+Check out the `examples/sidebar_layout_example.py` for a practical implementation of hybrid mode:
+
+```bash
+# Run in web browser mode
+python examples/sidebar_layout_example.py
+
+# Run in desktop mode
+python examples/sidebar_layout_example.py --mode desktop
+```
+
+This example demonstrates how to create a multi-page application using the SidebarLayout component that can run in either web or desktop mode with identical functionality.
 
 ## 🧪 Testing Framework
 
@@ -429,6 +552,12 @@ def test_component():
 ```
 
 Use the test runner to automatically discover and execute tests while suppressing warnings and providing clear output.
+
+## 📸 Screenshots
+
+<img width="934" alt="image" src="https://github.com/user-attachments/assets/2eea610d-de88-4e84-a087-2664e27c41af" />
+
+<img width="1031" alt="image" src="https://github.com/user-attachments/assets/4fc70af2-ea14-4904-a71f-388b78955a10" />
 
 ## ❓ Troubleshooting
 

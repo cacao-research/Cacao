@@ -28,6 +28,7 @@ def serve_command(args: List[str]) -> None:
     parser.add_argument("--host", default="localhost", help="Host to bind the server to")
     parser.add_argument("--port", type=int, default=1634, help="Port for the HTTP server")
     parser.add_argument("--ws-port", type=int, default=1633, help="Port for the WebSocket server")
+    parser.add_argument("--pwa", action="store_true", help="Enable Progressive Web App mode")
     
     parsed_args = parser.parse_args(args)
     
@@ -37,7 +38,8 @@ def serve_command(args: List[str]) -> None:
             host=parsed_args.host,
             http_port=parsed_args.port,
             ws_port=parsed_args.ws_port,
-            verbose=parsed_args.verbose
+            verbose=parsed_args.verbose,
+            enable_pwa=parsed_args.pwa
         )
         print(f"Starting Cacao development server...")
         server.run()

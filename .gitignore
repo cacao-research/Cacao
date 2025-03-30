@@ -171,3 +171,4 @@ cython_debug/
 .pypirc
 node_modules/
 /.vscode
+RESEARCH/

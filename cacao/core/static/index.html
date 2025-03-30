@@ -20,7 +20,7 @@
   </div>
   
   <!-- Manual refresh button -->
-  <button class="manual-refresh" title="Force Refresh (Ctrl+R)" onclick="window.CacaoWS.requestServerRefresh()">↻</button>
+  <button class="manual-refresh" title="Force Refresh (Ctrl+R)" onclick="window.CacaoWS.requestServerRefresh()">Refresh</button>
   
   <script src="/static/js/websocket.js"></script>
   <script src="/static/js/cacao-core.js"></script>
@@ -28,41 +28,104 @@
     // Debug flag to show console logs
     window.CACAO_DEBUG = true;
     
-4    // Initialize WebSocket connection
-    window.CacaoWS.connect(`ws://${window.location.hostname}:1633`);
-
-    // Fetch the UI definition from the API endpoint and render it.
-    fetch('/api/ui?_=' + new Date().getTime(), {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    // Function to sync hash state with the server
+    async function syncHashState() {
+        const page = window.location.hash.slice(1) || '';
+        if (!page) {
+            console.log("[Cacao] Empty hash, skipping sync");
+            return;
         }
-        return response.json();
-      })
-      .then(data => {
-         if(window.CACAO_DEBUG) {
-           console.log("[Cacao] Initial UI data:", data);
-         }
-         
-         if(window.CacaoCore && typeof window.CacaoCore.render === "function") {
-           window.CacaoCore.render(data);
-           console.log("[Cacao] Initial render complete");
-         } else {
-           document.getElementById('app').innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
-           console.error("[Cacao] CacaoCore not available");
-         }
-      })
-      .catch(err => {
-         document.getElementById('app').innerHTML = "<p>Error loading UI.</p>";
-         console.error("[Cacao] Failed to load UI:", err);
-      });
+        
+        try {
+            console.log("[Cacao] Syncing hash state:", page);
+            
+            // Show the refresh overlay
+            document.querySelector('.refresh-overlay').classList.add('active');
+            
+            const response = await fetch(`/api/action?action=set_state&component_type=current_page&value=${page}&_hash=${page}&t=${Date.now()}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache', 
+                    'Expires': '0'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("[Cacao] State updated from hash:", data);
+            
+            // Force UI refresh after state update
+            if (window.CacaoWS) {
+                window.CacaoWS.requestServerRefresh();
+            }
+        } catch (err) {
+            console.error('[Cacao] Error syncing hash state:', err);
+            document.querySelector('.refresh-overlay').classList.remove('active');
+        }
+    }
+    
+    // Initialize WebSocket connection
+    // Get WebSocket port from URL query parameters or meta tag
+    const urlParams = new URLSearchParams(window.location.search);
+    const metaPort = document.querySelector('meta[name="ws-port"]')?.content;
+    const wsPort = urlParams.get('ws_port') || metaPort || '1633';
+    
+    // Make sure CacaoWS is defined before calling connect
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.CacaoWS && typeof window.CacaoWS.connect === 'function') {
+            console.log("[Cacao] Initializing WebSocket connection to port:", wsPort);
+            window.CacaoWS.connect(`ws://${window.location.hostname}:${wsPort}`);
+        } else {
+            console.error("[Cacao] CacaoWS.connect is not available");
+        }
+    });
+
+    // Function to initialize the app
+    async function initializeApp() {
+        // First sync the hash state if there is one
+        if (window.location.hash) {
+            await syncHashState();
+        }
+
+        // Then fetch the UI definition
+        try {
+            const response = await fetch('/api/ui?_=' + new Date().getTime(), {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if(window.CACAO_DEBUG) {
+                console.log("[Cacao] Initial UI data:", data);
+            }
+            
+            if(window.CacaoCore && typeof window.CacaoCore.render === "function") {
+                window.CacaoCore.render(data);
+                console.log("[Cacao] Initial render complete");
+            } else {
+                document.getElementById('app').innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+                console.error("[Cacao] CacaoCore not available");
+            }
+        } catch (err) {
+            document.getElementById('app').innerHTML = "<p>Error loading UI.</p>";
+            console.error("[Cacao] Failed to load UI:", err);
+        }
+    }
+
+    // Initialize the app
+    initializeApp();
   </script>
 </body>
 </html>
