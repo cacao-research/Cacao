@@ -6,12 +6,16 @@ Provides components for creating a layout with a left navigation sidebar.
 from typing import List, Dict, Any, Optional
 from .base import Component
 from ...core.state import State, get_state
+from ...core.mixins.logging import LoggingMixin
+
+# Debug flag for SidebarLayout component
+SIDEBAR_DEBUG = False
 
 # Use named global states for proper state synchronization
 current_page_state = get_state("current_page", "home")
 sidebar_expanded_state = get_state("sidebar_expanded", True)
 
-class SidebarLayout(Component):
+class SidebarLayout(Component, LoggingMixin):
     def __init__(self, nav_items: List[Dict[str, str]], content_components: Dict[str, Any], 
                  app_title: str = "Cacao App") -> None:
         """Initialize sidebar layout with navigation items and content components.
@@ -72,8 +76,9 @@ class SidebarLayout(Component):
             except (ImportError, RuntimeError):
                 pass
                 
-            # Log the page change
-            print(f"[SidebarLayout] Page changed to: {new_page}")
+            # Log the page change if debug is enabled
+            if SIDEBAR_DEBUG:
+                self.log(f"Page changed to: {new_page}", "info", "🔄")
 
     def _handle_sidebar_expand(self, expanded: bool) -> None:
         """Handle sidebar expand/collapse changes."""
@@ -109,7 +114,9 @@ class SidebarLayout(Component):
             current_page = self.nav_items_data[0]["id"] if self.nav_items_data else "home"
             current_page_state.set(current_page)
         
-        print(f"[SidebarLayout] Rendering with current_page: {current_page}")
+        # Log rendering information if debug is enabled
+        if SIDEBAR_DEBUG:
+            self.log(f"Rendering with current_page: {current_page}", "debug", "🎯")
 
         # Create nav items
         nav_items = []
@@ -312,7 +319,8 @@ class NavItem(Component):
                 "onClick": {
                     "action": "set_state",
                     "state": "current_page",
-                    "value": self.id
+                    "value": self.id,
+                    "immediate": True  # Signal that this state change should be applied immediately
                 }
             }
         }

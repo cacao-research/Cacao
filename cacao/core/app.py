@@ -3,9 +3,12 @@ Application module for Cacao framework.
 Provides a simplified API for creating web applications.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from .server import CacaoServer
-from .decorators import ROUTES, mix
+from .decorators import ROUTES, mix, register_event_handler
+
+# Add a module-level variable to store the ASCII debug setting
+ASCII_DEBUG_MODE = False
 
 class App:
     """
@@ -34,12 +37,52 @@ class App:
         """
         return mix(path)
         
-    def brew(self, host: str = "localhost", http_port: int = 1634, ws_port: int = 1633):
+    def event(self, event_name: str) -> Callable:
         """
-        Start the application server.
+        Decorator for registering event handlers.
+        
+        Args:
+            event_name: Name of the event to handle
+            
+        Returns:
+            Callable: Decorator function
+            
+        Usage:
+            @app.event("button_click")
+            def handle_click(event_data):
+                # Handle the event
+                pass
+        """
+        def decorator(func: Callable) -> Callable:
+            register_event_handler(event_name, func)
+            return func
+        return decorator
+        
+    def brew(self, type: str = "web", host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
+             title: str = "Cacao App", width: int = 800, height: int = 600,
+             resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False):
+        """
+        Start the application in web or desktop mode.
         Like brewing a delicious cup of hot chocolate!
+        
+        Args:
+            type: Application type, either "web" or "desktop"
+            host: Host address to bind the server to
+            http_port: Port number for the HTTP server
+            ws_port: Port number for the WebSocket server
+            title: Window title (desktop mode only)
+            width: Window width in pixels (desktop mode only)
+            height: Window height in pixels (desktop mode only)
+            resizable: Whether window can be resized (desktop mode only)
+            fullscreen: Whether to start in fullscreen mode (desktop mode only)
+            ASCII_debug: If True, disables emojis in logs for better compatibility
         """
+        # Set the global ASCII debug mode
+        global ASCII_DEBUG_MODE
+        ASCII_DEBUG_MODE = ASCII_debug
+        
         import inspect
+        
         frame = inspect.currentframe()
         while frame:
             if frame.f_code.co_name == '<module>':
@@ -51,10 +94,28 @@ class App:
             
         main_file = frame.f_code.co_filename
         
-        self.server = CacaoServer(
-            host=host,
-            http_port=http_port,
-            ws_port=ws_port,
-            main_file=main_file
-        )
-        self.server.run()
+        if type.lower() == "web":
+            # Start as web application
+            self.server = CacaoServer(
+                host=host,
+                http_port=http_port,
+                ws_port=ws_port,
+                main_file=main_file
+            )
+            self.server.run()
+        elif type.lower() == "desktop":
+            # Start as desktop application
+            from ..desktop import CacaoDesktopApp
+            app = CacaoDesktopApp(
+                title=title,
+                width=width,
+                height=height,
+                resizable=resizable,
+                fullscreen=fullscreen,
+                http_port=http_port,
+                ws_port=ws_port,
+                main_file=main_file
+            )
+            app.launch()
+        else:
+            raise ValueError(f"Invalid application type: {type}. Must be 'web' or 'desktop'")

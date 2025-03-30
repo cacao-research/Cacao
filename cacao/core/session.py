@@ -64,6 +64,13 @@ class SessionManager:
                 self._save_session_to_file(session_id, session)
                 return session
     
+    def get_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get the state for a given session."""
+        session = self.get_session(session_id)
+        if session:
+            return session.get("state", {})
+        return None
+    
     def update_session_state(self, session_id: str, state: Dict[str, Any]) -> bool:
         """Update the state for a given session."""
         if self.storage_type == "memory":

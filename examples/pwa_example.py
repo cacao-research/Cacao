@@ -36,8 +36,9 @@ def home():
     }
 
 if __name__ == "__main__":
-    # Run as a desktop application
-    cacao.run_desktop(
+    # Run as a desktop application using the unified brew method
+    app.brew(
+        type="desktop",
         title="Cacao",
         width=800,
         height=600,

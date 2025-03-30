@@ -16,7 +16,7 @@ def home():
             {
                 "type": "h1",
                 "props": {
-                    "content": "Welcome to Cacao",
+                    "content": "Welcome to Cacao 1",
                     "style": {
                         "color": "#f0be9b",
                         "marginBottom": "20px"
@@ -36,4 +36,4 @@ def home():
     }
 
 if __name__ == "__main__":
-    app.brew(http_port=1644, ws_port=1643)  # Run the app like brewing hot chocolate!
+    app.brew()  # Run the app like brewing hot chocolate!

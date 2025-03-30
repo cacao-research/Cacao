@@ -7,6 +7,9 @@ Handles real-time updates and UI synchronization.
     // WebSocket connection management
     let WS_URL = null;
     let socket = null;
+    
+    // Expose socket globally for direct event sending
+    window.socket = null;
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 5;
     let reconnectTimeout = null;
@@ -44,6 +47,9 @@ Handles real-time updates and UI synchronization.
 
         try {
             socket = new WebSocket(WS_URL);
+            
+            // Make socket globally accessible
+            window.socket = socket;
 
             socket.onopen = function() {
                 console.log('[CacaoWS] Connected to WebSocket server');
@@ -58,15 +64,30 @@ Handles real-time updates and UI synchronization.
 
             socket.onmessage = function(event) {
                 try {
+                    console.log('[CacaoWS] Received message:', event.data);
                     const data = JSON.parse(event.data);
                     
+                    // Handle event result
+                    if (data.type === 'event_result') {
+                        console.log('[CacaoWS] Received event result:', data);
+                        
+                        // Update current state if result contains state updates
+                        if (data.result) {
+                            currentState = {...currentState, ...data.result};
+                            console.log('[CacaoWS] Updated client state:', currentState);
+                        }
+                        
+                        // Trigger UI refresh to show updates
+                        window.CacaoWS.forceRefresh();
+                    }
                     // Handle UI update events
-                    if (data.type === 'ui_update') {
+                    else if (data.type === 'ui_update') {
                         console.log('[CacaoWS] Received UI update', data);
                         
                         // Update current state with server state
                         if (data.state) {
-                            currentState = data.state;
+                            // Merge new state with current state
+                            currentState = {...currentState, ...data.state};
                             
                             // Update URL hash if current_page changed and different from current hash
                             const newPage = data.state.current_page;
@@ -106,6 +127,10 @@ Handles real-time updates and UI synchronization.
                         })
                         .then(uiData => {
                             console.log('[CacaoWS] Fetched new UI data', uiData);
+                            
+                            // Add force flag to ensure rendering
+                            uiData.force = true;
+                            
                             if (window.CacaoCore && typeof window.CacaoCore.render === "function") {
                                 window.CacaoCore.render(uiData);
                             } else {
@@ -124,6 +149,22 @@ Handles real-time updates and UI synchronization.
                         .finally(() => {
                             refreshInProgress = false;
                         });
+                    } else if (data.type === 'state_update') {
+                        console.log('[CacaoWS] Received state update', data);
+                        
+                        // Update current state with new state
+                        if (data.state) {
+                            currentState = {...currentState, ...data.state};
+                            
+                            // Trigger UI update if needed
+                            if (window.CacaoCore && typeof window.CacaoCore.render === "function") {
+                                // Force UI refresh with current state
+                                window.CacaoCore.render({
+                                    force: true,
+                                    _state: currentState
+                                });
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('[CacaoWS] Error processing message:', error);
@@ -220,6 +261,8 @@ Handles real-time updates and UI synchronization.
             })
             .then(uiData => {
                 console.log('[CacaoWS] Fetched new UI data', uiData);
+                // Add force flag to ensure rendering happens regardless of version
+                uiData.force = true;
                 if (window.CacaoCore && typeof window.CacaoCore.render === "function") {
                     window.CacaoCore.render(uiData);
                 } else {

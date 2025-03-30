@@ -42,12 +42,15 @@ class GlobalStateManager:
     
     def update_from_server(self, server_state: Dict[str, Any]) -> None:
         """Update local states from server state dictionary"""
-        self._server_state = server_state
+        self._server_state.update(server_state)
         for name, value in server_state.items():
             if name in self._states:
-                # Don't update if values match to avoid loops
-                if self._states[name].value != value:
-                    self._states[name].set(value)
+                # Use set method to trigger full state update mechanism
+                self._states[name].set(value)
+            else:
+                # Create new state if it doesn't exist
+                new_state = State(value, name=name)
+                self.register(name, new_state)
             
     def get_server_state(self) -> Dict[str, Any]:
         """Return current server state"""
@@ -143,23 +146,9 @@ class State(Generic[T]):
         change = StateChange(old_value, new_value)
         self._notify_ui(change)
         
-        # Notify direct subscribers
-        for subscriber in self._subscribers:
-            try:
-                subscriber(new_value)
-            except Exception as e:
-                print(f"Error in state subscriber: {e}")
-        
-        # Notify change listeners
-        for listener in self._change_listeners:
-            try:
-                listener(old_value, new_value)
-            except Exception as e:
-                print(f"Error in state change listener: {e}")
-        
-        # Notify UI subscribers
-        change = StateChange(old_value, new_value)
-        self._notify_ui(change)
+        # Trigger global state update
+        if self._name:
+            global_state.update_from_server({self._name: new_value})
     
     def subscribe(self, callback: Callable[[T], None]) -> Callable[[T], None]:
         """
@@ -197,10 +186,22 @@ class State(Generic[T]):
             subscriber = ref()
             if subscriber is not None:
                 try:
-                    # Use create_task to avoid blocking
-                    asyncio.create_task(subscriber.handle_state_change(change))
+                    # Attempt to call handle_state_change synchronously
+                    # If it's an async method, it will be handled accordingly
+                    if asyncio.iscoroutinefunction(subscriber.handle_state_change):
+                        asyncio.create_task(subscriber.handle_state_change(change))
+                    else:
+                        subscriber.handle_state_change(change)
                 except Exception as e:
                     print(f"Error notifying UI subscriber: {e}")
+        
+        # Broadcast state change to server if named state
+        if self._name:
+            try:
+                # Use global state manager to handle server updates
+                global_state._server_state[self._name] = self._value
+            except Exception as e:
+                print(f"Error updating server state: {e}")
 
     def to_json(self) -> str:
         """Convert state to JSON string."""

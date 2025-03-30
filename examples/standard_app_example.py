@@ -1,4 +1,5 @@
-from cacao import mix, run_desktop, State, Component
+from cacao import mix, State, Component
+from cacao import App
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import random
@@ -193,9 +194,13 @@ def home() -> Dict[str, Any]:
         ]
     }
 
+# Create the app instance
+app = App()
+
 if __name__ == "__main__":
-    # Run as a desktop application
-    run_desktop(
+    # Run as a desktop application using the unified brew method
+    app.brew(
+        type="desktop",
         title="Cacao Task Manager",
         width=800,
         height=600,

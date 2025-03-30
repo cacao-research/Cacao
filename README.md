@@ -133,102 +133,165 @@ cacao/
 
 ## 🚀 Quick Start
 
-### Installation
+### Simple Example
 
-```bash
-# Install the package in development mode
-pip install cacao
-```
-
-### Running the Development Server
-
-```bash
-# Run with the CLI
-cacao serve
-
-# Or with verbose logging
-cacao serve -v
-
-# Run as a PWA with session persistence
-cacao serve --pwa
-
-# Run as a desktop application
-cacao desktop
-
-# Or directly from main.py
-python main.py
-```
-
-## 🛠️ Creating UI Components
-
-Define your UI using Python dictionaries with automatic hot reload:
+Here's a minimal example showing how to create a basic Cacao application:
 
 ```python
-from cacao import mix, State, Component
-from typing import Dict, Any, Optional
+import cacao
 
-# Define a reactive state
-counter_state = State(0)
+app = cacao.App()
 
-# Create a reusable component
-class Counter(Component):
-    def __init__(self):
-        """Initialize the counter component."""
-        super().__init__()
-    
-    def render(self, ui_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Render the counter component."""
+@app.mix("/")
+def home():
+    return {
+        "type": "div",
+        "props": {
+            "style": {
+                "padding": "20px",
+                "fontFamily": "Arial, sans-serif"
+            }
+        },
+        "children": [
+            {
+                "type": "h1",
+                "props": {
+                    "content": "Welcome to Cacao",
+                    "style": {
+                        "color": "#f0be9b",
+                        "marginBottom": "20px"
+                    }
+                }
+            },
+            {
+                "type": "p",
+                "props": {
+                    "content": "A deliciously simple web framework!",
+                    "style": {
+                        "color": "#D4A76A"
+                    }
+                }
+            }
+        ]
+    }
+
+if __name__ == "__main__":
+    app.brew()  # Run the app like brewing hot chocolate!
+```
+
+### Advanced Layout Example
+
+For more complex applications, Cacao provides layout components like `SidebarLayout`:
+
+```python
+from cacao import App
+from cacao.ui.components.sidebar_layout import SidebarLayout
+
+app = App()
+
+class DashboardPage:
+    def render(self):
         return {
-            "type": "section",
+            "type": "div",
             "props": {
+                "style": {"padding": "20px"},
                 "children": [
                     {
-                        "type": "text",
-                        "props": {"content": f"Count: {counter_state.value}"}
-                    },
-                    {
-                        "type": "button",
+                        "type": "div",
                         "props": {
-                            "label": "Increment",
-                            "action": "increment_counter"
+                            "style": {
+                                "display": "grid",
+                                "gridTemplateColumns": "repeat(2, 1fr)",
+                                "gap": "20px"
+                            },
+                            "children": [
+                                {
+                                    "type": "div",
+                                    "props": {
+                                        "style": {
+                                            "backgroundColor": "#F5F5F5",
+                                            "borderRadius": "8px",
+                                            "padding": "20px"
+                                        },
+                                        "children": [
+                                            {
+                                                "type": "h2",
+                                                "props": {
+                                                    "content": "Users",
+                                                    "style": {"color": "#6B4226"}
+                                                }
+                                            },
+                                            {
+                                                "type": "text",
+                                                "props": {
+                                                    "content": "1,234",
+                                                    "style": {
+                                                        "fontSize": "24px",
+                                                        "fontWeight": "bold"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
                         }
                     }
                 ]
             }
         }
 
-# Register event handler
-@mix.event("increment_counter")
-async def handle_increment(event: Dict[str, Any]) -> None:
-    """Handle counter increment action."""
-    counter_state.update(counter_state.value + 1)
+# Define navigation structure
+nav_items = [
+    {"id": "home", "label": "Home", "icon": "H"},
+    {"id": "dashboard", "label": "Dashboard", "icon": "D"},
+    {"id": "settings", "label": "Settings", "icon": "S"}
+]
 
-# Define a route
-@mix("/")
-def home() -> Dict[str, Any]:
-    """Main page handler."""
-    counter = Counter()
-    
-    return {
-        "layout": "column",
-        "children": [
-            {
-                "type": "navbar",
-                "props": {
-                    "brand": "Cacao",
-                    "links": [
-                        {"name": "Home", "url": "/"},
-                        {"name": "About", "url": "/about"}
-                    ]
-                }
-            },
-            counter.render(),  # Use the custom component
-            {
-                "type": "footer",
-                "props": {"text": "© 2025 Cacao Framework"}
-            }
-        ]
-    }
+# Create layout with components
+sidebar_layout = SidebarLayout(
+    nav_items=nav_items,
+    content_components={
+        "dashboard": DashboardPage()
+    },
+    app_title="My Cacao App"
+)
+
+@app.mix("/")
+def home():
+    return sidebar_layout.render()
+
+if __name__ == "__main__":
+    app.brew(
+        type="desktop",  # Can be "web" or "desktop"
+        title="Cacao Example",
+        width=800,
+        height=600,
+        resizable=True
+    )
+```
+
+## 🛠️ Creating UI Components
+
+Cacao allows you to define UI components with isolated state management and automatic hot reload. For a complete example of component creation and state management, check out `examples/counter_example.py` which demonstrates:
+
+- Component-specific state isolation using `component_type`
+- Event handling with `@app.event` decorators
+- State management with `State` class
+- Type-safe component implementations
+
+For example, see how a counter component is created:
+
+```python
+from cacao import App, State, Component
+
+# Define state and create component - See examples/counter_example.py for full implementation
+counter_state = State(0)
+
+class Counter(Component):
+    def __init__(self) -> None:
+        super().__init__()
+        self.component_type = "counter"  # Enable state isolation
 ```
 
 ## 🔄 Hot Reload
@@ -390,75 +453,23 @@ run(persist_sessions=True, session_storage="memory")  # or "file"
 
 ## 🖥️ Desktop Application Mode
 
-Run your Cacao application as a native desktop application with window controls:
+Cacao's unified `brew()` method now supports both web and desktop applications through a single interface:
 
 ```python
-from cacao import run_desktop
+# Run as web application
+app.brew()
 
-# Launch as a desktop application
-run_desktop(
-    title="Cacao Desktop App",
-    width=1024,
-    height=768,
+# Run as desktop application
+app.brew(
+    type="desktop",
+    title="My Desktop App",
+    width=800,
+    height=600,
     resizable=True,
     fullscreen=False
 )
 ```
 
-### Hybrid Mode Applications
-
-Cacao supports creating applications that can run in both web browser and desktop modes using the same codebase. This hybrid approach allows you to develop once and deploy in multiple environments:
-
-```python
-if __name__ == "__main__":
-    import argparse
-    
-    # Set up command line argument parsing
-    parser = argparse.ArgumentParser(description="Cacao Hybrid App")
-    parser.add_argument("--mode", choices=["web", "desktop"], default="web",
-                       help="Run mode: 'web' for browser or 'desktop' for PWA window")
-    parser.add_argument("--width", type=int, default=800, help="Window width (desktop mode only)")
-    parser.add_argument("--height", type=int, default=600, help="Window height (desktop mode only)")
-    
-    args = parser.parse_args()
-    
-    # Common port configuration for both modes
-    http_port = 1644
-    ws_port = 1643
-    
-    if args.mode == "web":
-        print(f"* Running in web browser mode on http://localhost:{http_port}")
-        app.brew(http_port=http_port, ws_port=ws_port)
-    else:
-        print("* Running in desktop application mode")
-        from cacao import run_desktop
-        
-        # Launch as desktop application
-        run_desktop(
-            title="My Hybrid App",
-            width=args.width,
-            height=args.height,
-            resizable=True,
-            fullscreen=False,
-            http_port=http_port,
-            ws_port=ws_port
-        )
-```
-
-Run the application in different modes:
-
-```bash
-# Run in web browser mode (default)
-python my_app.py
-
-# Run in desktop mode
-python my_app.py --mode desktop
-
-# Run in desktop mode with custom dimensions
-python my_app.py --mode desktop --width 1200 --height 800
-```
-
-This approach ensures consistent behavior across both modes while giving users the flexibility to choose the mode that best suits their needs.
 
 ### Desktop Features
 

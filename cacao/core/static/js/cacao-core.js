@@ -10,54 +10,58 @@
     let errorCount = 0;
     const MAX_ERROR_ALERTS = 3;
 
-    window.CacaoWS = {
-        requestServerRefresh: async function() {
-            try {
-                // Include current hash in refresh requests
-                const hash = window.location.hash.slice(1);
-                console.log("[CacaoCore] Requesting refresh with hash:", hash);
-                
-                const response = await fetch(`/api/refresh?_hash=${hash}&t=${Date.now()}`, {
-                    method: 'GET',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Server returned ${response.status}`);
+    // Extend the existing CacaoWS object instead of replacing it
+    if (!window.CacaoWS) {
+        window.CacaoWS = {};
+    }
+    
+    // Add or update the requestServerRefresh method
+    window.CacaoWS.requestServerRefresh = async function() {
+        try {
+            // Include current hash in refresh requests
+            const hash = window.location.hash.slice(1);
+            console.log("[CacaoCore] Requesting refresh with hash:", hash);
+            
+            const response = await fetch(`/api/refresh?_hash=${hash}&t=${Date.now()}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
                 }
-                
-                // Get updated UI
-                await fetch(`/api/ui?force=true&_hash=${hash}&t=${Date.now()}`, {
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                        'Expires': '0'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`UI update failed with status ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(uiData => {
-                    console.log("[CacaoCore] Refreshed UI data:", uiData);
-                    window.CacaoCore.render(uiData);
-                })
-                .catch(error => {
-                    console.error("[CacaoCore] Error fetching UI update:", error);
-                    // Hide overlay on error
-                    const overlay = document.querySelector('.refresh-overlay');
-                    if (overlay) overlay.classList.remove('active');
-                });
-            } catch (error) {
-                console.error("[CacaoCore] Refresh request failed:", error);
-                // Ensure overlay is hidden even on error
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+            
+            // Get updated UI
+            await fetch(`/api/ui?force=true&_hash=${hash}&t=${Date.now()}`, {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`UI update failed with status ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(uiData => {
+                console.log("[CacaoCore] Refreshed UI data:", uiData);
+                window.CacaoCore.render(uiData);
+            })
+            .catch(error => {
+                console.error("[CacaoCore] Error fetching UI update:", error);
+                // Hide overlay on error
                 const overlay = document.querySelector('.refresh-overlay');
                 if (overlay) overlay.classList.remove('active');
-            }
+            });
+        } catch (error) {
+            console.error("[CacaoCore] Refresh request failed:", error);
+            // Ensure overlay is hidden even on error
+            const overlay = document.querySelector('.refresh-overlay');
+            if (overlay) overlay.classList.remove('active');
         }
     };
 
@@ -223,10 +227,11 @@
                             const action = component.props.onClick.action;
                             const state = component.props.onClick.state;
                             const value = component.props.onClick.value;
+                            const immediate = component.props.onClick.immediate === true;
                             
-                            console.log(`[CacaoCore] Handling nav click: ${action} state=${state} value=${value}`);
+                            console.log(`[CacaoCore] Handling nav click: ${action} state=${state} value=${value} immediate=${immediate}`);
                             
-                            const response = await fetch(`/api/action?action=${action}&component_type=${state}&value=${value}&t=${Date.now()}`, {
+                            const response = await fetch(`/api/action?action=${action}&component_type=${state}&value=${value}&immediate=${immediate}&t=${Date.now()}`, {
                                 method: 'GET',
                                 headers: {
                                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -238,7 +243,6 @@
                             if (!response.ok) {
                                 throw new Error(`Server returned ${response.status}`);
                             }
-                            
                             const data = await response.json();
                             console.log("[CacaoCore] Navigation state updated:", data);
                             
@@ -248,8 +252,31 @@
                                 window.location.hash = newPage;
                             }
                             
-                            // Force UI refresh after action
-                            window.CacaoWS.requestServerRefresh();
+                            // Check if this is an immediate action that requires UI refresh
+                            if (data.immediate === true) {
+                                console.log("[CacaoCore] Immediate action detected, fetching UI directly");
+                                
+                                // Fetch UI directly instead of using requestServerRefresh
+                                const uiResponse = await fetch(`/api/ui?force=true&_hash=${value}&t=${Date.now()}`, {
+                                    headers: {
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                        'Pragma': 'no-cache',
+                                        'Expires': '0'
+                                    }
+                                });
+                                
+                                if (!uiResponse.ok) {
+                                    throw new Error(`UI update failed with status ${uiResponse.status}`);
+                                }
+                                
+                                const uiData = await uiResponse.json();
+                                console.log("[CacaoCore] Immediate UI update:", uiData);
+                                window.CacaoCore.render(uiData);
+                            } else {
+                                // Force UI refresh after action (standard behavior)
+                                window.CacaoWS.requestServerRefresh();
+                            }
+                            // Removed duplicate call to requestServerRefresh
                         } catch (err) {
                             console.error('[CacaoCore] Error handling nav item click:', err);
                             // Hide refresh overlay on error
@@ -381,7 +408,7 @@
                     // Add click handler that sends action to server via GET
                     el.onclick = async () => {
                         try {
-                            console.log("[Cacao] Sending action:", component.props.action);
+                            console.log("[Cacao] Sending event:", component.props.on_click || component.props.action);
                             
                             // Show refresh overlay
                             document.querySelector('.refresh-overlay').classList.add('active');
@@ -390,29 +417,49 @@
                             const parentSection = el.closest('section[data-component-type]');
                             const componentType = parentSection ? parentSection.dataset.componentType : 'unknown';
                             
-                            // Use GET request with query parameters
-                            const response = await fetch(`/api/action?action=${component.props.action}&component_type=${componentType}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                    'Pragma': 'no-cache',
-                                    'Expires': '0'
+                            // Check if WebSocket is available
+                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+                                // Use WebSocket for real-time event
+                                const eventName = component.props.on_click || component.props.action;
+                                console.log("[Cacao] Sending WebSocket event:", eventName);
+                                
+                                // Send event via WebSocket
+                                window.socket.send(JSON.stringify({
+                                    type: 'event',
+                                    event: eventName,
+                                    data: {
+                                        component_type: componentType
+                                    }
+                                }));
+                            } else {
+                                // Fallback to HTTP request
+                                console.log("[Cacao] WebSocket not available, using HTTP fallback");
+                                const action = component.props.on_click || component.props.action;
+                                
+                                // Use GET request with query parameters
+                                const response = await fetch(`/api/action?action=${action}&component_type=${componentType}&t=${Date.now()}`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                        'Pragma': 'no-cache',
+                                        'Expires': '0'
+                                    }
+                                });
+                                
+                                console.log("[Cacao] Server response status:", response.status);
+                                
+                                if (!response.ok) {
+                                    const errorText = await response.text();
+                                    console.error("[Cacao] Server error response:", errorText);
+                                    throw new Error(`Server returned ${response.status}: ${errorText}`);
                                 }
-                            });
-                            
-                            console.log("[Cacao] Server response status:", response.status);
-                            
-                            if (!response.ok) {
-                                const errorText = await response.text();
-                                console.error("[Cacao] Server error response:", errorText);
-                                throw new Error(`Server returned ${response.status}: ${errorText}`);
+                                
+                                const responseData = await response.json();
+                                console.log("[Cacao] Server response data:", responseData);
+                                
+                                // Force UI refresh after action
+                                window.CacaoWS.requestServerRefresh();
                             }
-                            
-                            const responseData = await response.json();
-                            console.log("[Cacao] Server response data:", responseData);
-                            
-                            // Force UI refresh after action
-                            window.CacaoWS.requestServerRefresh();
                         } catch (err) {
                             console.error('Error handling action:', err);
                             
@@ -529,7 +576,9 @@
         console.log("[CacaoCore] Rendering UI definition:", uiDefinition);
         
         // Check if this is a new version
-        if (uiDefinition._v === lastVersion && !uiDefinition._force) {
+        // For hot reloads, we should always render even if the version is the same
+        // The force flag can be set to true to force rendering
+        if (uiDefinition._v === lastVersion && !uiDefinition._force && !uiDefinition.force) {
             console.log("[CacaoCore] Skipping render - same version");
             return;
         }

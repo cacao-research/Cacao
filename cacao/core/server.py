@@ -5,6 +5,9 @@ Implements two asynchronous servers:
 - A WebSocket server on port 1633 for real-time updates.
 """
 
+# Global server instance
+global_server = None
+
 import asyncio
 import json
 import os
@@ -28,6 +31,8 @@ import websockets
 from websockets.server import serve
 
 class CacaoServer(LoggingMixin):
+    # Class variable to store the current server instance
+    _instance = None
     def __init__(self, host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
                  verbose: bool = True, enable_pwa: bool = False,
                  persist_sessions: bool = True, session_storage: str = "memory",
@@ -89,18 +94,19 @@ class CacaoServer(LoggingMixin):
         }
 
     def _print_banner(self):
-        """Print server banner with ASCII characters instead of emojis for Windows compatibility."""
-        banner = f"""
-{Colors.YELLOW}
-C  Starting Cacao Server v{__version__}  C
-
----------------------------
-W HTTP Server: http://{self.host}:{self.http_port}
-* WebSocket Server: ws://{self.host}:{self.ws_port}
-* File Watcher: Active
----------------------------{Colors.ENDC}
-"""
-        print(banner)
+        """Print server banner with proper emoji handling based on ASCII_DEBUG_MODE."""
+        # Title line with chocolate bar emojis
+        self.log(f"Starting Cacao Server v{__version__}", "warning", "🍫")
+        
+        # Print divider
+        print(f"{Colors.YELLOW}---------------------------{Colors.ENDC}")
+        
+        # Server information
+        self.log(f"HTTP Server: http://{self.host}:{self.http_port}", "warning", "🌎")
+        self.log(f"WebSocket Server: ws://{self.host}:{self.ws_port}", "warning", "🌎")
+        
+        # Print divider
+        print(f"{Colors.YELLOW}---------------------------{Colors.ENDC}")
 
     async def _handle_websocket(self, websocket):
         """Handle WebSocket connections and messages with session support."""
@@ -120,133 +126,198 @@ W HTTP Server: http://{self.host}:{self.http_port}
         self.websocket_clients.add(websocket)
         
         try:
-            # Get session state
-            session = self.session_manager.get_session(session_id)
-            if session and session.get("state"):
-                # Restore state from session
-                self.state.update(session["state"])
+            # If there's session state, send it to the client
+            if session_id:
+                state = self.session_manager.get_session_state(session_id)
+                if state:
+                    self.state.update(state)
+                    await websocket.send(json.dumps({
+                        "type": "state_sync",
+                        "state": self.state
+                    }))
             
-            # Send initial state to new client
-            await websocket.send(json.dumps({
-                "type": "ui_update",
-                "force": True,
-                "version": self.version_counter,
-                "timestamp": time.time(),
-                "session_id": session_id,
-                "state": self.state  # Include current state
-            }))
-            
+            # Main message loop
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    if data.get('action') == 'refresh':
-                        self.log("Client requested refresh", "info", "🔄")
-                        await self.broadcast(json.dumps({
-                            "type": "ui_update", 
-                            "force": True,
-                            "version": self.version_counter,
-                            "state": self.state  # Include current state
+                    event_type = data.get('type', '')
+                    event_name = data.get('event', '')
+                    event_data = data.get('data', {})
+                    component_id = data.get('component_id', None)
+                    
+                    if event_type == 'event':
+                        # Handle events via decorator
+                        from .decorators import handle_event
+                        from .state import global_state
+                        result = handle_event(event_name, event_data)
+                        
+                        # If event returned a value, update both server and global state
+                        if result is not None and isinstance(result, dict):
+                            # Update server state
+                            self.state.update(result)
+                            
+                            # Update global state manager
+                            global_state.update_from_server(self.state)
+                            
+                            # Update session state
+                            if session_id:
+                                self.session_manager.update_session_state(session_id, self.state)
+                            
+                            # Send event result
+                            await websocket.send(json.dumps({
+                                "type": "event_result",
+                                "event": event_name,
+                                "result": result
+                            }))
+                            
+                            # Broadcast state update to all clients
+                            await self.broadcast(json.dumps({
+                                "type": "state_sync",
+                                "state": self.state,
+                                "timestamp": time.time()
+                            }))
+                        
+                    elif event_type == 'ping':
+                        # Send pong response
+                        await websocket.send(json.dumps({
+                            "type": "pong",
+                            "timestamp": time.time()
                         }))
-                    elif data.get('action') == 'sync_state':
-                        # Handle state sync request
-                        new_state = data.get('state', {})
-                        self.state.update(new_state)
-                        self.log(f"State synced from client: {new_state}", "info", "🔄")
+                        
+                    elif event_type in ['state_update', 'component_updated']:
+                        # State update from client
+                        component_state = data.get('state', {})
+                        if component_id and component_state:
+                            self.active_components[component_id] = component_state
+                        
+                        # Update global state
+                        for state_name, state_value in component_state.items():
+                            self.state[state_name] = state_value
                         
                         # Update session state
-                        if hasattr(websocket, "session_id"):
-                            self.session_manager.update_session_state(
-                                websocket.session_id,
-                                self.state
-                            )
+                        if session_id:
+                            self.session_manager.update_session_state(session_id, self.state)
                         
-                        # Broadcast state update
+                        # Broadcast state update to all clients
                         await self.broadcast(json.dumps({
-                            "type": "ui_update",
-                            "force": True,
-                            "version": self.version_counter,
-                            "state": self.state
+                            "type": "state_update",
+                            "state": component_state,
+                            "timestamp": time.time()
                         }))
-                    
-                    # Update session state after any state changes
-                    if hasattr(websocket, "session_id"):
-                        self.session_manager.update_session_state(
-                            websocket.session_id,
-                            self.state
-                        )
+                            
+                    else:
+                        self.log(f"Unknown event type: {event_type}", "warning", "⚠️")
+                        
+                except json.JSONDecodeError:
+                    self.log("Received invalid JSON", "error", "❌")
                 except Exception as e:
-                    self.log(f"Error processing WebSocket message: {str(e)}", "error", "❌")
+                    self.log(f"Error handling message: {str(e)}", "error", "❌")
+                    if self.verbose:
+                        traceback.print_exc()
+        
         except websockets.exceptions.ConnectionClosed:
-            pass
+            self.log("Client disconnected normally", "info", "💤")
         except Exception as e:
-            self.log(f"WebSocket error: {str(e)}", "error", "❌")
+            self.log(f"Client connection error: {str(e)}", "error", "⚡")
         finally:
-            self.websocket_clients.remove(websocket)
-
+            # Clean up client from active set
+            self.websocket_clients.discard(websocket)
+            
     def _extract_session_id(self, cookies: str) -> Optional[str]:
         """Extract session ID from cookies string."""
         if not cookies:
             return None
             
-        cookie_pairs = cookies.split(";")
-        for pair in cookie_pairs:
-            if "=" in pair:
-                name, value = pair.strip().split("=", 1)
-                if name == "cacao_session":
+        cookie_parts = cookies.split(';')
+        for part in cookie_parts:
+            if '=' in part:
+                name, value = part.strip().split('=', 1)
+                if name == 'cacao_session':
                     return value
+                    
         return None
-
+                
     async def broadcast(self, message: str) -> None:
         """Broadcast a message to all connected WebSocket clients."""
-        if self.websocket_clients:
-            try:
-                await asyncio.gather(*[
-                    client.send(message) 
-                    for client in self.websocket_clients
-                ])
-                self.log(f"Update broadcast sent to {len(self.websocket_clients)} clients", "info", "📢")
-            except Exception as e:
-                self.log(f"Broadcast error: {str(e)}", "error", "❌")
-
-    def _reload_modules(self) -> None:
-        """Aggressively reload all relevant modules to ensure fresh code."""
-        try:
-            # Check if main_module is a file path
-            if os.path.isfile(self.main_module) or os.path.isabs(self.main_module):
-                # Load the module from file
-                import importlib.util
-                import sys
-                
-                # Get the module name from file path
-                module_name = os.path.splitext(os.path.basename(self.main_module))[0]
-                
-                # Create spec and load module
-                spec = importlib.util.spec_from_file_location(module_name, self.main_module)
-                if spec is None:
-                    raise ImportError(f"Could not load spec for module {module_name} from {self.main_module}")
-                    
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
-                
-                # Store the module name for future reference
-                self._actual_module_name = module_name
-                
-                self.log(f"Loaded module {module_name} from {self.main_module}", "info", "📂")
-            else:
-                # Clear Python's module cache
-                if self.main_module in sys.modules:
-                    del sys.modules[self.main_module]
-                
-                # Force reload main module
-                importlib.import_module(self.main_module)
-                self._actual_module_name = self.main_module
-                
-                self.log(f"Reloaded {self.main_module} module", "info", "🔄")
+        if not self.websocket_clients:
+            return
+            
+        disconnected = set()
         
-            # Clear route cache and increment version
-            self.route_cache = {}
+        for websocket in self.websocket_clients:
+            try:
+                await websocket.send(message)
+            except (websockets.exceptions.ConnectionClosed, ConnectionResetError):
+                disconnected.add(websocket)
+            except Exception as e:
+                self.log(f"Error broadcasting to client: {str(e)}", "error", "❌")
+                disconnected.add(websocket)
+                
+        # Remove disconnected clients
+        self.websocket_clients.difference_update(disconnected)
+    
+    @classmethod
+    async def broadcast_state_update(cls, state_name: str, state_value: Any) -> None:
+        """
+        Broadcast a state update to all connected WebSocket clients.
+        
+        Args:
+            state_name: Name of the state being updated
+            state_value: New value of the state
+        """
+        if not cls._instance:
+            return
+            
+        try:
+            # Update server-side state
+            cls._instance.state[state_name] = state_value
+            
+            # Broadcast state update
+            await self.broadcast(json.dumps({
+                "type": "state_update",
+                "state_name": state_name,
+                "state_value": state_value,
+                "timestamp": time.time()
+            }))
+            
+            self.log(f"Broadcasted state update: {state_name} = {state_value}", "info", "🔄")
+        except Exception as e:
+            self.log(f"Error broadcasting state update: {str(e)}", "error", "❌")
+    
+    def _reload_modules(self) -> None:
+        """Reload modules to pick up changes."""
+        try:
             self.version_counter += 1
+            
+            # If main_module is a file path, import it directly
+            if os.path.isfile(self.main_module):
+                module_name = os.path.basename(self.main_module).replace('.py', '')
+                if not self._actual_module_name:
+                    self._actual_module_name = module_name
+                
+                # Import the module using spec from file
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(module_name, self.main_module)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    sys.modules[module_name] = module
+                    
+                    # Clear routes and reload
+                    from .decorators import clear_routes
+                    clear_routes()
+                    
+                    # Reload the module
+                    importlib.reload(module)
+                    
+                    self.log(f"Reloaded module: {module_name}", "info", "🔄")
+            else:
+                # Dynamically reload the original calling module
+                if self.main_module in sys.modules:
+                    importlib.reload(sys.modules[self.main_module])
+                    self.log(f"Reloaded module: {self.main_module}", "info", "🔄")
+                else:
+                    self.log(f"Module not found: {self.main_module}", "warning", "⚠️")
             
             # Clear component cache
             self.active_components = {}
@@ -258,7 +329,7 @@ W HTTP Server: http://{self.host}:{self.http_port}
 
     async def _watch_files(self) -> None:
         """Watch for file changes and notify clients."""
-        self.log("File watcher active", "info", "👀")
+        self.log("File watcher active", "info", "📂")
         try:
             # Determine the actual file path to watch
             file_to_watch = None
@@ -387,11 +458,19 @@ W HTTP Server: http://{self.host}:{self.http_port}
             if path.startswith("/static/"):
                 return await self._serve_static_file(path, writer)
             
+            # Log the path for debugging
+            self.log(f"Received request for path: {path}", "info", "📤")
+            
+            # Handle root path explicitly - redirect to HTML template
+            if path == "/" or path == "":
+                self.log("Handling root path request", "info", "📤")
+                return await self._serve_html_template(writer, session_id)
+                
             # Handle actions via GET request
             if path == "/api/action":
                 return await self._handle_action(query_params, writer, session_id)
                 
-            # Handle refresh requests (missing endpoint that was causing 404)
+            # Handle refresh requests
             if path == "/api/refresh":
                 return await self._handle_refresh(query_params, writer, session_id)
             
@@ -399,11 +478,12 @@ W HTTP Server: http://{self.host}:{self.http_port}
             if path == "/api/ui":
                 return await self._serve_ui_definition(query_params, writer, session_id)
             
-            # Serve HTML template
+            # Serve HTML template for other paths with HTML accept header
             if "accept" in headers and "text/html" in headers["accept"]:
                 return await self._serve_html_template(writer, session_id)
 
             # Fallback 404
+            self.log(f"No handler for path: {path}", "warning", "!")
             writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
             await writer.drain()
 
@@ -424,12 +504,37 @@ W HTTP Server: http://{self.host}:{self.http_port}
 
     async def _serve_static_file(self, path: str, writer: asyncio.StreamWriter) -> None:
         """Serve static files with proper MIME type detection."""
-        static_dir = os.path.join(os.getcwd(), "cacao", "core", "static")
-        file_path = os.path.join(static_dir, path[len("/static/"):])
-        try:
-            with open(file_path, "rb") as f:
-                content = f.read()
+        self.log(f"Serving static file: {path}", "info", "📄")
+        
+        # Get cacao package base dir
+        cacao_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Try multiple static paths, similar to HTML template
+        static_dirs = [
+            os.path.join(cacao_base_dir, "core", "static"),
+            os.path.join(os.path.dirname(__file__), "static"),
+            os.path.join(os.path.abspath(os.path.dirname(__file__)), "static")
+        ]
+        
+        content = None
+        for static_dir in static_dirs:
+            file_path = os.path.join(static_dir, path[len("/static/"):])
+            self.log(f"Trying to load static file from: {file_path}", "info", "📁")
+            try:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                    self.log(f"Successfully loaded static file from: {file_path}", "info", "✅")
+                    break
+            except FileNotFoundError:
+                continue
+                
+        if content is None:
+            self.log(f"Static file not found: {path}", "error", "❌")
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
             
+        try:
             # Detect MIME type
             mime_types = {
                 ".css": "text/css",
@@ -439,7 +544,7 @@ W HTTP Server: http://{self.host}:{self.http_port}
                 ".jpeg": "image/jpeg",
                 ".png": "image/png"
             }
-            ext = os.path.splitext(file_path)[1]
+            ext = os.path.splitext(path)[1]
             content_type = mime_types.get(ext, "application/octet-stream")
             
             response = (
@@ -450,52 +555,25 @@ W HTTP Server: http://{self.host}:{self.http_port}
             ).encode("utf-8") + content
             writer.write(response)
             await writer.drain()
-        except FileNotFoundError:
-            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+        except Exception as e:
+            self.log(f"Error serving static file: {str(e)}", "error", "❌")
+            writer.write(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")
             await writer.drain()
 
     async def _handle_action(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
         """Handle actions via GET request with session support."""
         try:
             action = query_params.get('action', [''])[0]
-            component_type = query_params.get('component_type', ['unknown'])[0]
+            component_type = query_params.get('component', [''])[0]
             
-            self.log(f"Received action: {action} for component type: {component_type}", "info", "🎯")
+            self.log(f"Handling action: {action} for component: {component_type}", "info", "🎬")
             
-            # First try to handle the action using registered event handlers
-            from .decorators import EVENT_HANDLERS, handle_event
-            
-            if action in EVENT_HANDLERS:
-                # We have a registered handler for this action
-                self.log(f"Found registered handler for action: {action}", "info", "🎯")
-                
-                # Prepare event data
-                event_data = {
-                    "action": action,
-                    "component_type": component_type,
-                    "params": {},
-                    "value": query_params.get('value', [''])[0]
-                }
-                
-                # Add any other query params to the event data
-                for key, value in query_params.items():
-                    if key not in ['action', 'component_type', 't']:
-                        event_data["params"][key] = value[0] if isinstance(value, list) else value
-                
-                # Call the registered event handler
-                try:
-                    await handle_event(action, event_data)
-                    self.log(f"Successfully handled event: {action}", "info", "✅")
-                except Exception as e:
-                    self.log(f"Error handling event: {action} - {str(e)}", "error", "❌")
-                    traceback.print_exc()
-            # If no registered handler or handler fails, fall back to built-in actions
-            elif component_type == 'counter' and action == 'increment_counter':
-                # Update counter state
-                self.state['counter'] += 1
+            if action == 'increment':
+                # Increment counter
+                self.state['counter'] = self.state.get('counter', 0) + 1
                 self.log(f"Incremented counter to: {self.state['counter']}", "info", "🔢")
-            elif component_type == 'timer' and action == 'update_timestamp':
-                # Update timestamp state
+            elif action == 'update_timestamp':
+                # Update timestamp
                 self.state['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.log(f"Updated timestamp to: {self.state['timestamp']}", "info", "🕒")
             elif action == 'set_state':
@@ -516,6 +594,12 @@ W HTTP Server: http://{self.host}:{self.http_port}
                 self.state[state_name] = state_value
                 self.log(f"Updated state '{state_name}' to: {state_value}", "info", "🔄")
                 
+                # Special handling for current_page state
+                if state_name == 'current_page' or (not state_name and state_value in ['home', 'dashboard', 'settings']):
+                    # If this is a page navigation, update current_page state
+                    self.state['current_page'] = state_value
+                    self.log(f"Updated navigation to page: {state_value}", "info", "🧭")
+                
                 # Update global state manager
                 try:
                     from .state import global_state
@@ -529,12 +613,16 @@ W HTTP Server: http://{self.host}:{self.http_port}
             if session_id:
                 self.session_manager.update_session_state(session_id, self.state)
             
+            # Check if this is an immediate action that requires UI refresh
+            immediate = query_params.get('immediate', ['false'])[0].lower() == 'true'
+            
             # Send success response
             response_data = json.dumps({
                 "success": True,
                 "action": action,
                 "component_type": component_type,
-                "state": self.state
+                "state": self.state,
+                "immediate": immediate  # Include flag in response
             })
             
             response = (
@@ -548,55 +636,63 @@ W HTTP Server: http://{self.host}:{self.http_port}
             writer.write(response.encode())
             await writer.drain()
             
-            # Trigger UI refresh
+            # Broadcast update to all clients
             await self.broadcast(json.dumps({
-                "type": "ui_update",
-                "force": True,
-                "version": self.version_counter,
-                "timestamp": time.time(),
-                "state": self.state  # Include current state
+                "type": "state_update",
+                "state": self.state
             }))
+        
         except Exception as e:
             self.log(f"Action error: {str(e)}", "error", "❌")
-            error_response = json.dumps({"error": str(e)})
             response = (
                 "HTTP/1.1 500 Internal Server Error\r\n"
-                "Content-Type: application/json\r\n"
-                f"Content-Length: {len(error_response)}\r\n"
-                "\r\n"
-                f"{error_response}"
+                "Content-Type: text/plain; charset=utf-8\r\n\r\n"
+                f"{str(e)}"
             )
-            writer.write(response.encode())
+            writer.write(response.encode("utf-8"))
+            await writer.drain()
+
+    async def _handle_refresh(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
+        """Handle refresh requests with session support."""
+        try:
+            self.version_counter += 1
+            
+            # Load state from session if available
+            if session_id:
+                session_state = self.session_manager.get_session_state(session_id)
+                if session_state:
+                    self.state.update(session_state)
+            
+            response_data = json.dumps({
+                "success": True,
+                "version": self.version_counter,
+                "state": self.state
+            })
+            
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
+                f"Content-Length: {len(response_data)}\r\n"
+                "\r\n"
+                f"{response_data}"
+            )
+            writer.write(response.encode("utf-8"))
+            await writer.drain()
+        
+        except Exception as e:
+            self.log(f"Refresh error: {str(e)}", "error", "❌")
+            response = (
+                "HTTP/1.1 500 Internal Server Error\r\n"
+                "Content-Type: text/plain; charset=utf-8\r\n\r\n"
+                f"{str(e)}"
+            )
+            writer.write(response.encode("utf-8"))
             await writer.drain()
 
     async def _serve_ui_definition(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
-        """Serve the UI definition with version tracking."""
+        """Serve the UI definition JSON with session support."""
         try:
-            # Force reload if requested
-            if 'force' in query_params:
-                self._reload_modules()
-        
-            # Get the module name to use
-            module_name = os.path.splitext(os.path.basename(self.main_module))[0]
-        
-            # Get fresh UI data from the module
-            if os.path.isfile(self.main_module):
-                # For file paths, use importlib.util to load the module
-                import importlib.util
-                spec = importlib.util.spec_from_file_location(module_name, self.main_module)
-                if spec is None:
-                    raise ImportError(f"Could not create spec for module {module_name}")
-                
-                main_module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = main_module
-                spec.loader.exec_module(main_module)
-            else:
-                # For module names, use importlib
-                main_module = importlib.import_module(module_name)
-        
-            # Make server state available to the main module
-            setattr(main_module, '_state', self.state)
-        
             # Get the routes from the decorators module
             from .decorators import ROUTES
             
@@ -613,6 +709,15 @@ W HTTP Server: http://{self.host}:{self.http_port}
                 # Update the current_page state based on hash
                 self.state['current_page'] = hash_param
                 self.log(f"Updated state 'current_page' to: {hash_param} from URL hash", "info", "🔄")
+            
+            # Ensure we're using the most recent current_page value
+            current_page = self.state.get('current_page')
+            if current_page:
+                self.log(f"Using current page from state: {current_page}", "info", "📄")
+                # Add current_page to the UI state to ensure it's passed to the handler
+                if not hasattr(handler, 'ui_state'):
+                    handler.ui_state = {}
+                handler.ui_state = {'current_page': current_page}
 
             # Call the handler to get UI definition
             result = handler()
@@ -654,130 +759,237 @@ W HTTP Server: http://{self.host}:{self.http_port}
 
     async def _serve_html_template(self, writer: asyncio.StreamWriter, session_id: str) -> None:
         """Serve the main HTML template with PWA and session support."""
-        index_path = os.path.join(os.getcwd(), "cacao", "core", "static", "index.html")
-        try:
-            with open(index_path, "r") as f:
-                content = f.read()
-                
-            # Add WebSocket port as a query parameter to the HTML
-            content = content.replace('</head>', f'<meta name="ws-port" content="{self.ws_port}">\n</head>')
+        self.log("Serving HTML template", "info", "🌟")
+        
+        # Try different paths to find the index.html file
+        # Get cacao package base dir
+        cacao_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        possible_paths = [
+            os.path.join(cacao_base_dir, "core", "static", "index.html"),
+            os.path.join(os.path.dirname(__file__), "static", "index.html"),
+            os.path.join(os.path.abspath(os.path.dirname(__file__)), "static", "index.html"),
+            # Search directly in the cacao install directory
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                         "cacao", "core", "static", "index.html")
+        ]
+        
+        content = None
+        for path in possible_paths:
+            self.log(f"Trying to load HTML template from: {path}", "info", "📁")
+            try:
+                with open(path, "r") as f:
+                    content = f.read()
+                    self.log(f"Successfully loaded HTML template from: {path}", "info", "✅")
+                    break
+            except FileNotFoundError:
+                continue
+        
+        if content is None:
+            self.log("HTML template not found in any of the expected locations", "error", "❌")
+            writer.write(b"HTTP/1.1 500 Internal Server Error\r\n\r\nHTML template not found")
+            await writer.drain()
+            return
             
+        try:
+            # Add PWA manifest link if enabled
+            if self.enable_pwa:
+                manifest_link = '<link rel="manifest" href="/manifest.json">'
+                content = content.replace('</head>', f'{manifest_link}\n</head>')
+            
+            # Format the content with the session ID
+            content = content.replace('{session_id}', session_id)
+            
+            # Add debugging meta tag to track server version
+            debug_meta = f'<meta name="cacao-server-version" content="{self.version_counter}">'
+            content = content.replace('<head>', f'<head>\n{debug_meta}')
+            
+            self.log(f"Sending HTML template (length: {len(content)})", "info", "📤")
+            
+            # Write the response
             response = (
-                f"HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/html\r\n"
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/html; charset=utf-8\r\n"
                 f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
                 f"Content-Length: {len(content)}\r\n"
                 "\r\n"
                 f"{content}"
             )
-            writer.write(response.encode())
+            writer.write(response.encode("utf-8"))
             await writer.drain()
-        except FileNotFoundError:
-            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            
+            self.log("HTML template served successfully", "info", "✅")
+            
+        except Exception as e:
+            self.log(f"Error serving HTML template: {str(e)}", "error", "❌")
+            if self.verbose:
+                traceback.print_exc()
+            
+            writer.write(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")
             await writer.drain()
 
-    async def _run_servers(self):
-        """Start and run all server components."""
-        self._print_banner()
+    async def _serve_manifest(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the PWA manifest.json file."""
+        if not self.pwa:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        manifest_data = self.pwa.generate_manifest()
+        json_body = json.dumps(manifest_data)
         
-        # Start WebSocket server using the newer API
-        ws_server = await serve(
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            f"Content-Length: {len(json_body)}\r\n"
+            "\r\n"
+            f"{json_body}"
+        )
+        writer.write(response.encode("utf-8"))
+        await writer.drain()
+        
+    async def _serve_service_worker(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the PWA service worker JavaScript file."""
+        if not self.pwa:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        sw_content = self.pwa.generate_service_worker()
+        
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/javascript\r\n"
+            f"Content-Length: {len(sw_content)}\r\n"
+            "\r\n"
+            f"{sw_content}"
+        )
+        writer.write(response.encode("utf-8"))
+        await writer.drain()
+        
+    async def _serve_offline_page(self, writer: asyncio.StreamWriter) -> None:
+        """Serve the PWA offline fallback page."""
+        if not self.pwa:
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
+            return
+            
+        offline_content = self.pwa.generate_offline_page()
+        
+        response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n"
+            f"Content-Length: {len(offline_content)}\r\n"
+            "\r\n"
+            f"{offline_content}"
+        )
+        writer.write(response.encode("utf-8"))
+        await writer.drain()
+    
+    async def _setup_ws_server(self):
+        """Set up the WebSocket server."""
+        self.log("WebSocket server ready", "info", "🌎")
+        return await serve(
             self._handle_websocket,
             self.host,
             self.ws_port
         )
-        self.log("WebSocket server ready", "info", "🔌")
         
-        # Start HTTP server
+    async def _run_servers(self):
+        """Run both HTTP and WebSocket servers concurrently."""
+        
+        # Start the WebSocket server
+        ws_server = await self._setup_ws_server()
+        
+        # Set up the HTTP server
         http_server = await asyncio.start_server(
             self._handle_http,
             self.host,
             self.http_port
         )
-        self.log("HTTP server ready", "info", "🌐")
         
-        # Start file watcher
-        self.file_watcher_task = asyncio.create_task(self._watch_files())
+        self.log("HTTP server ready", "info", "🌎")
         
+        # Set up file watching if hot reload is enabled or always for now
+        if self.hot_reload or True:  # Currently always enabled for development
+            self.file_watcher_task = asyncio.create_task(self._watch_files())
+        
+        # Keep the servers running
+        await asyncio.gather(
+            ws_server.wait_closed(),
+            http_server.serve_forever(),
+        )
+    
+    def run(self):
+        """Run the server (blocking call)."""
+        global global_server
         try:
-            await asyncio.gather(
-                ws_server.wait_closed(),
-                http_server.serve_forever(),
-                self.file_watcher_task
-            )
-        except KeyboardInterrupt:
-            self.log("Shutting down...", "info", "👋")
-        except Exception as e:
-            self.log(f"Server error: {str(e)}", "error", "❌")
+            global_server = self
+            self._print_banner()
 
-    def run(self, verbose: bool = False) -> None:
-        """Run the Cacao server."""
-        self.verbose = verbose
-        try:
-            asyncio.run(self._run_servers())
-        except KeyboardInterrupt:
-            self.log("Server stopped", "info", "👋")
-        except Exception as e:
-            self.log(f"Fatal error: {str(e)}", "error", "💥")
-
-    async def _handle_refresh(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
-        """Handle refresh requests that trigger UI updates."""
-        try:
-            self.log("Refresh request received", "info", "🔄")
-            
-            # Check if a hash parameter is provided
-            hash_param = query_params.get('_hash', [''])[0]
-            if hash_param and hash_param != self.state.get('current_page', ''):
-                # Update the current_page state based on hash
-                self.state['current_page'] = hash_param
-                self.log(f"Updated state 'current_page' to: {hash_param} from refresh request", "info", "🔄")
+            # Import and access the route handlers
+            # This forces the decorators to be evaluated
+            try:
+                import sys
+                if self.main_module in sys.modules:
+                    from .decorators import ROUTES
+                    if ROUTES:
+                        route_paths = list(ROUTES.keys())
+                        self.log(f"Routes loaded: {route_paths}", "info", "🛤️")
+                    else:
+                        self.log("No routes registered", "warning", "⚠️")
+                else:
+                    self.log(f"Main module not found in sys.modules: {self.main_module}", "warning", "⚠️")
+                    # If main_module is a file path, try to import it
+                    if os.path.isfile(self.main_module):
+                        module_name = os.path.basename(self.main_module).replace('.py', '')
+                        try:
+                            import importlib.util
+                            spec = importlib.util.spec_from_file_location(module_name, self.main_module)
+                            if spec and spec.loader:
+                                module = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(module)
+                                sys.modules[module_name] = module
+                                self._actual_module_name = module_name
+                                from .decorators import ROUTES
+                                if ROUTES:
+                                    route_paths = list(ROUTES.keys())
+                                    self.log(f" Routes loaded from file: {route_paths}", "info", "🛤️")
+                                else:
+                                    self.log("No routes registered from file", "warning", "⚠️")
+                        except Exception as e:
+                            self.log(f"Error importing module from file: {str(e)}", "error", "❌")
+            except Exception as e:
+                self.log(f"Error loading routes: {str(e)}", "error", "❌")
                 
-                # Update global state manager
-                try:
-                    from .state import global_state
-                    global_state.update_from_server(self.state)
-                except ImportError:
-                    pass
-                    
-                # Update session state
-                if session_id:
-                    self.session_manager.update_session_state(session_id, self.state)
+            # Reset the terminal settings for Windows
+            os.system("")
             
-            # Send success response
-            response_data = json.dumps({
-                "success": True,
-                "refresh": True,
-                "state": self.state
-            })
-            
-            response = (
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Type: application/json\r\n"
-                f"Set-Cookie: cacao_session={session_id}; Path=/; HttpOnly; SameSite=Strict\r\n"
-                f"Content-Length: {len(response_data)}\r\n"
-                "\r\n"
-                f"{response_data}"
-            )
-            writer.write(response.encode())
-            await writer.drain()
-            
-            # Trigger UI refresh via WebSocket
-            await self.broadcast(json.dumps({
-                "type": "ui_update",
-                "force": True,
-                "version": self.version_counter,
-                "timestamp": time.time(),
-                "state": self.state  # Include current state
-            }))
+            # Run the asyncio event loop
+            if sys.platform == 'win32':
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+                
+            asyncio.run(self._run_servers())
+                
+        except KeyboardInterrupt:
+            self.log("Server stopped", "info", "🛑")
         except Exception as e:
-            self.log(f"Refresh error: {str(e)}", "error", "❌")
-            error_response = json.dumps({"error": str(e)})
-            response = (
-                "HTTP/1.1 500 Internal Server Error\r\n"
-                "Content-Type: application/json\r\n"
-                f"Content-Length: {len(error_response)}\r\n"
-                "\r\n"
-                f"{error_response}"
-            )
-            writer.write(response.encode())
-            await writer.drain()
+            self.log(f"Server error: {str(e)}", "error", "💥")
+            if self.verbose:
+                traceback.print_exc()
+        finally:
+            global_server = None
+            
+    def shutdown(self):
+        """Shutdown the server cleanly."""
+        self.log("Shutting down server", "info", "🛑")
+        # Close all WebSocket connections
+        for websocket in self.websocket_clients:
+            try:
+                websocket.close()
+            except:
+                pass
+        
+        # Cancel file watcher task
+        if self.file_watcher_task:
+            self.file_watcher_task.cancel()

@@ -3,6 +3,7 @@
 import threading
 import time
 import sys
+import os
 from .core.server import CacaoServer
 
 class CacaoDesktopApp:
@@ -20,14 +21,22 @@ class CacaoDesktopApp:
         
     def start_server(self):
         """Start the Cacao server in a separate thread."""
+        # Ensure we have access to the routes before starting server
+        from .core.decorators import ROUTES
+        
         # Updated to use http_port, ws_port and main_file
         self.server = CacaoServer(
-            host="localhost", 
+            host="localhost",
             http_port=self.http_port,
             ws_port=self.ws_port,
             enable_pwa=False,
             main_file=self.main_file # Pass main_file to the server
         )
+        
+        # Log the available routes for debugging
+        route_paths = list(ROUTES.keys())
+        print(f"* Available routes: {route_paths}")
+        
         self.server_thread = threading.Thread(target=self.server.run)
         self.server_thread.daemon = True
         self.server_thread.start()
@@ -44,6 +53,20 @@ class CacaoDesktopApp:
             print("Please install it using: pip install pywebview")
             sys.exit(1)
             
+        # Import main module first if it's a file path to ensure routes are registered
+        if self.main_file and self.main_file.endswith('.py'):
+            import importlib.util
+            try:
+                # Load the module to ensure routes are registered before starting server
+                module_name = os.path.basename(self.main_file).replace('.py', '')
+                spec = importlib.util.spec_from_file_location(module_name, self.main_file)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    print(f"* Successfully imported main module: {module_name}")
+            except Exception as e:
+                print(f"* Warning: Error importing main module: {str(e)}")
+        
         self.start_server()
         
         # Create a window

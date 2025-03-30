@@ -23,7 +23,7 @@ class HomePage:
                     {
                         "type": "p",
                         "props": {
-                            "content": "Welcome to the Cacao sidebar layout example!!",
+                            "content": "Welcome to the Cacao sidebar layout example!",
                             "style": {
                                 "color": "#2D2013",
                                 "marginBottom": "20px",
@@ -244,22 +244,12 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    print("\n* Starting Sidebar Layout Example")
-    print("* Click on sidebar items to navigate between pages")
-    print("* The URL hash will update to reflect the current page\n")
-    
-    if args.mode == "web":
-        app.brew()
-    else:
-        print("* Running in desktop application mode")
-        # Import run_desktop from cacao for PWA mode
-        from cacao import run_desktop
-        
-        # Launch as desktop application
-        run_desktop(
-            title="Sidebar Layout Example - Desktop Mode",
-            width=args.width,
-            height=args.height,
-            resizable=True,
-            fullscreen=False
-        )
+    # Launch application in the specified mode using the unified brew() method
+    app.brew(
+        type=args.mode,
+        title="Sidebar Layout Example - Desktop Mode",
+        width=args.width,
+        height=args.height,
+        resizable=True,
+        fullscreen=False
+    )

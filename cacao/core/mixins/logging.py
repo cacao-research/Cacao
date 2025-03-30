@@ -4,6 +4,15 @@ Logging mixin to record activity, such as state changes and user interactions.
 
 from datetime import datetime
 import colorama
+import sys
+
+# Import the ASCII debug setting
+sys.path.append('c:\\Users\\Juan\\Documents\\GitHub\\Cacao\\cacao\\core')
+try:
+    from app import ASCII_DEBUG_MODE
+except ImportError:
+    # Default to False if import fails
+    ASCII_DEBUG_MODE = False
 
 # Initialize colorama for Windows support
 colorama.init()
@@ -50,17 +59,23 @@ class LoggingMixin:
             "error": Colors.RED
         }.get(level, Colors.ENDC)
         
-        # Replace emoji characters with ASCII alternatives for Windows compatibility
-        emoji_replacements = {
-            "🍫": "C", "🌐": "W", "🔌": "*", "📡": "*", "👀": "*", 
-            "🔄": "*", "🌟": "*", "📂": "*", "🎯": "*", "🕒": "*",
-            "🔢": "*", "⚠️": "!", "❌": "X", "💥": "!", "👋": "*",
-            "📢": "*", "🔥": "*", "❓": "?", "⏰": "*", "🔁": "*"
-        }
-        
+        # Set the display emoji
+        display_emoji = ""
         if emoji:
-            if emoji in emoji_replacements:
-                emoji = emoji_replacements[emoji]
+            if ASCII_DEBUG_MODE:
+                # When ASCII debug mode is ON, replace emojis with ASCII alternatives
+                emoji_replacements = {
+                    "🍫": "C", "🌎": "W", "🔌": "*", "📡": "*", "👀": "*", 
+                    "🔄": "*", "🌟": "*", "📂": "*", "🎯": "*", "🕒": "*",
+                    "🔢": "*", "⚠️": "!", "❌": "X", "💥": "!", "👋": "*",
+                    "📢": "*", "🔥": "*", "❓": "?", "⏰": "*", "🔁": "*",
+                }
                 
-        formatted_message = f"{color}{timestamp} {emoji} {message}{Colors.ENDC}"
+                # If emoji isn't in our mapping, default to "*"
+                display_emoji = emoji_replacements.get(emoji, "*")
+            else:
+                # When ASCII debug mode is OFF, use the actual emoji
+                display_emoji = emoji
+                
+        formatted_message = f"{color}{timestamp} {display_emoji}  {message}{Colors.ENDC}"
         print(formatted_message)
