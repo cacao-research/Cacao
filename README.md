@@ -2,6 +2,14 @@
 
 # 🍫 Cacao
 
+[![PyPI Version](https://img.shields.io/pypi/v/Cacao)](https://pypi.org/project/Cacao/)
+[![Downloads](https://static.pepy.tech/badge/Cacao)](https://pepy.tech/project/Cacao)
+[![Python Versions](https://img.shields.io/pypi/pyversions/Cacao)](https://pypi.org/project/Cacao/)
+[![License](https://img.shields.io/pypi/l/Cacao)](https://github.com/jhd3197/cacao/blob/main/LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/jhd3197/cacao/publish.yml?branch=main)](https://github.com/jhd3197/cacao/actions)
+[![GitHub Stars](https://img.shields.io/github/stars/jhd3197/cacao?style=social)](https://github.com/jhd3197/cacao)
+
+---
 ## Description
 
 Cacao is a modern, high-performance web framework for building reactive Python apps with real-time capabilities. Designed for developers who want full control without sacrificing simplicity, Cacao blends a clean decorator-based API with a powerful component and state management system — all backed by JSON-defined UIs and WebSocket-driven live updates.
@@ -555,9 +563,9 @@ Use the test runner to automatically discover and execute tests while suppressin
 
 ## 📸 Screenshots
 
-<img width="934" alt="image" src="https://github.com/user-attachments/assets/2eea610d-de88-4e84-a087-2664e27c41af" />
+<img width="1184" alt="image" src="https://github.com/user-attachments/assets/bfe66a0b-1712-49cd-a617-43c16590a5b9" />
 
-<img width="1031" alt="image" src="https://github.com/user-attachments/assets/4fc70af2-ea14-4904-a71f-388b78955a10" />
+<img width="1241" alt="image" src="https://github.com/user-attachments/assets/9dfd5cc8-b547-4a43-bcf0-acc322bf1e22" />
 
 ## ❓ Troubleshooting
 
