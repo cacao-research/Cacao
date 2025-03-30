@@ -105,6 +105,40 @@
         }
     }
 
+    /**
+     * Helper function to check if content contains icon markup
+     * @param {string} content - The text content to check
+     * @return {boolean} True if the content contains icon markup
+     */
+    function hasIconMarkup(content) {
+        if (!content || typeof content !== 'string') return false;
+        return content.includes('<svg') || 
+               content.includes('<i class="fa') || 
+               content.includes('<span class="cacao-icon"');
+    }
+
+    /**
+     * Helper function to apply content to elements, handling icon markup properly
+     * @param {HTMLElement} el - The element to apply content to
+     * @param {string} content - The text content or HTML to apply
+     */
+    function applyContent(el, content) {
+        if (!content) return;
+        
+        // For pre elements, always use textContent to preserve raw text
+        if (el.tagName === 'PRE') {
+            el.textContent = content;
+            return;
+        }
+        
+        // For all other elements, check for icon markup
+        if (hasIconMarkup(content)) {
+            el.innerHTML = content;
+        } else {
+            el.textContent = content;
+        }
+    }
+
     // Simple renderer that maps JSON UI definitions to HTML
     function renderComponent(component) {
         if (!component || !component.type) {
@@ -122,13 +156,20 @@
             case "navbar":
                 el = document.createElement("nav");
                 el.className = "navbar";
-                el.innerHTML = `<div class="brand">${component.props.brand}</div>`;
+                
+                if (component.props.brand) {
+                    const brandDiv = document.createElement("div");
+                    brandDiv.className = "brand";
+                    applyContent(brandDiv, component.props.brand);
+                    el.appendChild(brandDiv);
+                }
+                
                 if(component.props.links) {
                     const linksDiv = document.createElement("div");
                     component.props.links.forEach(link => {
                         const a = document.createElement("a");
                         a.href = link.url;
-                        a.textContent = link.name;
+                        applyContent(a, link.name);
                         linksDiv.appendChild(a);
                     });
                     el.appendChild(linksDiv);
@@ -140,7 +181,14 @@
                 if (component.props.backgroundImage) {
                     el.style.backgroundImage = `url(${component.props.backgroundImage})`;
                 }
-                el.innerHTML = `<h1>${component.props.title}</h1><p>${component.props.subtitle}</p>`;
+                
+                const heroTitle = document.createElement("h1");
+                applyContent(heroTitle, component.props.title);
+                el.appendChild(heroTitle);
+                
+                const heroSubtitle = document.createElement("p");
+                applyContent(heroSubtitle, component.props.subtitle);
+                el.appendChild(heroSubtitle);
                 break;
             case "section":
             case "div":
@@ -158,6 +206,12 @@
                     el.dataset.componentType = component.component_type;
                 }
                 
+                // Check for direct content
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
+                
+                // Add children
                 if(component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {
                         el.appendChild(renderComponent(child));
@@ -167,7 +221,7 @@
             case "text":
                 el = document.createElement("p");
                 el.className = "text";
-                el.textContent = component.props.content;
+                applyContent(el, component.props.content);
                 break;
             case "sidebar":
                 el = document.createElement("div");
@@ -176,6 +230,11 @@
                 // Apply styles from props
                 if (component.props && component.props.style) {
                     Object.assign(el.style, component.props.style);
+                }
+                
+                // Check for direct content
+                if (component.props && component.props.content) {
+                    applyContent(el, component.props.content);
                 }
                 
                 // Add children if available
@@ -199,7 +258,7 @@
                     // Add icon if available
                     if (component.props && component.props.icon) {
                         const iconSpan = document.createElement("span");
-                        iconSpan.textContent = component.props.icon + " ";
+                        applyContent(iconSpan, component.props.icon); // Apply icon content with icon handling
                         iconSpan.style.marginRight = "8px";
                         el.appendChild(iconSpan);
                     }
@@ -207,7 +266,7 @@
                     // Add label
                     if (component.props && component.props.label) {
                         const labelSpan = document.createElement("span");
-                        labelSpan.textContent = component.props.label;
+                        applyContent(labelSpan, component.props.label);
                         el.appendChild(labelSpan);
                     }
                 }
@@ -276,7 +335,6 @@
                                 // Force UI refresh after action (standard behavior)
                                 window.CacaoWS.requestServerRefresh();
                             }
-                            // Removed duplicate call to requestServerRefresh
                         } catch (err) {
                             console.error('[CacaoCore] Error handling nav item click:', err);
                             // Hide refresh overlay on error
@@ -292,23 +350,46 @@
             case "h5":
             case "h6":
                 el = document.createElement(component.type);
-                el.textContent = component.props.content;
+                applyContent(el, component.props.content);
                 break;
             case "p":
                 el = document.createElement("p");
-                el.textContent = component.props.content;
+                applyContent(el, component.props.content);
+                break;
+            case "li":
+                el = document.createElement("li");
+                applyContent(el, component.props.content);
+                
+                // Handle list item children if present
+                if (component.props.children && Array.isArray(component.props.children)) {
+                    component.props.children.forEach(child => {
+                        el.appendChild(renderComponent(child));
+                    });
+                }
+                break;
+            case "pre":
+                el = document.createElement("pre");
+                // Always use textContent for pre elements to preserve raw text
+                if (component.props.content) {
+                    el.textContent = component.props.content;
+                }
+                
+                // Apply styles if provided
+                if (component.props.style) {
+                    Object.assign(el.style, component.props.style);
+                }
                 break;
             case "header":
                 el = document.createElement("header");
                 el.className = "header";
                 if (component.props.title) {
                     const headerTitle = document.createElement("h1");
-                    headerTitle.textContent = component.props.title;
+                    applyContent(headerTitle, component.props.title);
                     el.appendChild(headerTitle);
                 }
                 if (component.props.subtitle) {
                     const headerSubtitle = document.createElement("p");
-                    headerSubtitle.textContent = component.props.subtitle;
+                    applyContent(headerSubtitle, component.props.subtitle);
                     el.appendChild(headerSubtitle);
                 }
                 break;
@@ -321,6 +402,12 @@
                 if (component.props.padding) {
                     el.style.padding = component.props.padding;
                 }
+                
+                // Check for direct content
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
+                
                 if (component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {
                         el.appendChild(renderComponent(child));
@@ -333,7 +420,7 @@
                 if (component.props.title) {
                     const cardTitle = document.createElement("h2");
                     cardTitle.className = "card-title";
-                    cardTitle.textContent = component.props.title;
+                    applyContent(cardTitle, component.props.title);
                     el.appendChild(cardTitle);
                 }
                 if (component.props.children && Array.isArray(component.props.children)) {
@@ -345,9 +432,16 @@
                     el.appendChild(cardContent);
                 }
                 break;
+            case "ul":
             case "list":
                 el = document.createElement("ul");
-                el.className = "list";
+                el.className = component.type === "list" ? "list" : "";
+                
+                // Handle direct content if present (rare, but supported)
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
+                
                 if (component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {
                         el.appendChild(renderComponent(child));
@@ -391,7 +485,7 @@
                 }
                 
                 const taskLabel = document.createElement("span");
-                taskLabel.textContent = component.props.title;
+                applyContent(taskLabel, component.props.title);
                 if (component.props.completed) {
                     taskLabel.style.textDecoration = "line-through";
                     taskLabel.style.color = "#888";
@@ -403,7 +497,8 @@
             case "button":
                 el = document.createElement("button");
                 el.className = "button";
-                el.textContent = component.props.label;
+                applyContent(el, component.props.label);
+                
                 if(component.props.action) {
                     // Add click handler that sends action to server via GET
                     el.onclick = async () => {
@@ -455,7 +550,7 @@
                                 }
                                 
                                 const responseData = await response.json();
-                                console.log("[Cacao] Server response data:", responseData);
+                                console.log("[CacaoCore] Server response data:", responseData);
                                 
                                 // Force UI refresh after action
                                 window.CacaoWS.requestServerRefresh();
@@ -481,11 +576,17 @@
             case "footer":
                 el = document.createElement("footer");
                 el.className = "footer";
-                el.textContent = component.props.text;
+                applyContent(el, component.props.text);
                 break;
             case "column":
                 el = document.createElement("div");
                 el.className = "column";
+                
+                // Check for direct content
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
+                
                 if(component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {
                         el.appendChild(renderComponent(child));
@@ -495,6 +596,12 @@
             case "grid":
                 el = document.createElement("div");
                 el.className = "grid";
+                
+                // Check for direct content
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
+                
                 if(component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {
                         el.appendChild(renderComponent(child));
@@ -506,6 +613,11 @@
                 el.className = "form";
                 // Prevent default form submission
                 el.onsubmit = (e) => e.preventDefault();
+                
+                // Check for direct content
+                if (component.props.content) {
+                    applyContent(el, component.props.content);
+                }
                 
                 if(component.props.children && Array.isArray(component.props.children)) {
                     component.props.children.forEach(child => {

@@ -24,5 +24,12 @@
         "background_color": "#F5F5F5",
         "display": "standalone",
         "start_url": "/"
+    },
+    "icons": {
+        "icon_directories": ["./icons", "./assets/icons"],
+        "fontawesome_version": "6.4.2",
+        "fontawesome_mode": "free",
+        "enable_auto_loading": true,
+        "cache_processed_icons": true
     }
 }

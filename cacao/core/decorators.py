@@ -3,13 +3,16 @@ Decorators module for the Cacao framework.
 Provides syntactic sugar for registering routes and auto-documenting components.
 """
 
-from typing import Callable, Dict
+from typing import Callable, Dict, Any
 import functools
 
 # Global registry for route handlers
 ROUTES: Dict[str, Callable] = {}
 # Global registry for event handlers
 EVENT_HANDLERS: Dict[str, Callable] = {}
+
+# Import icon processing function
+from ..utilities.icons import process_icons_in_component
 
 class MixDecorator:
     """
@@ -29,7 +32,13 @@ class MixDecorator:
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 # Always call the original function to get fresh data
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                
+                # Process icons in the component tree
+                if isinstance(result, dict):
+                    result = process_icons_in_component(result)
+                
+                return result
             
             # Register the wrapped function
             ROUTES[path] = wrapper

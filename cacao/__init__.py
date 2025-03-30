@@ -7,6 +7,7 @@ __version__ = "1.0.8"
 from .core.app import App
 from .core.decorators import mix
 from .core import run, run_desktop, State, Component
+from .utilities.icons import icon_registry, process_icons_in_component
 
 __all__ = [
     "App",
@@ -14,5 +15,6 @@ __all__ = [
     "run",
     "run_desktop",
     "State",
-    "Component"
+    "Component",
+    "icon_registry"
 ]

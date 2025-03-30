@@ -1,0 +1,39 @@
+/* Icon Styles for Cacao */
+
+/* General icon container */
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+/* SVG icons */
+.icon svg {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* FontAwesome icons */
+.fa {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+/* Error display for missing icons */
+.icon-error {
+    color: #ff5555;
+    background-color: #ffeeee;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    display: inline-block;
+}

@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlparse
 from .session import SessionManager
 from .pwa import PWASupport
 from .mixins.logging import LoggingMixin, Colors
+from ..utilities.icons import icon_registry
 
 from .. import __version__
 
@@ -919,13 +920,37 @@ class CacaoServer(LoggingMixin):
             ws_server.wait_closed(),
             http_server.serve_forever(),
         )
-    
+    def _initialize_icon_registry(self):
+        """Initialize the icon registry with configuration from cacao.json."""
+        try:
+            # Look for cacao.json in the current directory
+            config_path = os.path.join(os.getcwd(), "cacao.json")
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    
+                # Extract icon configuration if present
+                if 'icons' in config:
+                    self.log("Initializing icon registry", "info", "🔣")
+                    icon_registry.initialize(config['icons'])
+                    self.log(f"Icon registry initialized with config", "info", "✅")
+            else:
+                self.log("No cacao.json found, using default icon configuration", "warning", "⚠️")
+                # Initialize with empty config
+                icon_registry.initialize({})
+                
+        except Exception as e:
+            self.log(f"Error initializing icon registry: {str(e)}", "error", "❌")
+            # Initialize with empty config to avoid further errors
+            icon_registry.initialize({})
+
     def run(self):
         """Run the server (blocking call)."""
         global global_server
         try:
             global_server = self
             self._print_banner()
+            
 
             # Import and access the route handlers
             # This forces the decorators to be evaluated
@@ -964,6 +989,8 @@ class CacaoServer(LoggingMixin):
                 
             # Reset the terminal settings for Windows
             os.system("")
+            # Initialize the icon registry
+            self._initialize_icon_registry()
             
             # Run the asyncio event loop
             if sys.platform == 'win32':
