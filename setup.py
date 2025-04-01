@@ -23,7 +23,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=find_packages(),
+    packages=find_packages(include=['cacao', 'cacao.*']),
     install_requires=[
         "websockets",
         "asyncio",

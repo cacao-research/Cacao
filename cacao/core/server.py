@@ -964,7 +964,6 @@ class CacaoServer(LoggingMixin):
                     else:
                         self.log("No routes registered", "warning", "⚠️")
                 else:
-                    self.log(f"Main module not found in sys.modules: {self.main_module}", "warning", "⚠️")
                     # If main_module is a file path, try to import it
                     if os.path.isfile(self.main_module):
                         module_name = os.path.basename(self.main_module).replace('.py', '')
