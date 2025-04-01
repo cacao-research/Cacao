@@ -11,6 +11,7 @@ permissions:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
       - name: Checkout Repository
@@ -18,42 +19,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check Committer
-        if: github.actor == 'github-actions[bot]'
+      - name: Get Current Version
+        id: current_version
         run: |
-          echo "Commit made by GitHub Actions. Exiting workflow."
-          exit 0
+          echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
       - name: Bump Version
         id: bump_version
-        uses: mathieudutour/github-tag-action@v6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: dev
-          default_bump: patch
-          tag_prefix: 'v'
-          skip_ci: true
-          create_annotated_tag: false
-          dry_run: false
-
-      - name: Update VERSION File
         run: |
-          echo "${{ steps.bump_version.outputs.new_version }}" > VERSION
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git commit -m "🔖 Version bump to v${{ steps.bump_version.outputs.new_version }} [skip ci]"
-          git push origin dev
+          current=${{ steps.current_version.outputs.version }}
+          IFS='.' read -r -a parts <<< "$current"
+          new_patch=$((parts[2] + 1))
+          new_version="${parts[0]}.${parts[1]}.$new_patch"
+          echo "$new_version" > VERSION
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Update Version Files
         run: |
           NEW_VERSION=${{ steps.bump_version.outputs.new_version }}
-          # Update the version in setup.py
           sed -i "s/version=['\"][^'\"]*['\"],/version='${NEW_VERSION}',/" setup.py
-          # Update the version in __init__.py
           sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"${NEW_VERSION}\"/" cacao/__init__.py
-          
-          # Add changes to git
-          git add setup.py cacao/__init__.py
-          git commit -m "🔖 Update versions to ${NEW_VERSION} [skip ci]" || echo "No changes to commit"
-          git push origin dev
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION setup.py cacao/__init__.py
+          git commit -m "🔖 Version bump to v${{ steps.bump_version.outputs.new_version }} [skip ci]"
+          git tag "v${{ steps.bump_version.outputs.new_version }}"
+          git push origin dev --tags
