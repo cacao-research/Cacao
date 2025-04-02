@@ -9,7 +9,7 @@ long_description = (HERE / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="cacao",
-    version='1.0.14',
+    version='1.0.15',
     description="Cacao is a high-performance, reactive web framework for Python, designed to simplify building interactive dashboards and data apps.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -24,6 +24,16 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=find_packages(include=['cacao', 'cacao.*']),
+    package_data={
+        'cacao': [
+            'core/static/*.html',
+            'core/static/css/*.css',
+            'core/static/js/*.js',
+            'core/static/icons/*.svg',
+            'cli/templates/**/*'
+        ]
+    },
+    include_package_data=True,
     install_requires=[
         "websockets",
         "asyncio",

@@ -1,0 +1,8 @@
+include README.md
+include VERSION
+include LICENSE
+include cacao.json
+recursive-include cacao/core/static *
+recursive-include cacao/cli/templates *
+recursive-include docs *
+recursive-include examples *
