@@ -24,6 +24,16 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=find_packages(include=['cacao', 'cacao.*']),
+    package_data={
+        'cacao': [
+            'core/static/*.html',
+            'core/static/css/*.css',
+            'core/static/js/*.js',
+            'core/static/icons/*.svg',
+            'cli/templates/**/*'
+        ]
+    },
+    include_package_data=True,
     install_requires=[
         "websockets",
         "asyncio",
