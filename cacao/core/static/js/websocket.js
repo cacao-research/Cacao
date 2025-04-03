@@ -156,14 +156,41 @@ Handles real-time updates and UI synchronization.
                         if (data.state) {
                             currentState = {...currentState, ...data.state};
                             
-                            // Trigger UI update if needed
-                            if (window.CacaoCore && typeof window.CacaoCore.render === "function") {
-                                // Force UI refresh with current state
-                                window.CacaoCore.render({
-                                    force: true,
-                                    _state: currentState
-                                });
-                            }
+                            // Instead of trying to render an invalid component,
+                            // update the state silently without showing a loading overlay
+                            // This prevents the loading overlay from appearing in other tabs
+                            
+                            // Request a proper UI definition from the server without showing overlay
+                            const hash = window.location.hash.slice(1);
+                            fetch(`/api/ui?force=true&_hash=${hash}&t=${Date.now()}`, {
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                    'Pragma': 'no-cache',
+                                    'Expires': '0'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(uiData => {
+                                console.log('[CacaoWS] Fetched proper UI data after state update');
+                                if (window.CacaoCore && typeof window.CacaoCore.render === "function") {
+                                    // Add force flag to ensure rendering
+                                    uiData.force = true;
+                                    window.CacaoCore.render(uiData);
+                                }
+                                
+                                // Ensure overlay is hidden
+                                const overlay = document.querySelector('.refresh-overlay');
+                                if (overlay) overlay.classList.remove('active');
+                            })
+                            .catch(error => {
+                                console.error('[CacaoWS] Error fetching UI after state update:', error);
+                                const overlay = document.querySelector('.refresh-overlay');
+                                if (overlay) overlay.classList.remove('active');
+                            })
+                            .finally(() => {
+                                refreshInProgress = false;
+                            });
+                        }
                         }
                     }
                 } catch (error) {

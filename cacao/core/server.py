@@ -189,6 +189,9 @@ class CacaoServer(LoggingMixin):
                         # State update from client
                         component_state = data.get('state', {})
                         if component_id and component_state:
+                            # Add logging to track component updates
+                            print(f"Updating component {component_id} with state: {component_state}")
+                            print(f"Session ID: {session_id}, WebSocket ID: {id(websocket)}")
                             self.active_components[component_id] = component_state
                         
                         # Update global state

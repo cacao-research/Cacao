@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from .base import Component
 from ...core.state import State, get_state
 from ...core.mixins.logging import LoggingMixin
+from ...core.theme import get_theme, get_color
 
 # Debug flag for SidebarLayout component
 SIDEBAR_DEBUG = False
@@ -16,20 +17,22 @@ current_page_state = get_state("current_page", "home")
 sidebar_expanded_state = get_state("sidebar_expanded", True)
 
 class SidebarLayout(Component, LoggingMixin):
-    def __init__(self, nav_items: List[Dict[str, str]], content_components: Dict[str, Any], 
-                 app_title: str = "Cacao App") -> None:
+    def __init__(self, nav_items: List[Dict[str, str]], content_components: Dict[str, Any],
+                 app_title: str = "Cacao App", styles: Optional[Dict[str, Any]] = None) -> None:
         """Initialize sidebar layout with navigation items and content components.
         
         Args:
             nav_items: List of navigation items with id, label and optional icon
             content_components: Dictionary mapping page IDs to component instances
             app_title: Optional title to display in the sidebar header
+            styles: Optional dictionary of style overrides for this component
         """
         super().__init__()
         self.nav_items_data = nav_items
         self.content_components = content_components
         self.component_type = "sidebar_layout"
         self.app_title = app_title
+        self.styles = styles or {}
         
         # Initialize page state with first nav item if not set
         if not current_page_state.value or current_page_state.value not in self.content_components:
@@ -94,7 +97,15 @@ class SidebarLayout(Component, LoggingMixin):
         Returns:
             UI definition for the complete layout
         """
+        # Add debug logging to track component rendering
+        import inspect
+        frame = inspect.currentframe()
+        caller = inspect.getouterframes(frame)[1]
+        print(f"SidebarLayout.render called from {caller.function} with ui_state: {ui_state}")
         is_expanded = sidebar_expanded_state.value
+        
+        # Get global theme
+        theme = get_theme()
         
         # Update global state from UI state or server state if provided
         if ui_state:
@@ -121,15 +132,20 @@ class SidebarLayout(Component, LoggingMixin):
         # Create nav items
         nav_items = []
         for item in self.nav_items_data:
-            nav_items.append(NavItem(
+            nav_item = NavItem(
                 id=item["id"],
                 label=item["label"],
                 icon=item.get("icon"),
                 is_active=item["id"] == current_page
-            ))
+            )
+            # Set parent reference for theme access
+            nav_item.parent = self
+            nav_items.append(nav_item)
 
         # Create sidebar component
         sidebar = Sidebar(nav_items, self.app_title)
+        # Set parent reference for theme access
+        sidebar.parent = self
         
         # Get component for current page
         current_component = self.content_components.get(current_page)
@@ -151,7 +167,7 @@ class SidebarLayout(Component, LoggingMixin):
                 "style": {
                     "display": "flex",
                     "minHeight": "100vh",
-                    "backgroundColor": "#FAF6F3"  # Light cream background for content area
+                    "backgroundColor": self.styles.get("content_bg", get_color("content_bg"))
                 },
                 "children": [
                     sidebar.render(),
@@ -162,10 +178,10 @@ class SidebarLayout(Component, LoggingMixin):
                             "className": "content-area",
                             "style": {
                                 "flex": "1",
-                                "marginLeft": "250px" if is_expanded else "64px",
-                                "padding": "24px 32px",
+                                "marginLeft": self.styles.get("sidebar_width", "250px") if is_expanded else self.styles.get("sidebar_collapsed_width", "64px"),
+                                "padding": self.styles.get("content_padding", "24px 32px"),
                                 "transition": "margin-left 0.3s ease",
-                                "backgroundColor": "#FAF6F3",  # Light cream background
+                                "backgroundColor": self.styles.get("content_bg", get_color("content_bg")),
                                 "minHeight": "100vh",
                                 "boxSizing": "border-box",
                                 "position": "relative"
@@ -178,7 +194,7 @@ class SidebarLayout(Component, LoggingMixin):
                                         "style": {
                                             "marginBottom": "24px",
                                             "paddingBottom": "16px",
-                                            "borderBottom": "1px solid #D6C3B6"  # Light brown border
+                                            "borderBottom": f"1px solid {self.styles.get('border_color', get_color('border_color'))}"
                                         },
                                         "children": [
                                             {
@@ -187,9 +203,9 @@ class SidebarLayout(Component, LoggingMixin):
                                                     "content": self.nav_items_data[[item["id"] for item in self.nav_items_data].index(current_page)]["label"] if current_page in [item["id"] for item in self.nav_items_data] else "Unknown Page",
                                                     "style": {
                                                         "margin": "0",
-                                                        "fontSize": "24px",
-                                                        "fontWeight": "700",
-                                                        "color": "#6B4226"  # Cacao brown title
+                                                        "fontSize": self.styles.get("title_size", "24px"),
+                                                        "fontWeight": self.styles.get("title_weight", "700"),
+                                                        "color": self.styles.get("title_color", get_color("title_color"))
                                                     }
                                                 }
                                             }
@@ -201,11 +217,11 @@ class SidebarLayout(Component, LoggingMixin):
                                     "type": "div",
                                     "props": {
                                         "style": {
-                                            "backgroundColor": "#FFFFFF",
+                                            "backgroundColor": self.styles.get("card_bg", get_color("card_bg")),
                                             "borderRadius": "8px",
-                                            "boxShadow": "0 1px 3px rgba(107, 66, 38, 0.1)",  # Brown shadow
-                                            "padding": "24px",
-                                            "border": "1px solid #E6D7CC"  # Very light brown border
+                                            "boxShadow": f"0 1px 3px rgba(107, 66, 38, 0.1)",
+                                            "padding": self.styles.get("card_padding", "24px"),
+                                            "border": f"1px solid {self.styles.get('card_border', get_color('card_border'))}"
                                         },
                                         "children": [current_content]
                                     }
@@ -226,26 +242,34 @@ class NavItem(Component):
         self.is_active = is_active
 
     def render(self) -> Dict[str, Any]:
+        # Get styles from parent component or use global theme
+        parent_styles = {}
+        if hasattr(self, 'parent') and hasattr(self.parent, 'styles'):
+            parent_styles = self.parent.styles
+        
+        # Get global theme
+        theme = get_theme()
+        
         # Base and active styles
         base_style = {
             "display": "flex",
             "alignItems": "center",
-            "padding": "12px 16px",
+            "padding": parent_styles.get("nav_item_padding", "12px 16px"),
             "margin": "4px 8px",
             "borderRadius": "8px",
             "cursor": "pointer",
             "transition": "all 0.2s ease",
-            "color": "#D6C3B6",  # Light brown text for better visibility
-            "fontSize": "15px",
-            "fontWeight": "500",
+            "color": parent_styles.get("sidebar_text", get_color("sidebar_text")),
+            "fontSize": parent_styles.get("nav_item_size", "15px"),
+            "fontWeight": parent_styles.get("nav_item_weight", "500"),
             "textDecoration": "none",
         }
         
         # Apply active styles when item is selected
         if self.is_active:
             active_styles = {
-                "backgroundColor": "#6B4226",  # Cacao brown active background
-                "color": "#FFFFFF",  # White text for active item
+                "backgroundColor": parent_styles.get("active_bg", get_color("active_bg")),
+                "color": parent_styles.get("active_text", get_color("active_text")),
                 "boxShadow": "0 2px 5px rgba(107, 66, 38, 0.3)"
             }
             # Merge active styles into base styles
@@ -256,7 +280,7 @@ class NavItem(Component):
             base_style["backgroundColor"] = "transparent"
             base_style["&:hover"] = {
                 "backgroundColor": "rgba(107, 66, 38, 0.2)",
-                "color": "#FFFFFF"
+                "color": parent_styles.get("active_text", get_color("active_text"))
             }
             
         # Create the icon element if provided
@@ -272,8 +296,8 @@ class NavItem(Component):
                         "alignItems": "center",
                         "justifyContent": "center",
                         "marginRight": "14px",
-                        "backgroundColor": "#8B5E41" if self.is_active else "rgba(107, 66, 38, 0.3)",
-                        "color": "#FFFFFF",
+                        "backgroundColor": parent_styles.get("active_icon_bg", get_color("active_icon_bg")) if self.is_active else parent_styles.get("inactive_icon_bg", get_color("inactive_icon_bg")),
+                        "color": parent_styles.get("active_text", get_color("active_text")),
                         "borderRadius": "6px",
                         "fontSize": "16px",
                         "fontWeight": "bold"
@@ -283,7 +307,7 @@ class NavItem(Component):
                         "props": {
                             "content": self.icon,
                             "style": {
-                                "color": "#FFFFFF"  # Ensure icon text is white for visibility
+                                "color": parent_styles.get("active_text", get_color("active_text"))
                             }
                         }
                     }]
@@ -305,7 +329,7 @@ class NavItem(Component):
                     "textOverflow": "ellipsis",
                     "fontWeight": "500",
                     "fontSize": "15px",
-                    "color": "#FFFFFF" if self.is_active else "#D6C3B6"  # Ensure text is visible
+                    "color": parent_styles.get("active_text", get_color("active_text")) if self.is_active else parent_styles.get("sidebar_text", get_color("sidebar_text"))
                 }
             }
         })
@@ -333,6 +357,7 @@ class Sidebar(Component):
             nav_items: List of NavItem components
             app_title: Title to display in the sidebar header
         """
+        # The theme will be set by the parent SidebarLayout component
         super().__init__()
         self.nav_items = nav_items
         self.app_title = app_title
@@ -343,13 +368,13 @@ class Sidebar(Component):
             "key": "sidebar",
             "props": {
                 "style": {
-                    "width": "250px" if sidebar_expanded_state.value else "64px",
+                    "width": self.parent.styles.get("sidebar_width", "250px") if sidebar_expanded_state.value else self.parent.styles.get("sidebar_collapsed_width", "64px"),
                     "height": "100vh",
                     "position": "fixed",
                     "top": 0,
                     "left": 0,
-                    "backgroundColor": "#2D2013",  # Dark brown background
-                    "color": "#FFFFFF",
+                    "backgroundColor": self.parent.styles.get("sidebar_bg", get_color("sidebar_bg")),
+                    "color": self.parent.styles.get("active_text", get_color("active_text")),
                     "boxShadow": "0 0 15px rgba(107, 66, 38, 0.15)",
                     "transition": "width 0.3s ease",
                     "padding": "0",
@@ -364,11 +389,11 @@ class Sidebar(Component):
                         "props": {
                             "style": {
                                 "padding": "20px 16px",
-                                "borderBottom": "1px solid #503418",  # Medium brown border
+                                "borderBottom": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
                                 "display": "flex",
                                 "alignItems": "center",
                                 "height": "64px",
-                                "backgroundColor": "#6B4226"  # Cacao brown header
+                                "backgroundColor": self.parent.styles.get("sidebar_header_bg", get_color("sidebar_header_bg"))
                             },
                             "children": [
                                 {
@@ -379,7 +404,7 @@ class Sidebar(Component):
                                             "margin": 0,
                                             "fontSize": "18px",
                                             "fontWeight": "600",
-                                            "color": "#FFFFFF"
+                                            "color": self.parent.styles.get("active_text", get_color("active_text"))
                                         }
                                     }
                                 }
@@ -403,10 +428,10 @@ class Sidebar(Component):
                         "type": "div",
                         "props": {
                             "style": {
-                                "borderTop": "1px solid #503418",  # Medium brown border
+                                "borderTop": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
                                 "padding": "16px",
                                 "fontSize": "12px",
-                                "color": "#D6C3B6"  # Light brown text
+                                "color": self.parent.styles.get("sidebar_text", get_color("sidebar_text"))
                             },
                             "children": [
                                 {

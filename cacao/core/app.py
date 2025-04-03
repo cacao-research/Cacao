@@ -60,7 +60,8 @@ class App:
         
     def brew(self, type: str = "web", host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
              title: str = "Cacao App", width: int = 800, height: int = 600,
-             resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False):
+             resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False,
+             theme: Dict[str, Any] = None):
         """
         Start the application in web or desktop mode.
         Like brewing a delicious cup of hot chocolate!
@@ -76,10 +77,16 @@ class App:
             resizable: Whether window can be resized (desktop mode only)
             fullscreen: Whether to start in fullscreen mode (desktop mode only)
             ASCII_debug: If True, disables emojis in logs for better compatibility
+            theme: Dictionary containing theme properties to apply globally
         """
         # Set the global ASCII debug mode
         global ASCII_DEBUG_MODE
         ASCII_DEBUG_MODE = ASCII_debug
+        
+        # Set the global theme if provided
+        if theme:
+            from .theme import set_theme
+            set_theme(theme)
         
         import inspect
         
