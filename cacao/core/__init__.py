@@ -11,6 +11,7 @@ from .pwa import PWASupport
 from .mixins.logging import LoggingMixin
 from .mixins.validation import ValidationMixin
 from ..utilities.icons import icon_registry, process_icons_in_component
+from .theme import get_theme, set_theme, reset_theme, get_color
 
 # Initialize state
 from .decorators import ROUTES, clear_routes, EVENT_HANDLERS, get_event_handlers, register_event_handler, handle_event
@@ -136,5 +137,9 @@ __all__ = [
     "LoggingMixin",
     "ValidationMixin",
     "icon_registry",
-    "process_icons_in_component"
+    "process_icons_in_component",
+    "get_theme",
+    "set_theme",
+    "reset_theme",
+    "get_color"
 ]

@@ -4,7 +4,8 @@ Handles injection of CSS and JS assets into the frontend.
 """
 
 import os
-from typing import Dict
+import importlib
+from typing import Dict, Any, Optional, Union
 
 def load_theme(theme_name: str, base_path: str = None) -> Dict[str, str]:
     """
@@ -32,3 +33,25 @@ def load_theme(theme_name: str, base_path: str = None) -> Dict[str, str]:
         pass
 
     return assets
+
+def get_sidebar_theme(theme_options: Optional[Dict[str, Any]] = None) -> 'SidebarTheme':
+    """
+    Get a SidebarTheme instance with optional customizations.
+    
+    Args:
+        theme_options: Optional dictionary with theme customization options
+            Can include 'colors', 'spacing', and 'fonts' dictionaries
+    
+    Returns:
+        A SidebarTheme instance with the specified customizations
+    """
+    from .sidebar_theme import SidebarTheme
+    
+    if theme_options is None:
+        return SidebarTheme()
+    
+    return SidebarTheme(
+        colors=theme_options.get('colors'),
+        spacing=theme_options.get('spacing'),
+        fonts=theme_options.get('fonts')
+    )

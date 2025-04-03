@@ -52,6 +52,8 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **Session Persistence**: Maintain state across page refreshes
 - **Desktop Mode**: Run as a standalone desktop application
 - **Hybrid Mode**: Switch between web and desktop modes with the same codebase
+- **Global Theme System**: Consistent styling with theme inheritance
+- **Component-Level Theming**: Override global themes at component level
 
 ## 🧩 Component State Management
 
@@ -478,6 +480,41 @@ app.brew(
 - **Automatic Server**: Built-in Cacao server runs in the background
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Hybrid Support**: Same codebase can run in both web and desktop modes
+
+
+### 🎨 Theme System
+
+Cacao now includes a powerful global theme system that allows consistent styling across your entire application:
+
+### Setting a Global Theme
+
+```python
+import cacao
+
+app = cacao.App()
+
+# Define your custom theme
+my_theme = {
+    "colors": {
+        "primary": "#2196F3",
+        "secondary": "#03A9F4",
+        "background": "#F0F8FF",
+        "text": "#2C3E50",
+        "accent": "#FF5722",
+        "sidebar_bg": "#1A365D",
+        "sidebar_header_bg": "#2C5282",
+        "content_bg": "#F0F8FF",
+        "card_bg": "#FFFFFF",
+        "border_color": "#BEE3F8"
+    }
+}
+
+# Apply theme when starting the app
+app.brew(
+    type="web",
+    theme=my_theme
+)
+```
 
 ### Example Implementation
 
