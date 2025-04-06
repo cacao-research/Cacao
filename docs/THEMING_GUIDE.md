@@ -49,12 +49,10 @@ The default theme includes the following color properties:
 ```python
 DEFAULT_THEME = {
     "colors": {
-        "primary": "#3498db",      # Primary color for buttons, links, etc.
         "secondary": "#2ecc71",    # Secondary color for accents
         "background": "#ffffff",   # Main background color
         "text": "#333333",         # Main text color
         "accent": "#e74c3c",       # Accent color for highlights
-        
         # Component-specific colors
         "sidebar_bg": "#2D2013",          # Sidebar background
         "sidebar_header_bg": "#6B4226",   # Sidebar header background

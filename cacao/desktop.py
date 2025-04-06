@@ -7,9 +7,9 @@ import os
 from .core.server import CacaoServer
 
 class CacaoDesktopApp:
-    def __init__(self, title: str = "Cacao Desktop App", width: int = 800, height: int = 600, 
-                 resizable: bool = True, fullscreen: bool = False, http_port: int = 1634, 
-                 ws_port: int = 1633, main_file: str = None): 
+    def __init__(self, title: str = "Cacao Desktop App", width: int = 800, height: int = 600,
+                 resizable: bool = True, fullscreen: bool = False, http_port: int = 1634,
+                 ws_port: int = 1633, main_file: str = None, extensions=None):
         self.title = title
         self.width = width
         self.height = height
@@ -18,6 +18,7 @@ class CacaoDesktopApp:
         self.http_port = http_port
         self.ws_port = ws_port
         self.main_file = main_file # Assign main_file
+        self.extensions = extensions or []
         
     def start_server(self):
         """Start the Cacao server in a separate thread."""
@@ -30,7 +31,8 @@ class CacaoDesktopApp:
             http_port=self.http_port,
             ws_port=self.ws_port,
             enable_pwa=False,
-            main_file=self.main_file # Pass main_file to the server
+            main_file=self.main_file, # Pass main_file to the server
+            extensions=self.extensions # Pass extensions to the server
         )
         
         # Log the available routes for debugging

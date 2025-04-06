@@ -18,7 +18,7 @@ def home():
                 "props": {
                     "content": "Welcome to Cacao 1",
                     "style": {
-                        "color": "#f0be9b",
+                        "color": "#6B4226",
                         "marginBottom": "20px"
                     }
                 }
@@ -28,7 +28,7 @@ def home():
                 "props": {
                     "content": "A deliciously simple web framework!",
                     "style": {
-                        "color": "#D4A76A"
+                        "color": "#6B4226"
                     }
                 }
             }
