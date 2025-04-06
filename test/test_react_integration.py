@@ -4,7 +4,7 @@ Tests for React component integration in Cacao.
 
 import pytest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from cacao.ui import ReactComponent
 from cacao.extensions.react_extension import ReactExtension
@@ -57,14 +57,16 @@ def test_react_component_render():
     assert rendered["props"]["cdn"] == "https://cdn.jsdelivr.net/npm"
 
 
-def test_react_extension():
+@pytest.mark.asyncio
+async def test_react_extension():
     """Test that ReactExtension modifies the HTML template correctly."""
     # Create a mock server
     server = MagicMock()
     
-    # Create a mock writer
+    # Create a mock writer with AsyncMock for drain
     writer = MagicMock()
     writer.write = MagicMock()
+    writer.drain = AsyncMock()
     
     # Create a ReactExtension
     extension = ReactExtension()
@@ -73,7 +75,7 @@ def test_react_extension():
     extension.apply(server)
     
     # Call the original _serve_html_template method
-    server._serve_html_template(writer, "test-session-id")
+    await server._serve_html_template(writer, "test-session-id")
     
     # Check that the writer.write method was called
     assert writer.write.called
@@ -85,8 +87,9 @@ async def test_react_extension_html_modification():
     # Create a mock server
     server = MagicMock()
     
-    # Create a mock writer
+    # Create a mock writer with AsyncMock for drain
     writer = MagicMock()
+    writer.drain = AsyncMock()
     
     # Create a ReactExtension
     extension = ReactExtension()
