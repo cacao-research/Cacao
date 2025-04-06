@@ -947,12 +947,33 @@ class CacaoServer(LoggingMixin):
             # Initialize with empty config to avoid further errors
             icon_registry.initialize({})
 
+    def _apply_extensions(self):
+        """Apply all registered extensions to the server."""
+        if not self.extensions:
+            return
+            
+        self.log(f"Applying {len(self.extensions)} extension(s)", "info", "🔌")
+        for extension in self.extensions:
+            try:
+                if hasattr(extension, 'apply'):
+                    extension.apply(self)
+                    self.log(f"Applied extension: {extension.__class__.__name__}", "info", "✅")
+                else:
+                    self.log(f"Extension {extension.__class__.__name__} has no apply method", "warning", "⚠️")
+            except Exception as e:
+                self.log(f"Error applying extension {extension.__class__.__name__}: {str(e)}", "error", "❌")
+                if self.verbose:
+                    traceback.print_exc()
+
     def run(self):
         """Run the server (blocking call)."""
         global global_server
         try:
             global_server = self
             self._print_banner()
+            
+            # Apply extensions
+            self._apply_extensions()
             
 
             # Import and access the route handlers

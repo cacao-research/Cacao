@@ -51,6 +51,7 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 - **PWA Support**: Make your app installable with offline capabilities
 - **Session Persistence**: Maintain state across page refreshes
 - **Desktop Mode**: Run as a standalone desktop application
+- **React Integration**: Use React components from npm packages directly in your Cacao apps
 - **Hybrid Mode**: Switch between web and desktop modes with the same codebase
 - **Global Theme System**: Consistent styling with theme inheritance
 - **Component-Level Theming**: Override global themes at component level
@@ -480,6 +481,61 @@ app.brew(
 - **Automatic Server**: Built-in Cacao server runs in the background
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Hybrid Support**: Same codebase can run in both web and desktop modes
+
+
+## ⚛️ React Integration
+
+Cacao provides seamless integration with React components from npm packages:
+
+```python
+from cacao import App
+from cacao.ui import ReactComponent
+from cacao.extensions.react_extension import ReactExtension
+
+# Create app with React extension
+app = App(extensions=[ReactExtension()])
+
+@app.mix("/")
+def home():
+    return {
+        "type": "div",
+        "props": {
+            "children": [
+                {
+                    "type": "h1",
+                    "props": {
+                        "content": "CodeMirror Example"
+                    }
+                },
+                # Use CodeMirror React component
+                ReactComponent(
+                    package="codemirror",
+                    component="CodeMirror",
+                    props={
+                        "value": "const hello = 'world';",
+                        "options": {
+                            "mode": "javascript",
+                            "theme": "material",
+                            "lineNumbers": True
+                        }
+                    },
+                    css=["lib/codemirror.css", "theme/material.css"]
+                ).render()
+            ]
+        }
+    }
+```
+
+### React Integration Features
+
+- **NPM Package Integration**: Use React components from npm packages directly
+- **Dynamic Loading**: Components are loaded on-demand from CDNs
+- **Props Passing**: Pass props to React components from Python
+- **Event Handling**: Handle events from React components in Python
+- **CSS Loading**: Automatically load CSS files for React components
+- **Multiple Components**: Use multiple React components in the same app
+
+For more details, see [React Integration Guide](docs/REACT_INTEGRATION.md) and check out the examples in `examples/react_component_example.py` and `examples/advanced_react_example.py`.
 
 
 ### 🎨 Theme System

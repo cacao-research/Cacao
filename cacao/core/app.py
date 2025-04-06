@@ -27,8 +27,15 @@ class App:
         app.brew()
     """
     
-    def __init__(self):
+    def __init__(self, extensions=None):
+        """
+        Initialize the Cacao application.
+        
+        Args:
+            extensions: Optional list of extensions to add to the application
+        """
         self.server = None
+        self.extensions = extensions or []
         
     def mix(self, path: str):
         """
@@ -107,7 +114,8 @@ class App:
                 host=host,
                 http_port=http_port,
                 ws_port=ws_port,
-                main_file=main_file
+                main_file=main_file,
+                extensions=self.extensions
             )
             self.server.run()
         elif type.lower() == "desktop":
@@ -121,7 +129,8 @@ class App:
                 fullscreen=fullscreen,
                 http_port=http_port,
                 ws_port=ws_port,
-                main_file=main_file
+                main_file=main_file,
+                extensions=self.extensions
             )
             app.launch()
         else:

@@ -148,6 +148,27 @@
             errorEl.style.color = "red";
             return errorEl;
         }
+
+        console.log("[CacaoCore] Rendering component:", {
+            type: component.type,
+            hasChildren: !!component.children,
+            hasPropsChildren: !!(component.props && component.props.children),
+            childrenCount: (component.children || []).length,
+            propsChildrenCount: ((component.props || {}).children || []).length
+        });
+
+        // Helper function to handle children rendering
+        function renderChildren(parent, childrenArray) {
+            if (Array.isArray(childrenArray)) {
+                console.log("[CacaoCore] Rendering children array:", {
+                    parentType: parent.tagName.toLowerCase(),
+                    childrenCount: childrenArray.length
+                });
+                childrenArray.forEach(child => {
+                    parent.appendChild(renderComponent(child));
+                });
+            }
+        }
         
         console.log("[CacaoCore] Rendering component:", component.type);
         let el;
@@ -211,11 +232,11 @@
                     applyContent(el, component.props.content);
                 }
                 
-                // Add children
-                if(component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
+                // Check for children in both locations
+                if (component.children) {
+                    renderChildren(el, component.children);
+                } else if (component.props.children) {
+                    renderChildren(el, component.props.children);
                 }
                 break;
             case "text":
@@ -237,11 +258,11 @@
                     applyContent(el, component.props.content);
                 }
                 
-                // Add children if available
-                if(component.props && component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
+                // Check for children in both locations
+                if (component.children) {
+                    renderChildren(el, component.children);
+                } else if (component.props && component.props.children) {
+                    renderChildren(el, component.props.children);
                 }
                 break;
             case "nav-item":
@@ -408,10 +429,11 @@
                     applyContent(el, component.props.content);
                 }
                 
-                if (component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
+                // Check for children in both locations
+                if (component.children) {
+                    renderChildren(el, component.children);
+                } else if (component.props.children) {
+                    renderChildren(el, component.props.children);
                 }
                 break;
             case "card":
@@ -423,12 +445,15 @@
                     applyContent(cardTitle, component.props.title);
                     el.appendChild(cardTitle);
                 }
-                if (component.props.children && Array.isArray(component.props.children)) {
-                    const cardContent = document.createElement("div");
-                    cardContent.className = "card-content";
-                    component.props.children.forEach(child => {
-                        cardContent.appendChild(renderComponent(child));
-                    });
+                const cardContent = document.createElement("div");
+                cardContent.className = "card-content";
+                
+                // Check for children in both locations
+                if (component.children) {
+                    renderChildren(cardContent, component.children);
+                    el.appendChild(cardContent);
+                } else if (component.props.children) {
+                    renderChildren(cardContent, component.props.children);
                     el.appendChild(cardContent);
                 }
                 break;
@@ -442,10 +467,11 @@
                     applyContent(el, component.props.content);
                 }
                 
-                if (component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
+                // Check for children in both locations
+                if (component.children) {
+                    renderChildren(el, component.children);
+                } else if (component.props.children) {
+                    renderChildren(el, component.props.children);
                 }
                 break;
             case "task-item":
@@ -665,6 +691,33 @@
                     });
                 }
                 break;
+            case "react-component":
+                // Create a container for the React component
+                el = document.createElement("div");
+                el.id = component.props.id;
+                el.className = "react-component-container";
+                
+                // Add loading indicator
+                const loadingDiv = document.createElement("div");
+                loadingDiv.className = "react-loading";
+                loadingDiv.textContent = `Loading ${component.props.package}...`;
+                el.appendChild(loadingDiv);
+                
+                // Render the React component asynchronously
+                setTimeout(() => {
+                    if (window.ReactBridge && typeof window.ReactBridge.renderComponent === "function") {
+                        window.ReactBridge.renderComponent(component.props).then(success => {
+                            if (success) {
+                                loadingDiv.remove();
+                            }
+                        });
+                    } else {
+                        console.error("[CacaoCore] ReactBridge not available");
+                        loadingDiv.textContent = "Error: React bridge not available";
+                    }
+                }, 0);
+                break;
+                
             default:
                 // Fallback: display raw JSON
                 el = document.createElement("pre");

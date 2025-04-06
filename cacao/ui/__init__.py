@@ -7,6 +7,7 @@ from .components.base import Component as UIComponent
 from .components.inputs import Slider, Form
 from .components.data import Table, Plot
 from .components.layout import Grid, Column
+from .components.react import ReactComponent
 
 __all__ = [
     "UIComponent",
@@ -16,4 +17,5 @@ __all__ = [
     "Plot",
     "Grid",
     "Column",
+    "ReactComponent",
 ]
