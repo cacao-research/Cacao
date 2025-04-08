@@ -218,34 +218,15 @@ content_components = {
     "settings": settings_page
 }
 
-# Define a custom theme (optional)
-custom_theme = {
-    "colors": {
-        # You can override any of the default colors
-        "content_bg": "#F0F8FF",          # Light blue background instead of cream
-        "sidebar_bg": "#1A365D",          # Dark blue background instead of brown
-        "sidebar_header_bg": "#2C5282",   # Medium blue header
-        "title_color": "#2C5282",         # Blue title color
-        "active_bg": "#2C5282",           # Blue active background
-        "border_color": "#BEE3F8",        # Light blue border
-        "card_border": "#BEE3F8",         # Light blue card border
-    },
-    "spacing": {
-        # You can customize spacing if needed
-        "content_padding": "32px 40px",   # More padding in content area
-    },
-    "fonts": {
-        # You can customize font settings
-        "title_size": "28px",             # Larger titles
-    }
-}
 
 # Create the sidebar layout with app title and custom theme
 sidebar_layout = SidebarLayout(
     nav_items=nav_items,
     content_components=content_components,
     app_title="My Cacao App",
-    styles=custom_theme  # Pass custom styles (remove this line to use default theme)
+    show_header=False,
+    show_footer=False
+    
 )
 
 @app.mix("/")
@@ -264,22 +245,8 @@ if __name__ == "__main__":
                        help="Run mode: 'web' for browser or 'desktop' for PWA window")
     parser.add_argument("--width", type=int, default=800, help="Window width (desktop mode only)")
     parser.add_argument("--height", type=int, default=600, help="Window height (desktop mode only)")
-    parser.add_argument("--theme", choices=["default", "custom"], default="custom",
-                       help="Theme to use: 'default' for brown theme, 'custom' for blue theme")
     
     args = parser.parse_args()
-    
-    # Apply theme based on command line argument
-    # Determine which theme to use
-    theme_to_use = None if args.theme == "default" else custom_theme
-    
-    if args.theme == "default":
-        # Use default styles
-        sidebar_layout = SidebarLayout(
-            nav_items=nav_items,
-            content_components=content_components,
-            app_title="My Cacao App"
-        )
     
     # Launch application in the specified mode using the unified brew() method
     app.brew(
@@ -289,5 +256,4 @@ if __name__ == "__main__":
         height=args.height,
         resizable=True,
         fullscreen=False,
-        theme=theme_to_use  # Pass the theme to the app
     )

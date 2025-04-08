@@ -1,5 +1,5 @@
 /*
-  cacao-core.js
+  cacao/core/static/js/cacao-core.js
   Provides client-side logic for dynamically rendering the UI
   based on the JSON definition provided by the server.
 */
@@ -125,13 +125,13 @@
     function applyContent(el, content) {
         if (!content) return;
         
-        // For pre elements, always use textContent to preserve raw text
+        // For <pre> elements, always use textContent to preserve raw text
         if (el.tagName === 'PRE') {
             el.textContent = content;
             return;
         }
         
-        // For all other elements, check for icon markup
+        // Else, check for icon markup
         if (hasIconMarkup(content)) {
             el.innerHTML = content;
         } else {
@@ -139,179 +139,233 @@
         }
     }
 
-    // Simple renderer that maps JSON UI definitions to HTML
-    function renderComponent(component) {
-        if (!component || !component.type) {
-            console.error("[CacaoCore] Invalid component:", component);
-            const errorEl = document.createElement("div");
-            errorEl.textContent = "Error: Invalid component";
-            errorEl.style.color = "red";
-            return errorEl;
+    /**
+     * Render array of children onto a parent element.
+     */
+    function renderChildren(parent, childrenArray) {
+        if (Array.isArray(childrenArray)) {
+            childrenArray.forEach(child => {
+                parent.appendChild(renderComponent(child));
+            });
+        }
+    }
+
+    /**
+     * Create a "standard" element (like <div>, <p>, <code>, <ol>, etc.)
+     * without needing a specialized function for each one.
+     */
+    function renderStandardElement(component) {
+        const el = document.createElement(component.type);
+
+        // If there's "component.props.content", apply it
+        if (component.props && component.props.content) {
+            applyContent(el, component.props.content);
         }
 
-        console.log("[CacaoCore] Rendering component:", {
-            type: component.type,
-            hasChildren: !!component.children,
-            hasPropsChildren: !!(component.props && component.props.children),
-            childrenCount: (component.children || []).length,
-            propsChildrenCount: ((component.props || {}).children || []).length
-        });
+        // If there are children in `component.children` or `component.props.children`, render them
+        if (component.children) {
+            renderChildren(el, component.children);
+        } else if (component.props && component.props.children) {
+            renderChildren(el, component.props.children);
+        }
 
-        // Helper function to handle children rendering
-        function renderChildren(parent, childrenArray) {
-            if (Array.isArray(childrenArray)) {
-                console.log("[CacaoCore] Rendering children array:", {
-                    parentType: parent.tagName.toLowerCase(),
-                    childrenCount: childrenArray.length
-                });
-                childrenArray.forEach(child => {
-                    parent.appendChild(renderComponent(child));
-                });
+        return el;
+    }
+
+    // Any HTML tags you want to handle automatically (including your missing ones: <code>, <ol>, etc.)
+    const STANDARD_TAGS = new Set([
+        "div", "span", "section", "main", "nav",
+        "header", "footer", "pre", "code",
+        "p", "li", "ul", "ol",
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "form", "textarea", "input", "button", // Form elements
+        "table", "thead", "tbody", "tr", "td", "th", // Table elements
+        "img", "a", "label", "select", "option", // Other common elements
+        "svg", "path", "circle", "rect", "g", "text", // SVG elements
+        "i", "span", "br", "hr", "strong", "em", "u", "s", "sub", "sup", // Text formatting elements
+        "details", "summary", // Collapsible elements
+        "canvas", "video", "audio", // Media elements
+        "style", "link" // For CSS and other links
+    ]);
+
+    /**
+     * Specialized renderers for components needing custom logic or event handling
+     */
+    const componentRenderers = {
+        
+        text: (component) => {
+            const el = document.createElement("p");
+            el.className = "text";
+            applyContent(el, component.props.content);
+            return el;
+        },
+        
+        navbar: (component) => {
+            const el = document.createElement("nav");
+            el.className = "navbar";
+            
+            if (component.props?.brand) {
+                const brandDiv = document.createElement("div");
+                brandDiv.className = "brand";
+                applyContent(brandDiv, component.props.brand);
+                el.appendChild(brandDiv);
             }
-        }
-        
-        console.log("[CacaoCore] Rendering component:", component.type);
-        let el;
-        
-        switch(component.type) {
-            case "navbar":
-                el = document.createElement("nav");
-                el.className = "navbar";
-                
-                if (component.props.brand) {
-                    const brandDiv = document.createElement("div");
-                    brandDiv.className = "brand";
-                    applyContent(brandDiv, component.props.brand);
-                    el.appendChild(brandDiv);
-                }
-                
-                if(component.props.links) {
-                    const linksDiv = document.createElement("div");
-                    component.props.links.forEach(link => {
-                        const a = document.createElement("a");
-                        a.href = link.url;
-                        applyContent(a, link.name);
-                        linksDiv.appendChild(a);
-                    });
-                    el.appendChild(linksDiv);
-                }
-                break;
-            case "hero":
-                el = document.createElement("section");
-                el.className = "hero";
-                if (component.props.backgroundImage) {
-                    el.style.backgroundImage = `url(${component.props.backgroundImage})`;
-                }
-                
-                const heroTitle = document.createElement("h1");
-                applyContent(heroTitle, component.props.title);
-                el.appendChild(heroTitle);
-                
-                const heroSubtitle = document.createElement("p");
-                applyContent(heroSubtitle, component.props.subtitle);
-                el.appendChild(heroSubtitle);
-                break;
-            case "section":
-            case "div":
-            case "main":
-                el = document.createElement(
-                    component.type === 'section' ? 'section' : 
-                    component.type === 'main' ? 'main' : 
-                    'div'
-                );
-                el.className = component.type === 'section' ? "section" : 
-                               component.type === 'main' ? "content-area" : "";
-                
-                // Store component type as a data attribute if available
-                if (component.component_type) {
-                    el.dataset.componentType = component.component_type;
-                }
-                
-                // Check for direct content
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                // Check for children in both locations
-                if (component.children) {
-                    renderChildren(el, component.children);
-                } else if (component.props.children) {
-                    renderChildren(el, component.props.children);
-                }
-                break;
-            case "text":
-                el = document.createElement("p");
-                el.className = "text";
+            
+            if (component.props?.links) {
+                const linksDiv = document.createElement("div");
+                component.props.links.forEach(link => {
+                    const a = document.createElement("a");
+                    a.href = link.url;
+                    applyContent(a, link.name);
+                    linksDiv.appendChild(a);
+                });
+                el.appendChild(linksDiv);
+            }
+            return el;
+        },
+
+        sidebar: (component) => {
+            const el = document.createElement("div");
+            el.className = "sidebar";
+            
+            // Apply styles from props
+            if (component.props?.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            if (component.props?.content) {
                 applyContent(el, component.props.content);
-                break;
-            case "sidebar":
-                el = document.createElement("div");
-                el.className = "sidebar";
-                
-                // Apply styles from props
-                if (component.props && component.props.style) {
-                    Object.assign(el.style, component.props.style);
+            }
+            if (component.children) {
+                renderChildren(el, component.children);
+            } else if (component.props?.children) {
+                renderChildren(el, component.props.children);
+            }
+            return el;
+        },
+
+        "nav-item": (component) => {
+            const el = document.createElement("div");
+            el.className = "nav-item";
+            
+            // If children array is available, use that
+            if (component.props?.children && Array.isArray(component.props.children)) {
+                component.props.children.forEach(child => {
+                    el.appendChild(renderComponent(child));
+                });
+            } else {
+                // Simple/legacy rendering
+                if (component.props?.icon) {
+                    const iconSpan = document.createElement("span");
+                    applyContent(iconSpan, component.props.icon);
+                    iconSpan.style.marginRight = "8px";
+                    el.appendChild(iconSpan);
                 }
-                
-                // Check for direct content
-                if (component.props && component.props.content) {
-                    applyContent(el, component.props.content);
+                if (component.props?.label) {
+                    const labelSpan = document.createElement("span");
+                    applyContent(labelSpan, component.props.label);
+                    el.appendChild(labelSpan);
                 }
-                
-                // Check for children in both locations
-                if (component.children) {
-                    renderChildren(el, component.children);
-                } else if (component.props && component.props.children) {
-                    renderChildren(el, component.props.children);
-                }
-                break;
-            case "nav-item":
-                el = document.createElement("div");
-                el.className = "nav-item";
-                
-                // Process children if available
-                if (component.props && component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
-                } else {
-                    // Legacy rendering for backward compatibility
-                    // Add icon if available
-                    if (component.props && component.props.icon) {
-                        const iconSpan = document.createElement("span");
-                        applyContent(iconSpan, component.props.icon); // Apply icon content with icon handling
-                        iconSpan.style.marginRight = "8px";
-                        el.appendChild(iconSpan);
+            }
+            
+            if (component.props?.isActive) {
+                el.classList.add("active");
+            }
+            
+            if (component.props?.onClick) {
+                el.onclick = async () => {
+                    try {
+                        const action = component.props.onClick.action;
+                        const state = component.props.onClick.state;
+                        const value = component.props.onClick.value;
+                        const immediate = component.props.onClick.immediate === true;
+                        
+                        // Check if we're clicking the same page
+                        if (state === 'current_page' && window.location.hash === `#${value}`) {
+                            console.log("[CacaoCore] Clicked same page, skipping refresh");
+                            return;
+                        }
+                        
+                        document.querySelector('.refresh-overlay').classList.add('active');
+                        
+                        console.log(`[CacaoCore] Handling nav click: ${action} state=${state} value=${value} immediate=${immediate}`);
+                        
+                        const response = await fetch(`/api/action?action=${action}&component_type=${state}&value=${value}&immediate=${immediate}&t=${Date.now()}`, {
+                            method: 'GET',
+                            headers: {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                'Pragma': 'no-cache',
+                                'Expires': '0'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}`);
+                        }
+                        const data = await response.json();
+                        console.log("[CacaoCore] Navigation state updated:", data);
+                        
+                        if (state === 'current_page') {
+                            window.location.hash = value;
+                        }
+                        
+                        if (data.immediate === true) {
+                            // fetch UI directly
+                            const uiResponse = await fetch(`/api/ui?force=true&_hash=${value}&t=${Date.now()}`, {
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                    'Pragma': 'no-cache',
+                                    'Expires': '0'
+                                }
+                            });
+                            
+                            if (!uiResponse.ok) {
+                                throw new Error(`UI update failed with status ${uiResponse.status}`);
+                            }
+                            
+                            const uiData = await uiResponse.json();
+                            window.CacaoCore.render(uiData);
+                        } else {
+                            // Force UI refresh
+                            window.CacaoWS.requestServerRefresh();
+                        }
+                    } catch (err) {
+                        console.error('[CacaoCore] Error handling nav item click:', err);
+                        document.querySelector('.refresh-overlay').classList.remove('active');
                     }
-                    
-                    // Add label
-                    if (component.props && component.props.label) {
-                        const labelSpan = document.createElement("span");
-                        applyContent(labelSpan, component.props.label);
-                        el.appendChild(labelSpan);
-                    }
-                }
-                
-                // Apply active styles if active
-                if (component.props && component.props.isActive) {
-                    el.classList.add("active");
-                }
-                
-                // Add click handler for navigation
-                if (component.props && component.props.onClick) {
-                    el.onclick = async () => {
-                        try {
-                            // Show refresh overlay
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onClick.action;
-                            const state = component.props.onClick.state;
-                            const value = component.props.onClick.value;
-                            const immediate = component.props.onClick.immediate === true;
-                            
-                            console.log(`[CacaoCore] Handling nav click: ${action} state=${state} value=${value} immediate=${immediate}`);
-                            
-                            const response = await fetch(`/api/action?action=${action}&component_type=${state}&value=${value}&immediate=${immediate}&t=${Date.now()}`, {
+                };
+            }
+            
+            return el;
+        },
+
+        button: (component) => {
+            const el = document.createElement("button");
+            el.className = "button";
+            applyContent(el, component.props.label);
+            
+            if (component.props?.action) {
+                el.onclick = async () => {
+                    try {
+                        console.log("[Cacao] Sending event:", component.props.on_click || component.props.action);
+                        document.querySelector('.refresh-overlay').classList.add('active');
+                        
+                        const parentSection = el.closest('section[data-component-type]');
+                        const componentType = parentSection ? parentSection.dataset.componentType : 'unknown';
+                        
+                        // If WebSocket is open
+                        if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+                            const eventName = component.props.on_click || component.props.action;
+                            console.log("[Cacao] Sending WebSocket event:", eventName);
+                            window.socket.send(JSON.stringify({
+                                type: 'event',
+                                event: eventName,
+                                data: { component_type: componentType }
+                            }));
+                        } else {
+                            // Fallback to HTTP
+                            console.log("[Cacao] WebSocket not available, using HTTP fallback");
+                            const action = component.props.on_click || component.props.action;
+                            const response = await fetch(`/api/action?action=${action}&component_type=${componentType}&t=${Date.now()}`, {
                                 method: 'GET',
                                 headers: {
                                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -321,433 +375,583 @@
                             });
                             
                             if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            const data = await response.json();
-                            console.log("[CacaoCore] Navigation state updated:", data);
-                            
-                            // Update URL if this is a page navigation
-                            if (state === 'current_page') {
-                                const newPage = value;
-                                window.location.hash = newPage;
+                                const errorText = await response.text();
+                                console.error("[Cacao] Server error response:", errorText);
+                                throw new Error(`Server returned ${response.status}: ${errorText}`);
                             }
                             
-                            // Check if this is an immediate action that requires UI refresh
-                            if (data.immediate === true) {
-                                console.log("[CacaoCore] Immediate action detected, fetching UI directly");
-                                
-                                // Fetch UI directly instead of using requestServerRefresh
-                                const uiResponse = await fetch(`/api/ui?force=true&_hash=${value}&t=${Date.now()}`, {
-                                    headers: {
-                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                        'Pragma': 'no-cache',
-                                        'Expires': '0'
-                                    }
-                                });
-                                
-                                if (!uiResponse.ok) {
-                                    throw new Error(`UI update failed with status ${uiResponse.status}`);
-                                }
-                                
-                                const uiData = await uiResponse.json();
-                                console.log("[CacaoCore] Immediate UI update:", uiData);
-                                window.CacaoCore.render(uiData);
-                            } else {
-                                // Force UI refresh after action (standard behavior)
-                                window.CacaoWS.requestServerRefresh();
-                            }
-                        } catch (err) {
-                            console.error('[CacaoCore] Error handling nav item click:', err);
-                            // Hide refresh overlay on error
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    };
-                }
-                break;
-            case "h1":
-            case "h2":
-            case "h3":
-            case "h4":
-            case "h5":
-            case "h6":
-                el = document.createElement(component.type);
-                applyContent(el, component.props.content);
-                break;
-            case "p":
-                el = document.createElement("p");
-                applyContent(el, component.props.content);
-                break;
-            case "li":
-                el = document.createElement("li");
-                applyContent(el, component.props.content);
-                
-                // Handle list item children if present
-                if (component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
-                }
-                break;
-            case "pre":
-                el = document.createElement("pre");
-                // Always use textContent for pre elements to preserve raw text
-                if (component.props.content) {
-                    el.textContent = component.props.content;
-                }
-                
-                // Apply styles if provided
-                if (component.props.style) {
-                    Object.assign(el.style, component.props.style);
-                }
-                break;
-            case "header":
-                el = document.createElement("header");
-                el.className = "header";
-                if (component.props.title) {
-                    const headerTitle = document.createElement("h1");
-                    applyContent(headerTitle, component.props.title);
-                    el.appendChild(headerTitle);
-                }
-                if (component.props.subtitle) {
-                    const headerSubtitle = document.createElement("p");
-                    applyContent(headerSubtitle, component.props.subtitle);
-                    el.appendChild(headerSubtitle);
-                }
-                break;
-            case "container":
-                el = document.createElement("div");
-                el.className = "container";
-                if (component.props.maxWidth) {
-                    el.style.maxWidth = component.props.maxWidth;
-                }
-                if (component.props.padding) {
-                    el.style.padding = component.props.padding;
-                }
-                
-                // Check for direct content
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                // Check for children in both locations
-                if (component.children) {
-                    renderChildren(el, component.children);
-                } else if (component.props.children) {
-                    renderChildren(el, component.props.children);
-                }
-                break;
-            case "card":
-                el = document.createElement("div");
-                el.className = "card";
-                if (component.props.title) {
-                    const cardTitle = document.createElement("h2");
-                    cardTitle.className = "card-title";
-                    applyContent(cardTitle, component.props.title);
-                    el.appendChild(cardTitle);
-                }
-                const cardContent = document.createElement("div");
-                cardContent.className = "card-content";
-                
-                // Check for children in both locations
-                if (component.children) {
-                    renderChildren(cardContent, component.children);
-                    el.appendChild(cardContent);
-                } else if (component.props.children) {
-                    renderChildren(cardContent, component.props.children);
-                    el.appendChild(cardContent);
-                }
-                break;
-            case "ul":
-            case "list":
-                el = document.createElement("ul");
-                el.className = component.type === "list" ? "list" : "";
-                
-                // Handle direct content if present (rare, but supported)
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                // Check for children in both locations
-                if (component.children) {
-                    renderChildren(el, component.children);
-                } else if (component.props.children) {
-                    renderChildren(el, component.props.children);
-                }
-                break;
-            case "task-item":
-                el = document.createElement("li");
-                el.className = "task-item";
-                el.dataset.id = component.props.id;
-                
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.checked = component.props.completed;
-                if (component.props.onToggle) {
-                    checkbox.addEventListener("change", async () => {
-                        try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onToggle.action;
-                            const params = component.props.onToggle.params;
-                            const url = `/api/action?action=${action}&component_type=task&id=${params.id}&t=${Date.now()}`;
-                            
-                            const response = await fetch(url, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
+                            const responseData = await response.json();
+                            console.log("[CacaoCore] Server response data:", responseData);
                             window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error toggling task:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
                         }
-                    });
-                }
-                
-                const taskLabel = document.createElement("span");
-                applyContent(taskLabel, component.props.title);
-                if (component.props.completed) {
-                    taskLabel.style.textDecoration = "line-through";
-                    taskLabel.style.color = "#888";
-                }
-                
-                el.appendChild(checkbox);
-                el.appendChild(taskLabel);
-                break;
-            case "button":
-                el = document.createElement("button");
-                el.className = "button";
-                applyContent(el, component.props.label);
-                
-                if(component.props.action) {
-                    // Add click handler that sends action to server via GET
-                    el.onclick = async () => {
-                        try {
-                            console.log("[Cacao] Sending event:", component.props.on_click || component.props.action);
-                            
-                            // Show refresh overlay
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            // Find the parent component type
-                            const parentSection = el.closest('section[data-component-type]');
-                            const componentType = parentSection ? parentSection.dataset.componentType : 'unknown';
-                            
-                            // Check if WebSocket is available
-                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
-                                // Use WebSocket for real-time event
-                                const eventName = component.props.on_click || component.props.action;
-                                console.log("[Cacao] Sending WebSocket event:", eventName);
-                                
-                                // Send event via WebSocket
-                                window.socket.send(JSON.stringify({
-                                    type: 'event',
-                                    event: eventName,
-                                    data: {
-                                        component_type: componentType
-                                    }
-                                }));
-                            } else {
-                                // Fallback to HTTP request
-                                console.log("[Cacao] WebSocket not available, using HTTP fallback");
-                                const action = component.props.on_click || component.props.action;
-                                
-                                // Use GET request with query parameters
-                                const response = await fetch(`/api/action?action=${action}&component_type=${componentType}&t=${Date.now()}`, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                        'Pragma': 'no-cache',
-                                        'Expires': '0'
-                                    }
-                                });
-                                
-                                console.log("[Cacao] Server response status:", response.status);
-                                
-                                if (!response.ok) {
-                                    const errorText = await response.text();
-                                    console.error("[Cacao] Server error response:", errorText);
-                                    throw new Error(`Server returned ${response.status}: ${errorText}`);
-                                }
-                                
-                                const responseData = await response.json();
-                                console.log("[CacaoCore] Server response data:", responseData);
-                                
-                                // Force UI refresh after action
-                                window.CacaoWS.requestServerRefresh();
-                            }
-                        } catch (err) {
-                            console.error('Error handling action:', err);
-                            
-                            // Hide refresh overlay
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                            
-                            // Limit error alerts
-                            if (errorCount < MAX_ERROR_ALERTS) {
-                                errorCount++;
-                                alert(`Error: ${err.message}\nPlease try again or reload the page.`);
-                            } else if (errorCount === MAX_ERROR_ALERTS) {
-                                errorCount++;
-                                console.error("Too many errors. Suppressing further alerts.");
-                            }
+                    } catch (err) {
+                        console.error('Error handling action:', err);
+                        document.querySelector('.refresh-overlay').classList.remove('active');
+                        
+                        if (errorCount < MAX_ERROR_ALERTS) {
+                            errorCount++;
+                            alert(`Error: ${err.message}\nPlease try again or reload the page.`);
+                        } else if (errorCount === MAX_ERROR_ALERTS) {
+                            errorCount++;
+                            console.error("Too many errors. Suppressing further alerts.");
                         }
-                    };
-                }
-                break;
-            case "footer":
-                el = document.createElement("footer");
-                el.className = "footer";
-                applyContent(el, component.props.text);
-                break;
-            case "column":
-                el = document.createElement("div");
-                el.className = "column";
-                
-                // Check for direct content
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                if(component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
-                }
-                break;
-            case "grid":
-                el = document.createElement("div");
-                el.className = "grid";
-                
-                // Check for direct content
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                if(component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
-                }
-                break;
-            case "form":
-                el = document.createElement("form");
-                el.className = "form";
-                // Prevent default form submission
-                el.onsubmit = (e) => e.preventDefault();
-                
-                // Check for direct content
-                if (component.props.content) {
-                    applyContent(el, component.props.content);
-                }
-                
-                if(component.props.children && Array.isArray(component.props.children)) {
-                    component.props.children.forEach(child => {
-                        el.appendChild(renderComponent(child));
-                    });
-                }
-                break;
-            case "input":
-                el = document.createElement("input");
-                el.className = "input";
-                
-                if (component.props.value !== undefined) {
-                    el.value = component.props.value;
-                }
-                
-                if (component.props.placeholder) {
-                    el.placeholder = component.props.placeholder;
-                }
-                
-                if (component.props.onChange) {
-                    el.addEventListener("input", async (e) => {
-                        try {
-                            const value = e.target.value;
-                            
-                            // Show refresh overlay for consistent UX
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const response = await fetch(`/api/action?action=${component.props.onChange}&component_type=input&value=${encodeURIComponent(value)}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
-                            // Request UI refresh
-                            window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error handling input change:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    });
-                }
-                break;
-            case "react-component":
-                // Create a container for the React component
-                el = document.createElement("div");
-                el.id = component.props.id;
-                el.className = "react-component-container";
-                
-                // Add loading indicator
-                const loadingDiv = document.createElement("div");
-                loadingDiv.className = "react-loading";
-                loadingDiv.textContent = `Loading ${component.props.package}...`;
-                el.appendChild(loadingDiv);
-                
-                // Render the React component asynchronously
-                setTimeout(() => {
-                    if (window.ReactBridge && typeof window.ReactBridge.renderComponent === "function") {
-                        window.ReactBridge.renderComponent(component.props).then(success => {
-                            if (success) {
-                                loadingDiv.remove();
+                    }
+                };
+            }
+            
+            return el;
+        },
+
+        "task-item": (component) => {
+            const el = document.createElement("li");
+            el.className = "task-item";
+            el.dataset.id = component.props.id;
+            
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = component.props.completed;
+            
+            if (component.props?.onToggle) {
+                checkbox.addEventListener("change", async () => {
+                    try {
+                        document.querySelector('.refresh-overlay').classList.add('active');
+                        
+                        const action = component.props.onToggle.action;
+                        const params = component.props.onToggle.params;
+                        const url = `/api/action?action=${action}&component_type=task&id=${params.id}&t=${Date.now()}`;
+                        
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate'
                             }
                         });
-                    } else {
-                        console.error("[CacaoCore] ReactBridge not available");
-                        loadingDiv.textContent = "Error: React bridge not available";
+                        
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}`);
+                        }
+                        
+                        window.CacaoWS.requestServerRefresh();
+                    } catch (err) {
+                        console.error('[CacaoCore] Error toggling task:', err);
+                        document.querySelector('.refresh-overlay').classList.remove('active');
                     }
-                }, 0);
-                break;
+                });
+            }
+            
+            const taskLabel = document.createElement("span");
+            applyContent(taskLabel, component.props.title);
+            if (component.props.completed) {
+                taskLabel.style.textDecoration = "line-through";
+                taskLabel.style.color = "#888";
+            }
+            
+            el.appendChild(checkbox);
+            el.appendChild(taskLabel);
+            return el;
+        },
+
+        "react-component": (component) => {
+            const el = document.createElement("div");
+            el.id = component.props.id;
+            el.className = "react-component-container";
+            
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "react-loading";
+            loadingDiv.textContent = `Loading ${component.props.package}...`;
+            el.appendChild(loadingDiv);
+            
+            setTimeout(() => {
+                if (window.ReactBridge && typeof window.ReactBridge.renderComponent === "function") {
+                    window.ReactBridge.renderComponent(component.props).then(success => {
+                        if (success) {
+                            loadingDiv.remove();
+                        }
+                    });
+                } else {
+                    console.error("[CacaoCore] ReactBridge not available");
+                    loadingDiv.textContent = "Error: React bridge not available";
+                }
+            }, 0);
+            
+            return el;
+        },
+
+        "range-slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.className = component.props.className || "range-slider";
+            slider.min = component.props.min;
+            slider.max = component.props.max;
+            slider.step = component.props.step;
+            slider.value = component.props.value;
+
+            let updateTimeout;
+            const updateValue = async () => {
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            document.querySelector('.refresh-overlay').classList.add('active');
+                            
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: slider.value
+                            };
+                            
+                            const queryParams = Object.entries(params)
+                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                .join('&');
+                                
+                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            if (data.value !== undefined) {
+                                slider.value = data.value;
+                            }
+                            
+                            window.CacaoWS.requestServerRefresh();
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating slider:', err);
+                            document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 100); // Debounce updates
+                }
+            };
+
+            slider.addEventListener('input', updateValue);
+            return slider;
+        },
+
+        "slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.className = "range-slider";
+            slider.min = component.props.min;
+            slider.max = component.props.max;
+            slider.step = component.props.step;
+            slider.value = component.props.value;
+
+            let updateTimeout;
+            const updateValue = async () => {
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            document.querySelector('.refresh-overlay').classList.add('active');
+                            
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: slider.value
+                            };
+                            
+                            const queryParams = Object.entries(params)
+                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                .join('&');
+                                
+                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            if (data.value !== undefined) {
+                                slider.value = data.value;
+                            }
+                            
+                            window.CacaoWS.requestServerRefresh();
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating slider:', err);
+                            document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 100); // Debounce updates
+                }
+            };
+
+            slider.addEventListener('input', updateValue);
+            return slider;
+        },
+
+        "slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.className = "range-slider";
+            slider.min = component.props.min;
+            slider.max = component.props.max;
+            slider.step = component.props.step;
+            slider.value = component.props.value;
+
+            let updateTimeout;
+            const updateValue = async () => {
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            document.querySelector('.refresh-overlay').classList.add('active');
+                            
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: slider.value
+                            };
+
+                            // If WebSocket is open
+                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+                                console.log("[Cacao] Sending WebSocket event:", action);
+                                window.socket.send(JSON.stringify({
+                                    type: 'event',
+                                    event: action,
+                                    data: params
+                                }));
+                            } else {
+                                // Fallback to HTTP
+                                console.log("[Cacao] WebSocket not available, using HTTP fallback");
+                                const queryParams = Object.entries(params)
+                                    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                    .join('&');
+                                    
+                                const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                    }
+                                });
+                                
+                                if (!response.ok) {
+                                    throw new Error(`Server returned ${response.status}`);
+                                }
+                                
+                                const data = await response.json();
+                                if (data.value !== undefined) {
+                                    slider.value = data.value;
+                                }
+                                
+                                window.CacaoWS.requestServerRefresh();
+                            }
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating slider:', err);
+                            document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 100); // Debounce updates
+                }
+            };
+
+            slider.addEventListener('input', updateValue);
+            return slider;
+        },
+
+        "slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.className = "range-slider";
+            slider.min = component.props.min;
+            slider.max = component.props.max;
+            slider.step = component.props.step;
+            slider.value = component.props.value;
+
+            let updateTimeout;
+            const updateValue = async () => {
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            document.querySelector('.refresh-overlay').classList.add('active');
+                            
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: slider.value
+                            };
+                            
+                            const queryParams = Object.entries(params)
+                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                .join('&');
+                                
+                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            if (data.value !== undefined) {
+                                slider.value = data.value;
+                            }
+                            
+                            window.CacaoWS.requestServerRefresh();
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating slider:', err);
+                            document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 100); // Debounce updates
+                }
+            };
+
+            slider.addEventListener('input', updateValue);
+            return slider;
+        },
+
+        "range-sliders": (component) => {
+            const container = document.createElement("div");
+            container.className = "range-sliders-container";
+            
+            // Create sliders container
+            const slidersContainer = document.createElement("div");
+            slidersContainer.className = "sliders-wrapper";
+            
+            // Create lower slider
+            const lowerSlider = document.createElement("input");
+            lowerSlider.type = "range";
+            lowerSlider.className = "range-slider lower";
+            lowerSlider.min = component.props.min;
+            lowerSlider.max = component.props.max;
+            lowerSlider.step = component.props.step;
+            lowerSlider.value = component.props.lowerValue;
+
+            // Create upper slider
+            const upperSlider = document.createElement("input");
+            upperSlider.type = "range";
+            upperSlider.className = "range-slider upper";
+            upperSlider.min = component.props.min;
+            upperSlider.max = component.props.max;
+            upperSlider.step = component.props.step;
+            upperSlider.value = component.props.upperValue;
+
+            // Add value displays
+            const lowerDisplay = document.createElement("div");
+            lowerDisplay.className = "range-value lower";
+            lowerDisplay.textContent = `$${component.props.lowerValue}`;
+
+            const upperDisplay = document.createElement("div");
+            upperDisplay.className = "range-value upper";
+            upperDisplay.textContent = `$${component.props.upperValue}`;
+
+            const rangeDisplay = document.createElement("div");
+            rangeDisplay.className = "range-display";
+            rangeDisplay.appendChild(lowerDisplay);
+            rangeDisplay.appendChild(document.createTextNode(" - "));
+            rangeDisplay.appendChild(upperDisplay);
+
+           let updateTimeout;
+           const updateValues = async () => {
+               const lower = parseFloat(lowerSlider.value);
+               const upper = parseFloat(upperSlider.value);
+               
+               // Ensure lower value doesn't exceed upper value and vice versa
+               if (lower > upper) {
+                   if (lowerSlider === document.activeElement) {
+                       upperSlider.value = lower;
+                   } else {
+                       lowerSlider.value = upper;
+                   }
+               }
                 
-            default:
-                // Fallback: display raw JSON
-                el = document.createElement("pre");
-                el.textContent = JSON.stringify(component, null, 2);
+               // Update displays immediately
+               lowerDisplay.textContent = `$${lowerSlider.value}`;
+               upperDisplay.textContent = `$${upperSlider.value}`;
+
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            document.querySelector('.refresh-overlay').classList.add('active');
+                            
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                lower_value: lowerSlider.value,
+                                upper_value: upperSlider.value
+                            };
+                            
+                            const queryParams = Object.entries(params)
+                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                .join('&');
+                                
+                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            if (data.lower_value !== undefined) {
+                                lowerSlider.value = data.lower_value;
+                            }
+                            if (data.upper_value !== undefined) {
+                                upperSlider.value = data.upper_value;
+                            }
+                            window.CacaoWS.requestServerRefresh();
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating range:', err);
+                            document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 100); // Debounce updates
+                }
+            };
+
+            // Add styles
+            const styleEl = document.createElement('style');
+            styleEl.textContent = `
+                .range-sliders-container {
+                    width: 100%;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+                .sliders-wrapper {
+                    width: 100%;
+                    position: relative;
+                    padding: 10px 0;
+                }
+                .range-slider {
+                    width: 100%;
+                    margin: 10px 0;
+                    -webkit-appearance: none;
+                    background: transparent;
+                }
+                .range-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    height: 24px;
+                    width: 24px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    cursor: pointer;
+                    margin-top: -10px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    border: 2px solid #D2691E;
+                    transition: all 0.2s ease;
+                }
+                .range-slider::-webkit-slider-thumb:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                }
+                .range-slider::-webkit-slider-runnable-track {
+                    width: 100%;
+                    height: 4px;
+                    background: rgba(255,255,255,0.3);
+                    border-radius: 2px;
+                }
+                .range-display {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-top: 20px;
+                    font-size: 20px;
+                    color: #ffffff;
+                    font-weight: bold;
+                    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+                }
+                .range-value {
+                    min-width: 60px;
+                    text-align: center;
+                    padding: 5px 10px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 15px;
+                    margin: 0 10px;
+                }
+            `;
+            
+            container.appendChild(styleEl);
+            slidersContainer.appendChild(lowerSlider);
+            slidersContainer.appendChild(upperSlider);
+            container.appendChild(slidersContainer);
+            container.appendChild(rangeDisplay);
+
+            lowerSlider.addEventListener('input', updateValues);
+            upperSlider.addEventListener('input', updateValues);
+            
+            return container;
         }
-        
-        // Add any custom classes
-        if (component.props && component.props.className) {
-            el.className += ` ${component.props.className}`;
+    };
+
+    /**
+     * Main function that decides how to render a component.
+     */
+    function renderComponent(component) {
+        // Basic validation
+        if (!component || !component.type) {
+            console.error("[CacaoCore] Invalid component:", component);
+            const errorEl = document.createElement("div");
+            errorEl.textContent = "Error: Invalid component";
+            errorEl.style.color = "red";
+            return errorEl;
         }
-        
-        // Add any custom styles
-        if (component.props && component.props.style) {
+
+        let el;
+        // 1. If there's a specialized renderer in componentRenderers, use it
+        if (componentRenderers[component.type]) {
+            el = componentRenderers[component.type](component);
+        }
+        // 2. Else if it's a known standard HTML tag, use the fallback
+        else if (STANDARD_TAGS.has(component.type)) {
+            el = renderStandardElement(component);
+        }
+        // 3. Otherwise, fallback to raw JSON
+        else {
+            el = document.createElement("pre");
+            el.textContent = JSON.stringify(component, null, 2);
+        }
+
+        // After we have the element, apply any custom classes/styles
+        if (component.props?.className) {
+            // If the renderer added a className already, append a space
+            if (el.className) {
+                el.className += ` ${component.props.className}`;
+            } else {
+                el.className = component.props.className;
+            }
+        }
+        if (component.props?.style) {
             Object.assign(el.style, component.props.style);
         }
-        
+
+        // Store component type as a data-attribute if available
+        if (component.component_type) {
+            el.dataset.componentType = component.component_type;
+        }
+
         return el;
     }
 
+    /**
+     * Renders the entire UI definition into #app.
+     */
     function render(uiDefinition) {
         console.log("[CacaoCore] Rendering UI definition:", uiDefinition);
         
-        // Check if this is a new version
-        // For hot reloads, we should always render even if the version is the same
-        // The force flag can be set to true to force rendering
+        // Skip if version unchanged and not forced
         if (uiDefinition._v === lastVersion && !uiDefinition._force && !uiDefinition.force) {
             console.log("[CacaoCore] Skipping render - same version");
             return;
         }
-        
         lastVersion = uiDefinition._v;
         
         const app = document.getElementById("app");

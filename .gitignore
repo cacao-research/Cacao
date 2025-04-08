@@ -173,3 +173,4 @@ node_modules/
 /.vscode
 RESEARCH/
 .roomodes
+*.pyc
