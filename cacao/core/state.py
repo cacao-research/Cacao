@@ -116,8 +116,8 @@ class State(Generic[T]):
         import inspect
         frame = inspect.currentframe()
         caller = inspect.getouterframes(frame)[1]
-        print(f"State.set called for {self._name} from {caller.function} in {caller.filename}")
-        print(f"  Old value: {self._value}, New value: {new_value}")
+        #print(f"State.set called for {self._name} from {caller.function} in {caller.filename}")
+        #print(f"  Old value: {self._value}, New value: {new_value}")
         
         # Delegate to update method to avoid code duplication
         self.update(new_value)

@@ -8,6 +8,7 @@ from .base import Component
 from ...core.state import State, get_state
 from ...core.mixins.logging import LoggingMixin
 from ...core.theme import get_theme, get_color
+import json
 
 # Debug flag for SidebarLayout component
 SIDEBAR_DEBUG = False
@@ -18,7 +19,9 @@ sidebar_expanded_state = get_state("sidebar_expanded", True)
 
 class SidebarLayout(Component, LoggingMixin):
     def __init__(self, nav_items: List[Dict[str, str]], content_components: Dict[str, Any],
-                 app_title: str = "Cacao App", styles: Optional[Dict[str, Any]] = None) -> None:
+                 app_title: str = "Cacao App", styles: Optional[Dict[str, Any]] = None,
+                 show_header: bool = True, show_footer: bool = True, 
+                 footer_text: str = "© 2025 Cacao Framework") -> None:
         """Initialize sidebar layout with navigation items and content components.
         
         Args:
@@ -26,6 +29,9 @@ class SidebarLayout(Component, LoggingMixin):
             content_components: Dictionary mapping page IDs to component instances
             app_title: Optional title to display in the sidebar header
             styles: Optional dictionary of style overrides for this component
+            show_header: Whether to show the page header with title
+            show_footer: Whether to show the footer in the sidebar
+            footer_text: Custom text to display in the footer (if shown)
         """
         super().__init__()
         self.nav_items_data = nav_items
@@ -33,6 +39,9 @@ class SidebarLayout(Component, LoggingMixin):
         self.component_type = "sidebar_layout"
         self.app_title = app_title
         self.styles = styles or {}
+        self.show_header = show_header
+        self.show_footer = show_footer
+        self.footer_text = footer_text
         
         # Initialize page state with first nav item if not set
         if not current_page_state.value or current_page_state.value not in self.content_components:
@@ -101,7 +110,8 @@ class SidebarLayout(Component, LoggingMixin):
         import inspect
         frame = inspect.currentframe()
         caller = inspect.getouterframes(frame)[1]
-        print(f"SidebarLayout.render called from {caller.function} with ui_state: {ui_state}")
+        if SIDEBAR_DEBUG:
+            print(f"SidebarLayout.render called from {caller.function} with ui_state: {ui_state}")
         is_expanded = sidebar_expanded_state.value
         
         # Get global theme
@@ -143,7 +153,12 @@ class SidebarLayout(Component, LoggingMixin):
             nav_items.append(nav_item)
 
         # Create sidebar component
-        sidebar = Sidebar(nav_items, self.app_title)
+        sidebar = Sidebar(
+            nav_items=nav_items, 
+            app_title=self.app_title,
+            show_footer=self.show_footer,
+            footer_text=self.footer_text
+        )
         # Set parent reference for theme access
         sidebar.parent = self
         
@@ -156,6 +171,51 @@ class SidebarLayout(Component, LoggingMixin):
             }
         else:
             current_content = current_component.render()
+
+        # Prepare content area children
+        content_children = []
+        
+        # Add header if enabled
+        if self.show_header:
+            content_children.append({
+                "type": "div",
+                "props": {
+                    "style": {
+                        "marginBottom": "24px",
+                        "paddingBottom": "16px",
+                        "borderBottom": f"1px solid {self.styles.get('border_color', get_color('border_color'))}"
+                    },
+                    "children": [
+                        {
+                            "type": "h1",
+                            "props": {
+                                "content": self.nav_items_data[[item["id"] for item in self.nav_items_data].index(current_page)]["label"] if current_page in [item["id"] for item in self.nav_items_data] else "Unknown Page",
+                                "style": {
+                                    "margin": "0",
+                                    "fontSize": self.styles.get("title_size", "24px"),
+                                    "fontWeight": self.styles.get("title_weight", "700"),
+                                    "color": self.styles.get("title_color", get_color("title_color"))
+                                }
+                            }
+                        }
+                    ]
+                }
+            })
+        
+        # Add main content wrapper
+        content_children.append({
+            "type": "div",
+            "props": {
+                "style": {
+                    "backgroundColor": self.styles.get("card_bg", get_color("card_bg")),
+                    "borderRadius": "8px",
+                    "boxShadow": f"0 1px 3px rgba(107, 66, 38, 0.1)",
+                    "padding": self.styles.get("card_padding", "24px"),
+                    "border": f"1px solid {self.styles.get('card_border', get_color('card_border'))}"
+                },
+                "children": [current_content]
+            }
+        })
 
         # Return the complete layout
         return {
@@ -186,47 +246,7 @@ class SidebarLayout(Component, LoggingMixin):
                                 "boxSizing": "border-box",
                                 "position": "relative"
                             },
-                            "children": [
-                                # Header with page title
-                                {
-                                    "type": "div",
-                                    "props": {
-                                        "style": {
-                                            "marginBottom": "24px",
-                                            "paddingBottom": "16px",
-                                            "borderBottom": f"1px solid {self.styles.get('border_color', get_color('border_color'))}"
-                                        },
-                                        "children": [
-                                            {
-                                                "type": "h1",
-                                                "props": {
-                                                    "content": self.nav_items_data[[item["id"] for item in self.nav_items_data].index(current_page)]["label"] if current_page in [item["id"] for item in self.nav_items_data] else "Unknown Page",
-                                                    "style": {
-                                                        "margin": "0",
-                                                        "fontSize": self.styles.get("title_size", "24px"),
-                                                        "fontWeight": self.styles.get("title_weight", "700"),
-                                                        "color": self.styles.get("title_color", get_color("title_color"))
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    }
-                                },
-                                # Main content wrapper
-                                {
-                                    "type": "div",
-                                    "props": {
-                                        "style": {
-                                            "backgroundColor": self.styles.get("card_bg", get_color("card_bg")),
-                                            "borderRadius": "8px",
-                                            "boxShadow": f"0 1px 3px rgba(107, 66, 38, 0.1)",
-                                            "padding": self.styles.get("card_padding", "24px"),
-                                            "border": f"1px solid {self.styles.get('card_border', get_color('card_border'))}"
-                                        },
-                                        "children": [current_content]
-                                    }
-                                }
-                            ]
+                            "children": content_children
                         }
                     }
                 ]
@@ -247,8 +267,9 @@ class NavItem(Component):
         if hasattr(self, 'parent') and hasattr(self.parent, 'styles'):
             parent_styles = self.parent.styles
         
-        # Get global theme
+        # Get global theme and colors
         theme = get_theme()
+        theme_colors = theme.get('colors', {})
         
         # Base and active styles
         base_style = {
@@ -259,7 +280,7 @@ class NavItem(Component):
             "borderRadius": "8px",
             "cursor": "pointer",
             "transition": "all 0.2s ease",
-            "color": parent_styles.get("sidebar_text", get_color("sidebar_text")),
+            "color": parent_styles.get("sidebar_text", theme_colors.get("sidebar_text", "#D6C3B6")),
             "fontSize": parent_styles.get("nav_item_size", "15px"),
             "fontWeight": parent_styles.get("nav_item_weight", "500"),
             "textDecoration": "none",
@@ -267,9 +288,12 @@ class NavItem(Component):
         
         # Apply active styles when item is selected
         if self.is_active:
+            # Get theme colors with proper fallbacks
+            theme = get_theme()
+            theme_colors = theme.get('colors', {})
             active_styles = {
-                "backgroundColor": parent_styles.get("active_bg", get_color("active_bg")),
-                "color": parent_styles.get("active_text", get_color("active_text")),
+                "backgroundColor": parent_styles.get("active_bg", theme_colors.get("active_bg", "#D6C3B6")),
+                "color": parent_styles.get("active_text", theme_colors.get("active_text", "#FFFFFF")),
                 "boxShadow": "0 2px 5px rgba(107, 66, 38, 0.3)"
             }
             # Merge active styles into base styles
@@ -278,11 +302,18 @@ class NavItem(Component):
             # Hover effect will be handled by CSS in the real app
             # Here we're defining the non-active state
             base_style["backgroundColor"] = "transparent"
-            base_style["&:hover"] = {
-                "backgroundColor": "rgba(107, 66, 38, 0.2)",
-                "color": parent_styles.get("active_text", get_color("active_text"))
-            }
-            
+
+        if SIDEBAR_DEBUG:
+            # --- Debugging Start ---
+            print(f"[DEBUG NavItem {self.id}] is_active: {self.is_active}")
+
+        # Ensure hover style doesn't interfere if present
+        final_style = {k: v for k, v in base_style.items() if k != "&:hover"}
+
+        if SIDEBAR_DEBUG:
+            print(f"[DEBUG NavItem {self.id}] Final style prop: {json.dumps(final_style, indent=2)}")
+            # --- Debugging End ---
+                
         # Create the icon element if provided
         icon_element = None
         if self.icon:
@@ -296,8 +327,8 @@ class NavItem(Component):
                         "alignItems": "center",
                         "justifyContent": "center",
                         "marginRight": "14px",
-                        "backgroundColor": parent_styles.get("active_icon_bg", get_color("active_icon_bg")) if self.is_active else parent_styles.get("inactive_icon_bg", get_color("inactive_icon_bg")),
-                        "color": parent_styles.get("active_text", get_color("active_text")),
+                        "backgroundColor": parent_styles.get("active_icon_bg", theme_colors.get("active_icon_bg", "#8B5E41")) if self.is_active else parent_styles.get("inactive_icon_bg", theme_colors.get("inactive_icon_bg", "rgba(107, 66, 38, 0.3)")),
+                        "color": parent_styles.get("active_text", theme_colors.get("active_text", "#FFFFFF")),
                         "borderRadius": "6px",
                         "fontSize": "16px",
                         "fontWeight": "bold"
@@ -338,7 +369,7 @@ class NavItem(Component):
             "type": "nav-item",
             "key": f"nav-{self.id}",
             "props": {
-                "style": base_style,
+                "style": final_style, # Use the debugged style dict
                 "children": children,
                 "onClick": {
                     "action": "set_state",
@@ -350,19 +381,96 @@ class NavItem(Component):
         }
 
 class Sidebar(Component):
-    def __init__(self, nav_items: List[NavItem], app_title: str = "Cacao App") -> None:
+    def __init__(self, nav_items: List[NavItem], app_title: str = "Cacao App", 
+                 show_footer: bool = True, footer_text: str = "© 2025 Cacao Framework") -> None:
         """Initialize sidebar with navigation items.
         
         Args:
             nav_items: List of NavItem components
             app_title: Title to display in the sidebar header
+            show_footer: Whether to show the footer in the sidebar
+            footer_text: Custom text to display in the footer (if shown)
         """
         # The theme will be set by the parent SidebarLayout component
         super().__init__()
         self.nav_items = nav_items
         self.app_title = app_title
+        self.show_footer = show_footer
+        self.footer_text = footer_text
         
     def render(self) -> Dict[str, Any]:
+        # Get theme colors
+        theme = get_theme()
+        theme_colors = theme.get('colors', {})
+        
+        children = [
+            # App header/brand section
+            {
+                "type": "div",
+                "props": {
+                    "style": {
+                        "padding": "20px 16px",
+                        "borderBottom": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
+                        "display": "flex",
+                        "alignItems": "center",
+                        "height": "64px",
+                        "backgroundColor": self.parent.styles.get("sidebar_header_bg", get_color("sidebar_header_bg"))
+                    },
+                    "children": [
+                        {
+                            "type": "h2",
+                            "props": {
+                                "content": self.app_title,
+                                "style": {
+                                    "margin": 0,
+                                    "fontSize": "18px",
+                                    "fontWeight": "600",
+                                    "color": self.parent.styles.get("app_title_color", theme_colors.get("app_title_color", "#D6C3B6"))
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            # Navigation items container
+            {
+                "type": "div",
+                "props": {
+                    "style": {
+                        "padding": "16px 0",
+                        "flex": 1,
+                        "overflowY": "auto"
+                    },
+                    "children": [nav_item.render() for nav_item in self.nav_items]
+                }
+            }
+        ]
+        
+        # Add footer if enabled
+        if self.show_footer:
+            children.append({
+                "type": "div",
+                "props": {
+                    "style": {
+                        "borderTop": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
+                        "padding": "16px",
+                        "fontSize": "12px",
+                        "color": self.parent.styles.get("sidebar_text", get_color("sidebar_text"))
+                    },
+                    "children": [
+                        {
+                            "type": "text",
+                            "props": {
+                                "content": self.footer_text,
+                                "style": {
+                                    "margin": 0
+                                }
+                            }
+                        }
+                    ]
+                }
+            })
+        
         return {
             "type": "sidebar",
             "key": "sidebar",
@@ -382,70 +490,6 @@ class Sidebar(Component):
                     "flexDirection": "column",
                     "zIndex": 1000
                 },
-                "children": [
-                    # App header/brand section
-                    {
-                        "type": "div",
-                        "props": {
-                            "style": {
-                                "padding": "20px 16px",
-                                "borderBottom": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
-                                "display": "flex",
-                                "alignItems": "center",
-                                "height": "64px",
-                                "backgroundColor": self.parent.styles.get("sidebar_header_bg", get_color("sidebar_header_bg"))
-                            },
-                            "children": [
-                                {
-                                    "type": "h2",
-                                    "props": {
-                                        "content": self.app_title,
-                                        "style": {
-                                            "margin": 0,
-                                            "fontSize": "18px",
-                                            "fontWeight": "600",
-                                            "color": self.parent.styles.get("active_text", get_color("active_text"))
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    # Navigation items container
-                    {
-                        "type": "div",
-                        "props": {
-                            "style": {
-                                "padding": "16px 0",
-                                "flex": 1,
-                                "overflowY": "auto"
-                            },
-                            "children": [nav_item.render() for nav_item in self.nav_items]
-                        }
-                    },
-                    # Footer section with user/account info (optional)
-                    {
-                        "type": "div",
-                        "props": {
-                            "style": {
-                                "borderTop": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
-                                "padding": "16px",
-                                "fontSize": "12px",
-                                "color": self.parent.styles.get("sidebar_text", get_color("sidebar_text"))
-                            },
-                            "children": [
-                                {
-                                    "type": "text",
-                                    "props": {
-                                        "content": "© 2025 Cacao Framework",
-                                        "style": {
-                                            "margin": 0
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
+                "children": children
             }
         }

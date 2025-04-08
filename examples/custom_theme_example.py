@@ -7,7 +7,6 @@ and apply it to your application.
 
 import cacao
 from cacao.ui.components.sidebar_layout import SidebarLayout
-from cacao.ui.themes.sidebar_theme import SidebarTheme
 
 app = cacao.App()
 

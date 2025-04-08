@@ -24,6 +24,7 @@ class SidebarTheme:
         "text_color": "#2D2013",          # Dark brown for text
         "sidebar_text": "#D6C3B6",        # Light brown text for sidebar
         "active_text": "#FFFFFF",         # White text for active items
+        "app_title_color": "#D6C3B6",     # Light brown text for app title
         
         # Border colors
         "border_color": "#D6C3B6",        # Light brown border
@@ -31,7 +32,7 @@ class SidebarTheme:
         "sidebar_border": "#503418",      # Medium brown border for sidebar sections
         
         # Interactive element colors
-        "active_bg": "#6B4226",           # Cacao brown active background
+        "active_bg": "#D6C3B6",           # Light brown active background (was Cacao brown)
         "active_icon_bg": "#8B5E41",      # Slightly lighter brown for active icons
         "inactive_icon_bg": "rgba(107, 66, 38, 0.3)",  # Transparent brown for inactive icons
     }
