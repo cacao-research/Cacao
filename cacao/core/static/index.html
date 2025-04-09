@@ -21,9 +21,6 @@
     <div class="message">Refreshing...</div>
   </div>
   
-  <!-- Manual refresh button -->
-  <button class="manual-refresh" title="Force Refresh (Ctrl+R)" onclick="window.CacaoWS.requestServerRefresh()">Refresh</button>
-  
   <script src="/static/js/websocket.js"></script>
   <script src="/static/js/cacao-core.js"></script>
   <script>
@@ -76,15 +73,7 @@
     const metaPort = document.querySelector('meta[name="ws-port"]')?.content;
     const wsPort = urlParams.get('ws_port') || metaPort || '1633';
     
-    // Make sure CacaoWS is defined before calling connect
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.CacaoWS && typeof window.CacaoWS.connect === 'function') {
-            console.log("[Cacao] Initializing WebSocket connection to port:", wsPort);
-            window.CacaoWS.connect(`ws://${window.location.hostname}:${wsPort}`);
-        } else {
-            console.error("[Cacao] CacaoWS.connect is not available");
-        }
-    });
+    // WebSocket connection will be initiated by websocket.js directly
 
     // Function to initialize the app
     async function initializeApp() {

@@ -191,7 +191,6 @@ Handles real-time updates and UI synchronization.
                                 refreshInProgress = false;
                             });
                         }
-                        }
                     }
                 } catch (error) {
                     console.error('[CacaoWS] Error processing message:', error);
@@ -316,4 +315,6 @@ Handles real-time updates and UI synchronization.
             return socket ? socket.readyState : -1;
         }
     };
+    // Automatically connect when the script loads
+    connect();
 })();
