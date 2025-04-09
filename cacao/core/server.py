@@ -481,6 +481,10 @@ class CacaoServer(LoggingMixin):
             # Serve UI definition
             if path == "/api/ui":
                 return await self._serve_ui_definition(query_params, writer, session_id)
+
+            # Handle event requests
+            elif path == "/api/event":
+                return await self._handle_event(query_params, writer, session_id)
             
             # Serve HTML template for other paths with HTML accept header
             if "accept" in headers and "text/html" in headers["accept"]:
@@ -692,6 +696,60 @@ class CacaoServer(LoggingMixin):
                 f"{str(e)}"
             )
             writer.write(response.encode("utf-8"))
+            await writer.drain()
+
+    async def _handle_event(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:
+        """Handle event requests triggered from the frontend."""
+        try:
+            event_name = query_params.get('event', [None])[0]
+            value_str = query_params.get('value', [None])[0] # Get value as string first
+            # TODO: Consider how to pass other parameters if needed by handlers
+
+            if not event_name:
+                self.log("Missing 'event' parameter in event request", "warning", "⚠️")
+                writer.write(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n")
+                writer.write(json.dumps({"error": "Missing 'event' parameter"}).encode("utf-8"))
+                await writer.drain()
+                return
+
+            self.log(f"Handling event: {event_name} with value string: '{value_str}'", "info", "⚡")
+
+            # Import the event handler dynamically
+            from .decorators import handle_event # Assuming handle_event exists and works this way
+
+            # Prepare event argument (focus on 'value' for now)
+            event_arg = None
+            if value_str is not None:
+                 # Attempt to convert value based on typical usage (float for sliders)
+                 try:
+                     event_arg = float(value_str)
+                 except (ValueError, TypeError):
+                     self.log(f"Could not convert event value '{value_str}' to float for event '{event_name}'. Passing as string.", "warning", "⚠️")
+                     event_arg = value_str # Fallback to string if conversion fails
+
+            # Call the event handler - Assumes handle_event(name, arg) signature
+            # This might need adjustment based on the actual implementation of handle_event
+            # and how it looks up and calls the decorated function.
+            result = handle_event(event_name, event_arg)
+
+            # Send success response
+            response_data = {"status": "success"}
+            if result is not None:
+                 response_data["result"] = result # Include result if handler returned something
+
+            writer.write(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n")
+            writer.write(json.dumps(response_data).encode("utf-8"))
+            await writer.drain()
+            self.log(f"Event '{event_name}' handled successfully", "info", "✅")
+
+        except Exception as e:
+            self.log(f"Error handling event '{event_name}': {str(e)}", "error", "❌")
+            if self.verbose:
+                traceback.print_exc()
+            
+            # Send error response
+            writer.write(b"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\n\r\n")
+            writer.write(json.dumps({"error": f"Error handling event: {str(e)}"}).encode("utf-8"))
             await writer.drain()
 
     async def _serve_ui_definition(self, query_params: Dict[str, Any], writer: asyncio.StreamWriter, session_id: str) -> None:

@@ -65,6 +65,7 @@
         }
     };
 
+
     // Update syncHashState function to include hash in requests
     async function syncHashState() {
         const page = window.location.hash.slice(1) || '';
@@ -489,21 +490,28 @@
             let updateTimeout;
             const updateValue = async () => {
                 if (component.props.onChange) {
+                    // Clear any existing timeout to debounce
                     clearTimeout(updateTimeout);
+                    
+                    // Re-introduce setTimeout with a longer delay (150ms)
                     updateTimeout = setTimeout(async () => {
                         try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
+                            // Consider adding a subtle visual cue instead of the full overlay for frequent events
+                            // document.querySelector('.refresh-overlay').classList.add('active');
                             
                             const action = component.props.onChange.action;
                             const params = {
                                 ...component.props.onChange.params,
-                                value: slider.value
+                                value: slider.value // Use the current slider value at the time of execution
                             };
                             
                             const queryParams = Object.entries(params)
                                 .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
                                 .join('&');
                                 
+                            // console.log(`[CacaoCore] Sending event (debounced): ${action} with params: ${queryParams}`); // Optional: uncomment for debugging
+                            
+                            // Send event via HTTP GET
                             const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
                                 method: 'GET',
                                 headers: {
@@ -516,21 +524,82 @@
                             }
                             
                             const data = await response.json();
+                            // console.log("[CacaoCore] Event response (debounced):", data); // Optional: uncomment for debugging
+                            
+                            // Update slider value based on response *if* backend sends it back
+                            // This helps keep frontend consistent if backend modifies the value
                             if (data.value !== undefined) {
-                                slider.value = data.value;
+                                // Check if the slider element still exists before updating
+                                if (document.body.contains(slider)) {
+                                   slider.value = data.value;
+                                }
                             }
                             
+                            // Trigger a UI refresh to show the updated value in other components
                             window.CacaoWS.requestServerRefresh();
+                            
                         } catch (err) {
-                            console.error('[CacaoCore] Error updating slider:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
+                            console.error('[CacaoCore] Error updating slider (debounced):', err);
+                            // Remove overlay if it was added
+                            // document.querySelector('.refresh-overlay').classList.remove('active');
                         }
-                    }, 100); // Debounce updates
+                    }, 450); // Increased debounce to 450ms for smoother interaction
                 }
             };
 
+            // Use the 'input' event for continuous updates while dragging
             slider.addEventListener('input', updateValue);
-            return slider;
+            
+            // Add mouseup event to ensure we always get a final update when the user releases the slider
+            // This ensures the final value is captured even after quick drags
+            const finalUpdate = async () => {
+                // Clear any pending timeouts
+                clearTimeout(updateTimeout);
+                
+                // Immediately send the final value
+                try {
+                    const action = component.props.onChange.action;
+                    const params = {
+                        ...component.props.onChange.params,
+                        value: slider.value
+                    };
+                    
+                    const queryParams = Object.entries(params)
+                        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                        .join('&');
+                    
+                    console.log(`[CacaoCore] Sending final slider value: ${slider.value}`);
+                    
+                    const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Update slider value if needed
+                    if (data.value !== undefined && document.body.contains(slider)) {
+                        slider.value = data.value;
+                    }
+                    
+                    // Always refresh UI on final update
+                    window.CacaoWS.requestServerRefresh();
+                    
+                } catch (err) {
+                    console.error('[CacaoCore] Error sending final slider value:', err);
+                }
+            };
+            
+            slider.addEventListener('mouseup', finalUpdate);
+            slider.addEventListener('touchend', finalUpdate);
+            
+            return slider; // Return the created slider element
         },
 
         "slider": (component) => {

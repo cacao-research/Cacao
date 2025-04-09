@@ -94,7 +94,7 @@ def home() -> Dict[str, Any]:
                                 "style": {
                                     "fontSize": "48px",
                                     "fontWeight": "800",
-                                    "color": "#f0be9b",
+                                    "color": "#934a15",
                                     "marginBottom": "40px",
                                     "textShadow": "0 2px 4px rgba(0,0,0,0.3)",
                                     "letterSpacing": "-1px"
