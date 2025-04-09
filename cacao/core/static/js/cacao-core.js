@@ -357,16 +357,36 @@
                         if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
                             const eventName = component.props.on_click || component.props.action;
                             console.log("[Cacao] Sending WebSocket event:", eventName);
+                            // Include the data property from the component if available
+                            const eventData = { component_type: componentType };
+                            
+                            // Add the data property from the component if it exists
+                            if (component.props.data) {
+                                console.log("[Cacao] Including custom data in event:", component.props.data);
+                                Object.assign(eventData, component.props.data);
+                            }
+                            
                             window.socket.send(JSON.stringify({
                                 type: 'event',
                                 event: eventName,
-                                data: { component_type: componentType }
+                                data: eventData
                             }));
                         } else {
                             // Fallback to HTTP
                             console.log("[Cacao] WebSocket not available, using HTTP fallback");
                             const action = component.props.on_click || component.props.action;
-                            const response = await fetch(`/api/action?action=${action}&component_type=${componentType}&t=${Date.now()}`, {
+                            // Build query parameters including custom data
+                            let queryParams = `action=${action}&component_type=${componentType}`;
+                            
+                            // Add the data property from the component if it exists
+                            if (component.props.data) {
+                                console.log("[Cacao] Including custom data in HTTP fallback:", component.props.data);
+                                for (const [key, value] of Object.entries(component.props.data)) {
+                                    queryParams += `&${key}=${encodeURIComponent(value)}`;
+                                }
+                            }
+                            
+                            const response = await fetch(`/api/action?${queryParams}&t=${Date.now()}`, {
                                 method: 'GET',
                                 headers: {
                                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -781,6 +801,100 @@
             slider.addEventListener('input', updateValue);
             return slider;
         },
+        
+        textarea: (component) => {
+            const el = document.createElement("textarea");
+            el.className = component.props.className || "textarea";
+            
+            // Apply content
+            if (component.props.content) {
+                el.value = component.props.content;
+            }
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Handle content changes
+            if (component.props.action) {
+                let updateTimeout;
+                
+                el.addEventListener("input", () => {
+                    // Clear any existing timeout to debounce
+                    clearTimeout(updateTimeout);
+                    
+                    // Set a timeout to avoid sending too many events
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            const action = component.props.action;
+                            const componentType = component.component_type || "textarea";
+                            
+                            // Build event data including the textarea content
+                            const eventData = {
+                                component_type: componentType,
+                                content: el.value
+                            };
+                            
+                            // Add the data property from the component if it exists
+                            if (component.props.data) {
+                                console.log("[Cacao] Including custom data in textarea event:", component.props.data);
+                                Object.assign(eventData, component.props.data);
+                            }
+                            
+                            console.log("[Cacao] Sending textarea content update:", action, eventData);
+                            
+                            // If WebSocket is open
+                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+                                window.socket.send(JSON.stringify({
+                                    type: 'event',
+                                    event: action,
+                                    data: eventData
+                                }));
+                            } else {
+                                // Fallback to HTTP
+                                console.log("[Cacao] WebSocket not available, using HTTP fallback for textarea");
+                                
+                                // Build query parameters
+                                let queryParams = `action=${action}&component_type=${componentType}`;
+                                
+                                // Add the data property from the component if it exists
+                                if (component.props.data) {
+                                    for (const [key, value] of Object.entries(component.props.data)) {
+                                        queryParams += `&${key}=${encodeURIComponent(value)}`;
+                                    }
+                                }
+                                
+                                // Add content parameter
+                                queryParams += `&content=${encodeURIComponent(el.value)}`;
+                                
+                                const response = await fetch(`/api/action?${queryParams}&t=${Date.now()}`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                        'Pragma': 'no-cache',
+                                        'Expires': '0'
+                                    }
+                                });
+                                
+                                if (!response.ok) {
+                                    const errorText = await response.text();
+                                    console.error("[Cacao] Server error response:", errorText);
+                                    throw new Error(`Server returned ${response.status}: ${errorText}`);
+                                }
+                                
+                                const responseData = await response.json();
+                                console.log("[CacaoCore] Server response data:", responseData);
+                            }
+                        } catch (err) {
+                            console.error('[CacaoCore] Error handling textarea input:', err);
+                        }
+                    }, 1000); // 1 second debounce
+                });
+            }
+            
+            return el;
+        },
 
         "range-sliders": (component) => {
             const container = document.createElement("div");
@@ -975,11 +1089,16 @@
         }
 
         let el;
-        // 1. If there's a specialized renderer in componentRenderers, use it
-        if (componentRenderers[component.type]) {
+        // 1. Special case for textarea - use our custom renderer
+        if (component.type === "textarea") {
+            console.log("[CacaoCore] Using custom textarea renderer");
+            el = componentRenderers.textarea(component);
+        }
+        // 2. If there's a specialized renderer in componentRenderers, use it
+        else if (componentRenderers[component.type]) {
             el = componentRenderers[component.type](component);
         }
-        // 2. Else if it's a known standard HTML tag, use the fallback
+        // 3. Else if it's a known standard HTML tag, use the fallback
         else if (STANDARD_TAGS.has(component.type)) {
             el = renderStandardElement(component);
         }
