@@ -193,7 +193,379 @@
      * Specialized renderers for components needing custom logic or event handling
      */
     const componentRenderers = {
-        
+        descriptions: (component) => {
+            console.log("[CacaoCore] Rendering descriptions component:", component);
+            const el = document.createElement("div");
+            el.className = "descriptions";
+            
+            // Add bordered class if specified
+            if (component.props.bordered) {
+                el.classList.add("bordered");
+            }
+
+            // Add columns class if specified
+            if (component.props.column) {
+                el.classList.add(`columns-${component.props.column}`);
+            }
+
+            // Add title if provided
+            if (component.props.title) {
+                const titleDiv = document.createElement("div");
+                titleDiv.className = "descriptions-title";
+                titleDiv.textContent = component.props.title;
+                el.appendChild(titleDiv);
+            }
+
+            // Create items wrapper
+            const itemsWrapper = document.createElement("div");
+            itemsWrapper.className = "descriptions-items";
+
+            // Add items
+            if (Array.isArray(component.props.items)) {
+                component.props.items.forEach(item => {
+                    const itemDiv = document.createElement("div");
+                    itemDiv.className = "descriptions-item";
+
+                    const labelDiv = document.createElement("div");
+                    labelDiv.className = "descriptions-label";
+                    labelDiv.textContent = item.label;
+                    itemDiv.appendChild(labelDiv);
+
+                    const contentDiv = document.createElement("div");
+                    contentDiv.className = "descriptions-content";
+                    if (typeof item.content === 'string') {
+                        contentDiv.textContent = item.content;
+                    } else {
+                        contentDiv.appendChild(renderComponent(item.content));
+                    }
+                    itemDiv.appendChild(contentDiv);
+
+                    itemsWrapper.appendChild(itemDiv);
+                });
+            }
+
+            el.appendChild(itemsWrapper);
+
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .descriptions {
+                    width: 100%;
+                    font-size: 14px;
+                }
+
+                .descriptions.bordered {
+                    border: 1px solid #e8e8e8;
+                    border-radius: 4px;
+                }
+
+                .descriptions-title {
+                    font-size: 16px;
+                    font-weight: 600;
+                    margin-bottom: 16px;
+                    padding: 16px;
+                    border-bottom: 1px solid #e8e8e8;
+                }
+
+                .descriptions-items {
+                    padding: 16px;
+                    display: grid;
+                    grid-gap: 16px;
+                }
+
+                .descriptions.columns-2 .descriptions-items {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .descriptions-item {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .descriptions-label {
+                    color: #666;
+                    margin-bottom: 4px;
+                }
+
+                .descriptions-content {
+                    color: #333;
+                }
+
+                .descriptions.bordered .descriptions-items {
+                    border-radius: 0 0 4px 4px;
+                }
+            `;
+            el.appendChild(style);
+
+            return el;
+        },
+
+        list: (component) => {
+            console.log("[CacaoCore] Rendering list component:", component);
+            const el = document.createElement("div");
+            el.className = "list";
+            if (component.props.bordered) el.classList.add("bordered");
+            if (component.props.size) el.classList.add(component.props.size);
+
+            if (Array.isArray(component.props.items)) {
+                component.props.items.forEach(item => {
+                    const itemEl = document.createElement("div");
+                    itemEl.className = "list-item";
+                    
+                    if (item.title) {
+                        const title = document.createElement("div");
+                        title.className = "list-item-title";
+                        title.textContent = item.title;
+                        itemEl.appendChild(title);
+                    }
+
+                    if (item.description) {
+                        const desc = document.createElement("div");
+                        desc.className = "list-item-description";
+                        desc.textContent = item.description;
+                        itemEl.appendChild(desc);
+                    }
+
+                    el.appendChild(itemEl);
+                });
+            }
+
+            return el;
+        },
+
+        enhancedTable: (component) => {
+            console.log("[CacaoCore] Rendering enhanced table component:", component);
+            const wrapper = document.createElement("div");
+            wrapper.className = "enhanced-table-wrapper";
+
+            const table = document.createElement("table");
+            table.className = "enhanced-table";
+
+            // Create header
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            component.props.columns.forEach(column => {
+                const th = document.createElement("th");
+                th.textContent = column.title;
+                if (component.props.sorting) {
+                    th.classList.add("sortable");
+                    th.onclick = () => {
+                        // Sorting logic would go here
+                        console.log("[CacaoCore] Sort by:", column.key);
+                    };
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create body
+            const tbody = document.createElement("tbody");
+            if (Array.isArray(component.props.dataSource)) {
+                component.props.dataSource.forEach(row => {
+                    const tr = document.createElement("tr");
+                    component.props.columns.forEach(column => {
+                        const td = document.createElement("td");
+                        td.textContent = row[column.dataIndex];
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+            table.appendChild(tbody);
+
+            wrapper.appendChild(table);
+
+            // Add pagination if specified
+            if (component.props.pagination) {
+                const pagination = document.createElement("div");
+                pagination.className = "table-pagination";
+                // Pagination UI would go here
+                wrapper.appendChild(pagination);
+            }
+
+            return wrapper;
+        },
+
+        card: (component) => {
+            console.log("[CacaoCore] Rendering card component:", component);
+            const el = document.createElement("div");
+            el.className = "card";
+            if (component.props.bordered) el.classList.add("bordered");
+
+            if (component.props.title) {
+                const header = document.createElement("div");
+                header.className = "card-header";
+                const title = document.createElement("div");
+                title.className = "card-title";
+                title.textContent = component.props.title;
+                header.appendChild(title);
+
+                if (component.props.extra) {
+                    const extra = document.createElement("div");
+                    extra.className = "card-extra";
+                    if (typeof component.props.extra === 'string') {
+                        extra.textContent = component.props.extra;
+                    } else {
+                        extra.appendChild(renderComponent(component.props.extra));
+                    }
+                    header.appendChild(extra);
+                }
+
+                el.appendChild(header);
+            }
+
+            const content = document.createElement("div");
+            content.className = "card-content";
+            if (typeof component.props.children === 'string') {
+                content.textContent = component.props.children;
+            } else if (Array.isArray(component.props.children)) {
+                component.props.children.forEach(child => {
+                    content.appendChild(renderComponent(child));
+                });
+            } else if (component.props.children) {
+                content.appendChild(renderComponent(component.props.children));
+            }
+            el.appendChild(content);
+
+            return el;
+        },
+
+        badge: (component) => {
+            console.log("[CacaoCore] Rendering badge component:", component);
+            const wrapper = document.createElement("span");
+            wrapper.className = "badge-wrapper";
+
+            // Render the main content if provided
+            if (component.props.children) {
+                wrapper.appendChild(renderComponent(component.props.children));
+            }
+
+            // Create the badge element
+            const badge = document.createElement("span");
+            badge.className = "badge";
+
+            // Handle dot style badge
+            if (component.props.dot) {
+                badge.classList.add("dot");
+            } else if (component.props.count !== undefined) {
+                // Show count if not zero or showZero is true
+                if (component.props.count > 0 || component.props.showZero) {
+                    badge.textContent = component.props.count;
+                }
+            }
+
+            wrapper.appendChild(badge);
+            return wrapper;
+        },
+
+        avatar: (component) => {
+            console.log("[CacaoCore] Rendering avatar component:", component);
+            const el = document.createElement("span");
+            el.className = "avatar";
+            
+            if (component.props.shape) {
+                el.classList.add(component.props.shape);
+            }
+            if (component.props.size) {
+                el.classList.add(component.props.size);
+            }
+
+            if (component.props.src) {
+                const img = document.createElement("img");
+                img.src = component.props.src;
+                img.alt = "Avatar";
+                el.appendChild(img);
+            } else if (component.props.icon) {
+                const icon = document.createElement("span");
+                icon.className = "avatar-icon";
+                applyContent(icon, component.props.icon);
+                el.appendChild(icon);
+            }
+
+            return el;
+        },
+
+        tag: (component) => {
+            console.log("[CacaoCore] Rendering tag component:", component);
+            const el = document.createElement("span");
+            el.className = "tag";
+            
+            if (component.props.color) {
+                el.classList.add(`tag-${component.props.color}`);
+                el.style.backgroundColor = component.props.color;
+            }
+
+            if (component.props.content) {
+                el.textContent = component.props.content;
+            }
+
+            if (component.props.closable) {
+                const closeBtn = document.createElement("span");
+                closeBtn.className = "tag-close";
+                closeBtn.innerHTML = "×";
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    el.remove();
+                };
+                el.appendChild(closeBtn);
+            }
+
+            return el;
+        },
+
+        timeline: (component) => {
+            console.log("[CacaoCore] Rendering timeline component:", component);
+            const el = document.createElement("div");
+            el.className = "timeline";
+            
+            if (component.props.mode) {
+                el.classList.add(`timeline-${component.props.mode}`);
+            }
+            
+            if (component.props.reverse) {
+                el.classList.add("timeline-reverse");
+            }
+
+            if (Array.isArray(component.props.items)) {
+                const items = component.props.reverse ?
+                    [...component.props.items].reverse() :
+                    component.props.items;
+                    
+                items.forEach(item => {
+                    const itemEl = document.createElement("div");
+                    itemEl.className = "timeline-item";
+
+                    // Add dot
+                    const dot = document.createElement("div");
+                    dot.className = "timeline-dot";
+                    itemEl.appendChild(dot);
+
+                    // Add label if provided
+                    if (item.label) {
+                        const label = document.createElement("div");
+                        label.className = "timeline-label";
+                        label.textContent = item.label;
+                        itemEl.appendChild(label);
+                    }
+
+                    // Add content
+                    const content = document.createElement("div");
+                    content.className = "timeline-content";
+                    if (typeof item.content === 'string') {
+                        content.textContent = item.content;
+                    } else {
+                        content.appendChild(renderComponent(item.content));
+                    }
+                    itemEl.appendChild(content);
+
+                    el.appendChild(itemEl);
+                });
+            }
+
+            return el;
+        },
+
         text: (component) => {
             const el = document.createElement("p");
             el.className = "text";
@@ -497,6 +869,765 @@
             
             return el;
         },
+        
+        datepicker: (component) => {
+            console.log("[CacaoCore] Rendering datepicker component:", component);
+            const el = document.createElement("input");
+            el.type = "date";
+            
+            // Set common attributes
+            if (component.props.value !== undefined) el.value = component.props.value;
+            if (component.props.disabled) el.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                el.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Date changed:", e.target.value);
+                    
+                    const action = component.props.onChange.action || "date_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        value: e.target.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending date event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Date event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Date event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending date event:", err);
+                    }
+                });
+            }
+            
+            return el;
+        },
+        
+        timepicker: (component) => {
+            console.log("[CacaoCore] Rendering timepicker component:", component);
+            const el = document.createElement("input");
+            el.type = "time";
+            
+            // Set common attributes
+            if (component.props.value !== undefined) el.value = component.props.value;
+            if (component.props.disabled) el.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                el.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Time changed:", e.target.value);
+                    
+                    const action = component.props.onChange.action || "time_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        value: e.target.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending time event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Time event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Time event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending time event:", err);
+                    }
+                });
+            }
+            
+            return el;
+        },
+        
+        upload: (component) => {
+            console.log("[CacaoCore] Rendering upload component:", component);
+            
+            // Create wrapper div
+            const wrapper = document.createElement("div");
+            wrapper.className = "upload-wrapper";
+            
+            // Create file input
+            const input = document.createElement("input");
+            input.type = "file";
+            if (component.props.multiple) input.multiple = true;
+            if (component.props.disabled) input.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(wrapper.style, component.props.style);
+            }
+            
+            // Add label or placeholder
+            const label = document.createElement("div");
+            label.textContent = component.props.label || "Click or drag files here to upload";
+            wrapper.appendChild(label);
+            
+            // Add file input
+            wrapper.appendChild(input);
+            
+            // Add event listener for changes
+            if (component.props.onUpload) {
+                input.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Files selected:", e.target.files);
+                    
+                    // In a real implementation, you would upload the files here
+                    // For now, just trigger the event
+                    const action = component.props.onUpload.action || "file_upload";
+                    const params = {
+                        ...(component.props.onUpload.params || {}),
+                        fileCount: e.target.files.length
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending upload event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Upload event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Upload event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending upload event:", err);
+                    }
+                });
+            }
+            
+            return wrapper;
+        },
+        
+        search: (component) => {
+            console.log("[CacaoCore] Rendering search component:", component);
+            
+            // Create wrapper div
+            const wrapper = document.createElement("div");
+            wrapper.className = "search-input-wrapper";
+            
+            // Create search input
+            const input = document.createElement("input");
+            input.type = "search";
+            if (component.props.value !== undefined) input.value = component.props.value;
+            if (component.props.placeholder) input.placeholder = component.props.placeholder;
+            if (component.props.disabled) input.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(input.style, component.props.style);
+            }
+            
+            // Create search button
+            const button = document.createElement("button");
+            button.textContent = "Search";
+            button.className = "search-button";
+            
+            // Append elements
+            wrapper.appendChild(input);
+            wrapper.appendChild(button);
+            
+            // Add event listener for search
+            if (component.props.onSearch) {
+                const performSearch = async () => {
+                    console.log("[CacaoCore] Search:", input.value);
+                    
+                    const action = component.props.onSearch.action || "search";
+                    const params = {
+                        ...(component.props.onSearch.params || {}),
+                        query: input.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending search event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Search event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Search event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending search event:", err);
+                    }
+                };
+                
+                // Search on button click
+                button.addEventListener("click", performSearch);
+                
+                // Search on Enter key
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        performSearch();
+                    }
+                });
+            }
+            
+            return wrapper;
+        },
+
+        input: (component) => {
+            console.log("[CacaoCore] Rendering input component:", component);
+            const el = document.createElement("input");
+            
+            // Set input type (text, password, email, etc.)
+            el.type = component.props.inputType || "text";
+            
+            // Set common attributes
+            if (component.props.value !== undefined) el.value = component.props.value;
+            if (component.props.placeholder) el.placeholder = component.props.placeholder;
+            if (component.props.disabled) el.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                el.addEventListener("input", async (e) => {
+                    console.log("[CacaoCore] Input changed:", e.target.value);
+                    
+                    const action = component.props.onChange.action || "input_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        value: e.target.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending input event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Input event successful");
+                        } else {
+                            console.error("[CacaoCore] Input event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending input event:", err);
+                    }
+                });
+            }
+            
+            return el;
+        },
+        
+        textarea: (component) => {
+            console.log("[CacaoCore] Rendering textarea component:", component);
+            const el = document.createElement("textarea");
+            
+            // Set common attributes
+            if (component.props.value !== undefined) el.value = component.props.value;
+            if (component.props.placeholder) el.placeholder = component.props.placeholder;
+            if (component.props.disabled) el.disabled = true;
+            if (component.props.rows) el.rows = component.props.rows;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                el.addEventListener("input", async (e) => {
+                    console.log("[CacaoCore] Textarea changed:", e.target.value);
+                    
+                    const action = component.props.onChange.action || "textarea_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        value: e.target.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending textarea event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Textarea event successful");
+                        } else {
+                            console.error("[CacaoCore] Textarea event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending textarea event:", err);
+                    }
+                });
+            }
+            
+            return el;
+        },
+        
+        select: (component) => {
+            console.log("[CacaoCore] Rendering select component:", component);
+            const el = document.createElement("select");
+            
+            // Set common attributes
+            if (component.props.value !== undefined) el.value = component.props.value;
+            if (component.props.disabled) el.disabled = true;
+            
+            // Apply styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+            
+            // Add placeholder if provided
+            if (component.props.placeholder) {
+                const placeholderOption = document.createElement("option");
+                placeholderOption.value = "";
+                placeholderOption.textContent = component.props.placeholder;
+                placeholderOption.disabled = true;
+                placeholderOption.selected = !component.props.value;
+                el.appendChild(placeholderOption);
+            }
+            
+            // Add options
+            if (Array.isArray(component.props.options)) {
+                component.props.options.forEach(option => {
+                    const optionEl = document.createElement("option");
+                    optionEl.value = option.value;
+                    optionEl.textContent = option.label;
+                    if (component.props.value === option.value) {
+                        optionEl.selected = true;
+                    }
+                    el.appendChild(optionEl);
+                });
+            }
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                el.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Select changed:", e.target.value);
+                    
+                    const action = component.props.onChange.action || "select_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        value: e.target.value
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending select event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Select event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Select event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending select event:", err);
+                    }
+                });
+            }
+            
+            return el;
+        },
+        
+        checkbox: (component) => {
+            console.log("[CacaoCore] Rendering checkbox component:", component);
+            
+            // Create wrapper div
+            const wrapper = document.createElement("div");
+            wrapper.className = "checkbox-wrapper";
+            
+            // Create checkbox input
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = !!component.props.checked;
+            if (component.props.disabled) input.disabled = true;
+            
+            // Create label
+            const label = document.createElement("span");
+            label.textContent = component.props.label || "";
+            
+            // Append elements
+            wrapper.appendChild(input);
+            wrapper.appendChild(label);
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                input.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Checkbox changed:", e.target.checked);
+                    
+                    const action = component.props.onChange.action || "checkbox_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        checked: e.target.checked
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending checkbox event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Checkbox event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Checkbox event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending checkbox event:", err);
+                    }
+                });
+            }
+            
+            return wrapper;
+        },
+        
+        radio: (component) => {
+            console.log("[CacaoCore] Rendering radio component:", component);
+            
+            // Create wrapper div
+            const wrapper = document.createElement("div");
+            wrapper.className = "radio-group";
+            
+            // Add options
+            if (Array.isArray(component.props.options)) {
+                component.props.options.forEach(option => {
+                    const radioWrapper = document.createElement("div");
+                    radioWrapper.className = "radio-wrapper";
+                    
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = `radio-${Math.random().toString(36).substring(2, 9)}`;
+                    input.value = option.value;
+                    input.checked = component.props.value === option.value;
+                    if (component.props.disabled) input.disabled = true;
+                    
+                    const label = document.createElement("span");
+                    label.textContent = option.label || option.value;
+                    
+                    radioWrapper.appendChild(input);
+                    radioWrapper.appendChild(label);
+                    wrapper.appendChild(radioWrapper);
+                    
+                    // Add event listener for changes
+                    if (component.props.onChange) {
+                        input.addEventListener("change", async (e) => {
+                            if (e.target.checked) {
+                                console.log("[CacaoCore] Radio changed:", e.target.value);
+                                
+                                const action = component.props.onChange.action || "radio_change";
+                                const params = {
+                                    ...(component.props.onChange.params || {}),
+                                    value: e.target.value
+                                };
+                                
+                                // HTTP fallback
+                                const queryParams = Object.entries(params)
+                                    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                                    .join("&");
+                                    
+                                const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                                try {
+                                    console.log("[CacaoCore] Sending radio event:", url);
+                                    const response = await fetch(url, {
+                                        method: "GET",
+                                        headers: {
+                                            "Cache-Control": "no-cache, no-store, must-revalidate"
+                                        }
+                                    });
+                                    
+                                    if (response.ok) {
+                                        console.log("[CacaoCore] Radio event successful");
+                                        window.CacaoWS.requestServerRefresh();
+                                    } else {
+                                        console.error("[CacaoCore] Radio event failed:", response.status);
+                                    }
+                                } catch (err) {
+                                    console.error("[CacaoCore] Error sending radio event:", err);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            
+            return wrapper;
+        },
+        
+        switch: (component) => {
+            console.log("[CacaoCore] Rendering switch component:", component);
+            
+            // Create wrapper div
+            const wrapper = document.createElement("div");
+            wrapper.className = "switch-wrapper";
+            
+            // Create checkbox input
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = !!component.props.checked;
+            if (component.props.disabled) input.disabled = true;
+            
+            // Create slider
+            const slider = document.createElement("span");
+            slider.className = "switch-slider";
+            
+            // Append elements
+            wrapper.appendChild(input);
+            wrapper.appendChild(slider);
+            
+            // Add event listener for changes
+            if (component.props.onChange) {
+                input.addEventListener("change", async (e) => {
+                    console.log("[CacaoCore] Switch changed:", e.target.checked);
+                    
+                    const action = component.props.onChange.action || "switch_change";
+                    const params = {
+                        ...(component.props.onChange.params || {}),
+                        checked: e.target.checked
+                    };
+                    
+                    // HTTP fallback
+                    const queryParams = Object.entries(params)
+                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                        .join("&");
+                        
+                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                    try {
+                        console.log("[CacaoCore] Sending switch event:", url);
+                        const response = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                "Cache-Control": "no-cache, no-store, must-revalidate"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            console.log("[CacaoCore] Switch event successful");
+                            window.CacaoWS.requestServerRefresh();
+                        } else {
+                            console.error("[CacaoCore] Switch event failed:", response.status);
+                        }
+                    } catch (err) {
+                        console.error("[CacaoCore] Error sending switch event:", err);
+                    }
+                });
+            }
+            
+            return wrapper;
+        },
+
+        rate: (component) => {
+            console.log("[CacaoCore] Rendering rate component:", component);
+            const max = component.props.max || 5;
+            const value = typeof component.props.value === "number" ? component.props.value : 0;
+            const disabled = !!component.props.disabled;
+            
+            // Create wrapper with class matching the CSS in default_theme.py
+            const el = document.createElement("div");
+            el.className = "rate-wrapper";
+            
+            // Helper to render stars
+            function renderStars(currentValue) {
+                console.log("[CacaoCore] Rendering stars with value:", currentValue);
+                el.innerHTML = "";
+                for (let i = 1; i <= max; i++) {
+                    const star = document.createElement("span");
+                    // Use classes that match the CSS in default_theme.py
+                    star.className = "rate-star";
+                    if (i <= currentValue) {
+                        star.className += " filled";
+                    }
+                    if (disabled) {
+                        star.className += " disabled";
+                    }
+                    
+                    // Use Unicode stars
+                    star.textContent = "★";
+                    
+                    // Make focusable for accessibility
+                    star.setAttribute("tabindex", disabled ? "-1" : "0");
+                    star.setAttribute("role", "button");
+                    star.setAttribute("aria-label", `Rate ${i} of ${max}`);
+                    
+                    if (!disabled) {
+                        // Add hover effects
+                        star.addEventListener("mouseenter", () => {
+                            console.log("[CacaoCore] Star hover:", i);
+                            renderStars(i);
+                        });
+                        
+                        star.addEventListener("mouseleave", () => {
+                            renderStars(currentValue);
+                        });
+                        
+                        // Add click handler
+                        star.addEventListener("click", async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("[CacaoCore] Star clicked:", i);
+                            
+                            // Update UI immediately for better UX
+                            renderStars(i);
+                            
+                            if (component.props.onChange) {
+                                // Send event to backend
+                                const action = component.props.onChange.action || "rate_change";
+                                const params = {
+                                    ...(component.props.onChange.params || {}),
+                                    value: i
+                                };
+                                
+                                // HTTP fallback
+                                const queryParams = Object.entries(params)
+                                    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                                    .join("&");
+                                    
+                                const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
+                                try {
+                                    console.log("[CacaoCore] Sending rate event:", url);
+                                    const response = await fetch(url, {
+                                        method: "GET",
+                                        headers: {
+                                            "Cache-Control": "no-cache, no-store, must-revalidate"
+                                        }
+                                    });
+                                    
+                                    if (response.ok) {
+                                        console.log("[CacaoCore] Rate event successful");
+                                        window.CacaoWS.requestServerRefresh();
+                                    } else {
+                                        console.error("[CacaoCore] Rate event failed:", response.status);
+                                    }
+                                } catch (err) {
+                                    console.error("[CacaoCore] Error sending rate event:", err);
+                                }
+                            }
+                        });
+                        
+                        // Add keyboard support
+                        star.addEventListener("keydown", (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                star.click();
+                            }
+                        });
+                    }
+                    
+                    el.appendChild(star);
+                }
+            }
+
+            // Initial render
+            renderStars(value);
+
+            // Optionally add a label
+            if (component.props.label) {
+                const label = document.createElement("span");
+                label.textContent = component.props.label;
+                label.style.marginLeft = "8px";
+                el.appendChild(label);
+            }
+
+            return el;
+        },
 
         "range-slider": (component) => {
             const slider = document.createElement("input");
@@ -622,184 +1753,153 @@
             return slider; // Return the created slider element
         },
 
-        "slider": (component) => {
-            const slider = document.createElement("input");
-            slider.type = "range";
-            slider.className = "range-slider";
-            slider.min = component.props.min;
-            slider.max = component.props.max;
-            slider.step = component.props.step;
-            slider.value = component.props.value;
-
-            let updateTimeout;
-            const updateValue = async () => {
-                if (component.props.onChange) {
-                    clearTimeout(updateTimeout);
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: slider.value
-                            };
-                            
-                            const queryParams = Object.entries(params)
-                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                .join('&');
-                                
-                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
-                            const data = await response.json();
-                            if (data.value !== undefined) {
-                                slider.value = data.value;
-                            }
-                            
-                            window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating slider:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 100); // Debounce updates
-                }
-            };
-
-            slider.addEventListener('input', updateValue);
-            return slider;
+        // --- INPUT COMPONENTS ---
+        "input": (component) => {
+            const el = document.createElement("input");
+            el.type = component.props.inputType || "text";
+            el.value = component.props.value || "";
+            if (component.props.placeholder) el.placeholder = component.props.placeholder;
+            if (component.props.disabled) el.disabled = true;
+            if (component.props.style) Object.assign(el.style, component.props.style);
+            if (component.props.className) el.className = component.props.className;
+            // No onChange binding by default (add if needed)
+            return el;
         },
 
-        "slider": (component) => {
-            const slider = document.createElement("input");
-            slider.type = "range";
-            slider.className = "range-slider";
-            slider.min = component.props.min;
-            slider.max = component.props.max;
-            slider.step = component.props.step;
-            slider.value = component.props.value;
-
-            let updateTimeout;
-            const updateValue = async () => {
-                if (component.props.onChange) {
-                    clearTimeout(updateTimeout);
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: slider.value
-                            };
-
-                            // If WebSocket is open
-                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
-                                console.log("[Cacao] Sending WebSocket event:", action);
-                                window.socket.send(JSON.stringify({
-                                    type: 'event',
-                                    event: action,
-                                    data: params
-                                }));
-                            } else {
-                                // Fallback to HTTP
-                                console.log("[Cacao] WebSocket not available, using HTTP fallback");
-                                const queryParams = Object.entries(params)
-                                    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                    .join('&');
-                                    
-                                const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                    }
-                                });
-                                
-                                if (!response.ok) {
-                                    throw new Error(`Server returned ${response.status}`);
-                                }
-                                
-                                const data = await response.json();
-                                if (data.value !== undefined) {
-                                    slider.value = data.value;
-                                }
-                                
-                                window.CacaoWS.requestServerRefresh();
-                            }
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating slider:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 100); // Debounce updates
-                }
-            };
-
-            slider.addEventListener('input', updateValue);
-            return slider;
+        "search": (component) => {
+            // Render as input[type=search] + button (or just input)
+            const wrapper = document.createElement("div");
+            wrapper.className = "search-input-wrapper";
+            const input = document.createElement("input");
+            input.type = "search";
+            input.value = component.props.value || "";
+            if (component.props.placeholder) input.placeholder = component.props.placeholder;
+            if (component.props.disabled) input.disabled = true;
+            if (component.props.style) Object.assign(input.style, component.props.style);
+            if (component.props.className) input.className = component.props.className;
+            wrapper.appendChild(input);
+            // Optionally add a search button
+            // const button = document.createElement("button");
+            // button.textContent = "Search";
+            // wrapper.appendChild(button);
+            return wrapper;
         },
 
-        "slider": (component) => {
-            const slider = document.createElement("input");
-            slider.type = "range";
-            slider.className = "range-slider";
-            slider.min = component.props.min;
-            slider.max = component.props.max;
-            slider.step = component.props.step;
-            slider.value = component.props.value;
+        "select": (component) => {
+            const el = document.createElement("select");
+            if (component.props.disabled) el.disabled = true;
+            if (component.props.style) Object.assign(el.style, component.props.style);
+            if (component.props.className) el.className = component.props.className;
+            if (component.props.placeholder) {
+                const placeholderOption = document.createElement("option");
+                placeholderOption.value = "";
+                placeholderOption.disabled = true;
+                placeholderOption.selected = !component.props.value;
+                placeholderOption.hidden = true;
+                placeholderOption.textContent = component.props.placeholder;
+                el.appendChild(placeholderOption);
+            }
+            if (Array.isArray(component.props.options)) {
+                component.props.options.forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    if (component.props.value === opt.value) option.selected = true;
+                    el.appendChild(option);
+                });
+            }
+            return el;
+        },
 
-            let updateTimeout;
-            const updateValue = async () => {
-                if (component.props.onChange) {
-                    clearTimeout(updateTimeout);
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: slider.value
-                            };
-                            
-                            const queryParams = Object.entries(params)
-                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                .join('&');
-                                
-                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
-                            const data = await response.json();
-                            if (data.value !== undefined) {
-                                slider.value = data.value;
-                            }
-                            
-                            window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating slider:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 100); // Debounce updates
-                }
-            };
+        "checkbox": (component) => {
+            const wrapper = document.createElement("label");
+            wrapper.className = "checkbox-wrapper";
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = !!component.props.checked;
+            if (component.props.disabled) input.disabled = true;
+            if (component.props.style) Object.assign(input.style, component.props.style);
+            if (component.props.className) input.className = component.props.className;
+            wrapper.appendChild(input);
+            if (component.props.label) {
+                const span = document.createElement("span");
+                span.textContent = component.props.label;
+                wrapper.appendChild(span);
+            }
+            return wrapper;
+        },
 
-            slider.addEventListener('input', updateValue);
-            return slider;
+        "radio": (component) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "radio-group";
+            if (Array.isArray(component.props.options)) {
+                component.props.options.forEach(opt => {
+                    const label = document.createElement("label");
+                    label.className = "radio-wrapper";
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = "radio-group-" + Math.random().toString(36).substr(2, 6);
+                    input.value = opt.value;
+                    if (component.props.value === opt.value) input.checked = true;
+                    if (component.props.disabled) input.disabled = true;
+                    label.appendChild(input);
+                    const span = document.createElement("span");
+                    span.textContent = opt.label;
+                    label.appendChild(span);
+                    wrapper.appendChild(label);
+                });
+            }
+            return wrapper;
+        },
+
+        "switch": (component) => {
+            // Styled checkbox
+            const wrapper = document.createElement("label");
+            wrapper.className = "switch-wrapper";
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = !!component.props.checked;
+            if (component.props.disabled) input.disabled = true;
+            if (component.props.className) input.className = component.props.className;
+            wrapper.appendChild(input);
+            const slider = document.createElement("span");
+            slider.className = "switch-slider";
+            wrapper.appendChild(slider);
+            return wrapper;
+        },
+
+
+        "datepicker": (component) => {
+            const el = document.createElement("input");
+            el.type = "date";
+            if (component.props.value) el.value = component.props.value;
+            if (component.props.disabled) el.disabled = true;
+            if (component.props.style) Object.assign(el.style, component.props.style);
+            if (component.props.className) el.className = component.props.className;
+            return el;
+        },
+
+        "timepicker": (component) => {
+            const el = document.createElement("input");
+            el.type = "time";
+            if (component.props.value) el.value = component.props.value;
+            if (component.props.disabled) el.disabled = true;
+            if (component.props.style) Object.assign(el.style, component.props.style);
+            if (component.props.className) el.className = component.props.className;
+            return el;
+        },
+
+        "upload": (component) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "upload-wrapper";
+            const input = document.createElement("input");
+            input.type = "file";
+            if (component.props.multiple) input.multiple = true;
+            if (component.props.disabled) input.disabled = true;
+            if (component.props.style) Object.assign(input.style, component.props.style);
+            if (component.props.className) input.className = component.props.className;
+            wrapper.appendChild(input);
+            return wrapper;
         },
         
         textarea: (component) => {
@@ -894,6 +1994,271 @@
             }
             
             return el;
+        },
+        // SLIDER (for type: "slider"),
+        "slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            return slider;
+        },
+
+        menu: (component) => {
+            console.log("[CacaoCore] Rendering menu component:", component);
+            const el = document.createElement("nav");
+            el.className = "menu";
+
+            // Add mode class (horizontal/vertical)
+            if (component.props.mode === "horizontal") {
+                el.classList.add("menu-horizontal");
+            }
+
+            // Apply custom styles
+            if (component.props.style) {
+                Object.assign(el.style, component.props.style);
+            }
+
+            // Create menu items
+            if (Array.isArray(component.props.items)) {
+                component.props.items.forEach(item => {
+                    const menuItem = document.createElement("div");
+                    menuItem.className = "menu-item";
+                    
+                    // Check if item is selected
+                    if (component.props.selectedKeys &&
+                        component.props.selectedKeys.includes(item.key)) {
+                        menuItem.classList.add("selected");
+                    }
+
+                    // Add label content
+                    applyContent(menuItem, item.label);
+
+                    // Handle click events
+                    menuItem.addEventListener("click", async (e) => {
+                        e.preventDefault();
+                        try {
+                            console.log("[CacaoCore] Menu item clicked:", item.key);
+                            
+                            // Send menu selection event
+                            const params = {
+                                component_type: "menu",
+                                key: item.key
+                            };
+
+                            const queryParams = Object.entries(params)
+                                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+                                .join("&");
+
+                            const url = `/api/event?event=menu_select&${queryParams}&t=${Date.now()}`;
+                            const response = await fetch(url, {
+                                method: "GET",
+                                headers: {
+                                    "Cache-Control": "no-cache, no-store, must-revalidate"
+                                }
+                            });
+
+                            if (response.ok) {
+                                // Update visual selection immediately
+                                el.querySelectorAll(".menu-item").forEach(mi => {
+                                    mi.classList.remove("selected");
+                                });
+                                menuItem.classList.add("selected");
+
+                                window.CacaoWS.requestServerRefresh();
+                            } else {
+                                console.error("[CacaoCore] Menu select failed:", response.status);
+                            }
+                        } catch (err) {
+                            console.error("[CacaoCore] Error handling menu selection:", err);
+                        }
+                    });
+
+                    el.appendChild(menuItem);
+                });
+            }
+
+            // Add menu styles
+            const style = document.createElement("style");
+            style.textContent = `
+                .menu {
+                    font-size: 14px;
+                    line-height: 1.5;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+
+                .menu-horizontal {
+                    display: flex;
+                    flex-direction: row;
+                }
+
+                .menu-item {
+                    padding: 12px 20px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    color: #595959;
+                }
+
+                .menu-item:hover {
+                    color: #8B4513;
+                }
+
+                .menu-item.selected {
+                    color: #8B4513;
+                    font-weight: 500;
+                }
+
+                .menu-item.selected::after {
+                    content: '';
+                    position: absolute;
+                    left: 20px;
+                    right: 20px;
+                    bottom: 0;
+                    height: 2px;
+                    background: #8B4513;
+                }
+
+                @media (max-width: 768px) {
+                    .menu-horizontal {
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                    }
+
+                    .menu-item {
+                        padding: 12px 16px;
+                        white-space: nowrap;
+                    }
+                }
+            `;
+            el.appendChild(style);
+
+            return el;
+        },
+
+        // SLIDER (for type: "slider"),
+        "slider": (component) => {
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.className = component.props.className || "range-slider";
+            slider.min = component.props.min;
+            slider.max = component.props.max;
+            slider.step = component.props.step;
+            slider.value = component.props.value;
+
+            let updateTimeout;
+            const updateValue = async () => {
+                if (component.props.onChange) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(async () => {
+                        try {
+                            // Optionally show overlay
+                            // document.querySelector('.refresh-overlay').classList.add('active');
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: slider.value
+                            };
+                            const queryParams = Object.entries(params)
+                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                                .join('&');
+                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+                            const data = await response.json();
+                            if (data.value !== undefined) {
+                                slider.value = data.value;
+                            }
+                            window.CacaoWS.requestServerRefresh();
+                        } catch (err) {
+                            console.error('[CacaoCore] Error updating slider:', err);
+                            // document.querySelector('.refresh-overlay').classList.remove('active');
+                        }
+                    }, 200);
+                }
+            };
+            slider.addEventListener('input', updateValue);
+            return slider;
+        },
+
+        // INTERACTIVE RATE (stars, supports half-stars)
+        "rate": (component) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "rate-wrapper";
+            const max = component.props.max || 5;
+            let value = component.props.value || 0;
+            let hoverValue = null;
+
+            function renderStars() {
+                wrapper.innerHTML = "";
+                for (let i = 1; i <= max; i++) {
+                    const star = document.createElement("span");
+                    star.className = "rate-star";
+                    // Half-star logic
+                    let fill = false;
+                    if (hoverValue !== null) {
+                        fill = i <= Math.floor(hoverValue);
+                        if (i === Math.ceil(hoverValue) && hoverValue % 1 >= 0.5) {
+                            star.classList.add("half");
+                        }
+                    } else {
+                        fill = i <= Math.floor(value);
+                        if (i === Math.ceil(value) && value % 1 >= 0.5) {
+                            star.classList.add("half");
+                        }
+                    }
+                    if (fill) star.classList.add("filled");
+                    star.textContent = "★";
+                    // Mouse events for half-star
+                    star.addEventListener("mousemove", (e) => {
+                        const rect = star.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        hoverValue = x < rect.width / 2 ? i - 0.5 : i;
+                        renderStars();
+                    });
+                    star.addEventListener("mouseleave", () => {
+                        hoverValue = null;
+                        renderStars();
+                    });
+                    star.addEventListener("click", (e) => {
+                        const rect = star.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        value = x < rect.width / 2 ? i - 0.5 : i;
+                        // Optionally: send event to backend here
+                        // If you want to send to backend:
+                        if (component.props.onChange) {
+                            const action = component.props.onChange.action;
+                            const params = {
+                                ...component.props.onChange.params,
+                                value: value
+                            };
+                            const queryParams = Object.entries(params)
+                                .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
+                                .join('&');
+                            fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            }).then(r => r.json()).then(data => {
+                                if (data.value !== undefined) value = data.value;
+                                window.CacaoWS.requestServerRefresh();
+                            });
+                        }
+                        renderStars();
+                    });
+                    wrapper.appendChild(star);
+                }
+            }
+            renderStars();
+            return wrapper;
         },
 
         "range-sliders": (component) => {

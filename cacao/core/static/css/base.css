@@ -18,24 +18,19 @@ body {
 }
 
 /* Navbar Styles */
-.navbar {
+.sidebar {
   background-color: #333;
-  padding: 1rem;
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
-.navbar .brand {
+.sidebar .brand {
   font-size: 1.5rem;
   font-weight: bold;
 }
 
-.navbar a {
+.sidebar a {
   color: #fff;
   text-decoration: none;
-  margin-left: 1rem;
 }
 
 /* Hero Section */
@@ -160,4 +155,263 @@ body {
 
 .manual-refresh:hover {
   background-color: #A0522D;
+}
+
+/* List Component */
+.list {
+  width: 100%;
+  border-radius: 4px;
+}
+
+.list.bordered {
+  border: 1px solid #eee;
+}
+
+.list-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.list-item-description {
+  color: #666;
+  font-size: 0.9em;
+}
+
+/* Enhanced Table */
+.enhanced-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.enhanced-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.enhanced-table th,
+.enhanced-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.enhanced-table th.sortable {
+  cursor: pointer;
+}
+
+.enhanced-table th.sortable:hover {
+  background: #f5f5f5;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+  border-top: 1px solid #eee;
+}
+
+/* Card Component */
+.card {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 16px;
+}
+
+.card.bordered {
+  border: 1px solid #eee;
+}
+
+.card-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-weight: 500;
+  margin: 0;
+}
+
+.card-extra {
+  color: #666;
+}
+
+.card-content {
+  padding: 16px;
+}
+
+/* Badge Component */
+.badge-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  height: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+  border-radius: 10px;
+  background: #ff4d4f;
+  color: #fff;
+  z-index: 1;
+}
+
+.badge.dot {
+  height: 8px;
+  width: 8px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Avatar Component */
+.avatar {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  background: #ccc;
+}
+
+.avatar.circle {
+  border-radius: 50%;
+}
+
+.avatar.square {
+  border-radius: 4px;
+}
+
+.avatar.large {
+  width: 48px;
+  height: 48px;
+}
+
+.avatar.default {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar.small {
+  width: 24px;
+  height: 24px;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* Tag Component */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 2px;
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.tag-close {
+  margin-left: 4px;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tag-close:hover {
+  color: #333;
+}
+
+/* Timeline Component */
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: relative;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e8e8e8;
+}
+
+.timeline-reverse::before {
+  left: auto;
+  right: 16px;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 24px;
+}
+
+.timeline-reverse .timeline-item {
+  padding-left: 0;
+  padding-right: 40px;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1890ff;
+  border: 2px solid #fff;
+}
+
+.timeline-reverse .timeline-dot {
+  left: auto;
+  right: 10px;
+}
+
+.timeline-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.timeline-content {
+  color: #333;
 }

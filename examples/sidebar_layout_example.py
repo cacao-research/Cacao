@@ -48,7 +48,7 @@ class HomePage:
 class DashboardPage:
     def render(self):
         return {
-            "type": "div",
+            "type": "section",
             "props": {
                 "style": {
                     "padding": "20px"
@@ -153,7 +153,6 @@ class SettingsPage:
                         "type": "div",
                         "props": {
                             "style": {
-                                "backgroundColor": "#F5F5F5",
                                 "borderRadius": "8px",
                                 "padding": "20px",
                                 "marginBottom": "20px"
