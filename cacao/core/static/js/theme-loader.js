@@ -6,6 +6,8 @@
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         // Fetch the theme CSS from the server
+        console.log('[ThemeLoader] window.location.origin:', window.location.origin);
+        console.log('[ThemeLoader] Fetching theme CSS from:', '/api/theme-css');
         const response = await fetch('/api/theme-css');
         
         if (!response.ok) {

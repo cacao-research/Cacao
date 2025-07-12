@@ -1,0 +1,6 @@
+{
+  "name": "table",
+  "py":  "Table.py",
+  "js":  "Table.js",
+  "css": "Table.css"
+}

@@ -36,7 +36,7 @@ def test_enhanced_table(data_display):
     for child in rendered["props"]["children"]:
         if child["type"] == "div":
             for subchild in child["props"]["children"]:
-                if subchild["type"] == "enhancedTable":
+                if subchild["type"] == "EnhancedTable":
                     table = subchild
                     break
     

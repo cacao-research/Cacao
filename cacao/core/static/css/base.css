@@ -186,42 +186,6 @@ body {
   font-size: 0.9em;
 }
 
-/* Enhanced Table */
-.enhanced-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.enhanced-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.enhanced-table th,
-.enhanced-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.enhanced-table th.sortable {
-  cursor: pointer;
-}
-
-.enhanced-table th.sortable:hover {
-  background: #f5f5f5;
-}
-
-.table-pagination {
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px;
-  border-top: 1px solid #eee;
-}
-
 /* Card Component */
 .card {
   background: #fff;

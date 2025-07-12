@@ -113,7 +113,7 @@ def test_enhanced_table_component():
     table = EnhancedTable(columns=columns, data_source=data_source, pagination=pagination)
     rendered = table.render()
     
-    assert rendered["type"] == "enhancedTable"
+    assert rendered["type"] == "EnhancedTable"
     assert rendered["props"]["columns"] == columns
     assert rendered["props"]["dataSource"] == data_source
     assert rendered["props"]["pagination"] == pagination

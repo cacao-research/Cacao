@@ -1,3 +1,4 @@
+import cacao.core.theme  # Ensure theme API routes are registered before app/server starts
 """
 Example showcasing all UI components in Cacao.
 

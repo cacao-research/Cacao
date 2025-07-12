@@ -10,7 +10,7 @@ from .inputs import (
     DatePicker, TimePicker, Upload
 )
 from .data import (
-    Table, Plot, EnhancedTable, List, Descriptions, Tooltip, Popover,
+    Plot, List, Descriptions, Tooltip, Popover,
     Card, Carousel, Collapse, Image, Badge, Avatar, Tag, Timeline
 )
 from .layout import Grid, Column
@@ -41,9 +41,7 @@ __all__ = [
     "Upload",
     
     # Data
-    "Table",
     "Plot",
-    "EnhancedTable",
     "List",
     "Descriptions",
     "Tooltip",

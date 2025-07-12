@@ -5,6 +5,8 @@ Defines available CLI commands and their handlers.
 
 import argparse
 import sys
+import os
+from pathlib import Path
 from typing import Callable, Dict, List
 
 COMMANDS: Dict[str, Callable] = {}
@@ -52,6 +54,49 @@ def serve_command(args: List[str]) -> None:
     except Exception as e:
         print(f"Error starting server: {str(e)}")
         sys.exit(1)
+        
+@register_command("build-components")
+def build_components_command(args: List[str]) -> None:
+    """
+    Build component JavaScript files into cacao-components.js
+    """
+    parser = argparse.ArgumentParser(description="Compile modular components into cacao-components.js")
+    parser.add_argument('--components-dir', default='cacao/ui/components',
+                        help='Directory containing component directories')
+    parser.add_argument('--output', default='cacao/core/static/js/cacao-components.js',
+                        help='Output path for compiled components file')
+    parser.add_argument('--force', action='store_true',
+                        help='Force rebuild even if files haven\'t changed')
+    parser.add_argument('--verbose', action='store_true',
+                        help='Show detailed compilation information')
+    
+    parsed_args = parser.parse_args(args)
+    
+    try:
+        from cacao.core.component_compiler import compile_components
+        
+        print(f"🔧 Building components from {parsed_args.components_dir}...")
+        success = compile_components(
+            components_dir=parsed_args.components_dir,
+            output_path=parsed_args.output,
+            force=parsed_args.force,
+            verbose=parsed_args.verbose
+        )
+        
+        if success:
+            print(f"✅ Component compilation completed successfully")
+            print(f"📁 Output: {parsed_args.output}")
+        else:
+            print(f"❌ Component compilation failed")
+            sys.exit(1)
+            
+    except ImportError as e:
+        print(f"Error: Could not import component compiler: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error during compilation: {e}")
+        sys.exit(1)
+
 
 def run_cli() -> None:
     """

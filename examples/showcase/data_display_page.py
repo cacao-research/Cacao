@@ -43,42 +43,6 @@ class DataDisplayPage:
                                 {
                                     "type": "table",
                                     "props": {
-                                        "headers": ["Name", "Age", "Location"],
-                                        "rows": [
-                                            ["John Doe", "32", "New York"],
-                                            ["Jane Smith", "28", "San Francisco"],
-                                            ["Bob Johnson", "45", "Chicago"]
-                                        ],
-                                        "style": {
-                                            "width": "100%",
-                                            "borderCollapse": "collapse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    # Enhanced Table
-                    {
-                        "type": "div",
-                        "props": {
-                            "style": {
-                                "backgroundColor": "#F5F5F5",
-                                "borderRadius": "8px",
-                                "padding": "20px",
-                                "marginBottom": "20px"
-                            },
-                            "children": [
-                                {
-                                    "type": "h3",
-                                    "props": {
-                                        "content": "Enhanced Table",
-                                        "style": {"marginBottom": "15px"}
-                                    }
-                                },
-                                {
-                                    "type": "enhancedTable",
-                                    "props": {
                                         "columns": [
                                             {"title": "Name", "dataIndex": "name", "key": "name"},
                                             {"title": "Age", "dataIndex": "age", "key": "age"},

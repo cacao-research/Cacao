@@ -9,29 +9,35 @@ class DefaultTheme:
     """
     CSS = """
     :root {
-        --primary-color: #3498db;
-        --secondary-color: #2ecc71;
-        --font-color: #333;
-        --bg-color: #fff;
-        --font-family: Arial, sans-serif;
-        --input-bg: #fff;
-        --input-border: #CCCCCC;
-        --input-radius: 4px;
-        --input-padding: 8px;
-        --input-focus: #3498db33;
-        --input-disabled: #f0f0f0;
+        --primary-color: rgb(107, 66, 38);        /* Cacao brown */
+        --secondary-color: #2ecc71;              /* Fresh green accent */
+        --font-color: #3b2c23;                   /* Darker brown for text */
+        --bg-color: #fff8f2;                     /* Soft cacao background */
+        --font-family: 'Segoe UI', Arial, sans-serif;
+
+        --input-bg: #ffffff;
+        --input-border: #d8cfc7;                 /* Softer brown-gray border */
+        --input-radius: 6px;
+        --input-padding: 10px;
+        --input-focus: rgba(107, 66, 38, 0.2);   /* Light brown focus ring */
+        --input-disabled: #f3f0ed;
+
         --checkbox-accent: var(--primary-color);
         --switch-bg: #ccc;
         --switch-checked-bg: var(--primary-color);
-        --rate-star: #FFD700;
+
+        --rate-star: #f4c542;                    /* Golden yellow */
         --rate-star-empty: #eee;
-        --upload-border: #2ecc71;
+
+        --upload-border: var(--secondary-color);
     }
+
     body {
         background-color: var(--bg-color);
         color: var(--font-color);
         font-family: var(--font-family);
     }
+    
     input[type="text"],
     input[type="password"],
     input[type="search"],
