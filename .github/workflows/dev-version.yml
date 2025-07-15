@@ -11,24 +11,31 @@ jobs:
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
-      - name: Read version
+      - name: Read current version
         id: ver
-        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+        run: |
+          echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
       - name: Calculate next dev version
         id: bump
+        shell: bash
         run: |
-          IFS='.' read -r maj min patch <<< "${{ steps.ver.outputs.version }}"
-          # increment patch, reset dev counter
-          patch=$((patch+1))
-          echo "new_version=${maj}.${min}.${patch}.dev1" >> $GITHUB_OUTPUT
+          ver="${{ steps.ver.outputs.version }}"
+          # Split into an array so suffixes don't get lumped into $patch
+          IFS='.' read -r -a parts <<< "$ver"
+          maj=${parts[0]}
+          min=${parts[1]}
+          patch=${parts[2]}
+          next=$((patch + 1))
+          echo "new_version=${maj}.${min}.${next}.dev1" >> $GITHUB_OUTPUT
 
-      - name: Update VERSION & source
+      - name: Write new version
         run: |
           echo "${{ steps.bump.outputs.new_version }}" > VERSION
-          sed -i "s/__version__ = .*/__version__ = \"${{ steps.bump.outputs.new_version }}\"/" cacao/__init__.py
+          sed -i "s|^__version__ = .*|__version__ = \"${{ steps.bump.outputs.new_version }}\"|" cacao/__init__.py
 
       - name: Commit & push
         run: |
