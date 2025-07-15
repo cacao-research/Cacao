@@ -1,8 +1,8 @@
 
 from typing import Any, Dict
-from ..base import Component
+from ...base import Component
 
-class EnhancedTable(Component):
+class Table(Component):
     """
     A table component with sorting, filtering, and pagination capabilities.
     """
@@ -24,7 +24,7 @@ class EnhancedTable(Component):
 
     def render(self) -> Dict[str, Any]:
         return {
-            "type": "EnhancedTable",
+            "type": "Table",
             "props": {
                 "columns": self.columns,
                 "dataSource": self.data_source,

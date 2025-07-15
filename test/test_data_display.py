@@ -29,18 +29,18 @@ def test_list_component(data_display):
     assert all("title" in item and "description" in item for item in list_component["props"]["items"]), "Items missing title or description"
 
 def test_enhanced_table(data_display):
-    logger.info("Testing EnhancedTable component")
+    logger.info("Testing table component")
     rendered = data_display.render()
     table = None
     
     for child in rendered["props"]["children"]:
         if child["type"] == "div":
             for subchild in child["props"]["children"]:
-                if subchild["type"] == "EnhancedTable":
+                if subchild["type"] == "table":
                     table = subchild
                     break
     
-    assert table is not None, "EnhancedTable component not found"
+    assert table is not None, "table component not found"
     logger.debug(f"Table columns: {table['props']['columns']}")
     logger.debug(f"Table data: {table['props']['dataSource']}")
     

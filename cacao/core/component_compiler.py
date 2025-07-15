@@ -18,6 +18,7 @@ Usage:
 import os
 import json
 import hashlib
+import warnings
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
@@ -51,18 +52,50 @@ class ComponentCompiler:
         
     def discover_components(self) -> List[Dict]:
         """
-        Discover all modular components by scanning for meta.json files.
+        Discover all modular components using both folder-based and meta.json approaches.
+        
+        The discovery process:
+        1. First uses folder-based discovery (new approach)
+        2. Then falls back to meta.json discovery (deprecated)
+        3. Ensures no duplicate components
+        
+        Returns:
+            List of component metadata dictionaries
+        """
+        components = []
+        component_names = set()  # Track discovered component names to avoid duplicates
+        
+        if not self.components_dir.exists():
+            print(f"[ComponentCompiler] Components directory not found: {self.components_dir}")
+            return components
+            
+        # 1. First try folder-based discovery (new approach)
+        folder_components = self._discover_folder_based_components(self.components_dir)
+        for component in folder_components:
+            if component['name'] not in component_names:
+                components.append(component)
+                component_names.add(component['name'])
+                
+        # 2. Then try meta.json discovery (deprecated approach)
+        meta_components = self._discover_meta_json_components()
+        for component in meta_components:
+            if component['name'] not in component_names:
+                components.append(component)
+                component_names.add(component['name'])
+                
+        self.discovered_components = components
+        return components
+        
+    def _discover_meta_json_components(self) -> List[Dict]:
+        """
+        Discover components using the deprecated meta.json approach.
         
         Returns:
             List of component metadata dictionaries
         """
         components = []
         
-        if not self.components_dir.exists():
-            print(f"[ComponentCompiler] Components directory not found: {self.components_dir}")
-            return components
-            
-        # Scan for component directories
+        # Scan for component directories with meta.json
         for component_dir in self.components_dir.iterdir():
             if not component_dir.is_dir():
                 continue
@@ -70,6 +103,16 @@ class ComponentCompiler:
             meta_file = component_dir / "meta.json"
             if not meta_file.exists():
                 continue
+                
+            # Issue deprecation warning
+            warnings.warn(
+                f"Component '{component_dir.name}' uses deprecated meta.json format. "
+                f"Please migrate to folder-based naming convention: "
+                f"rename files to '{component_dir.name.lower()}.js', '{component_dir.name.lower()}.css', etc.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            print(f"[ComponentCompiler] DEPRECATED: meta.json found in {component_dir.name} - please migrate to folder-based naming")
                 
             try:
                 with open(meta_file, 'r', encoding='utf-8') as f:
@@ -89,10 +132,13 @@ class ComponentCompiler:
                 component_info = {
                     'name': meta_data['name'],
                     'js_path': js_path,
-                    'meta_path': meta_file,
                     'directory': component_dir,
                     'meta_data': meta_data
                 }
+                
+                # Extract category from parent folder if not root
+                if component_dir.parent != self.components_dir:
+                    component_info['category'] = component_dir.parent.name.lower()
                 
                 # Check for CSS file if specified in meta.json
                 if 'css' in meta_data:
@@ -103,14 +149,155 @@ class ComponentCompiler:
                     else:
                         print(f"[ComponentCompiler] CSS file not found: {css_path}")
                 
+                # Check for Python file if specified in meta.json
+                if 'py' in meta_data:
+                    py_path = component_dir / meta_data['py']
+                    if py_path.exists():
+                        component_info['py_path'] = py_path
+                        print(f"[ComponentCompiler] Found Python for component: {meta_data['name']} -> {py_path.name}")
+                    else:
+                        print(f"[ComponentCompiler] Python file not found: {py_path}")
+                
                 components.append(component_info)
-                print(f"[ComponentCompiler] Discovered component: {meta_data['name']}")
+                print(f"[ComponentCompiler] Discovered meta.json component: {meta_data['name']}")
                 
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 print(f"[ComponentCompiler] Error reading meta.json in {component_dir.name}: {e}")
                 continue
                 
-        self.discovered_components = components
+        return components
+        
+    def _is_component_folder(self, folder_path: Path) -> bool:
+        """
+        Check if a folder is a component folder by looking for component files.
+        
+        Supports both naming conventions:
+        1. New: component.js, component.css, component.py
+        2. Legacy: {folder_name}.js, {folder_name}.css, {folder_name}.py
+        
+        Args:
+            folder_path: Path to the folder to check
+            
+        Returns:
+            True if the folder contains component files, False otherwise
+        """
+        if not folder_path.is_dir():
+            return False
+            
+        folder_name = folder_path.name.lower()
+        
+        # Check for at least one file with valid extension
+        for extension in ['.js', '.css', '.py']:
+            # Check new naming convention first: component.{ext}
+            component_file = folder_path / f"component{extension}"
+            if component_file.exists():
+                return True
+                
+            # Check legacy naming convention: {folder_name}.{ext}
+            legacy_file = folder_path / f"{folder_name}{extension}"
+            if legacy_file.exists():
+                return True
+                
+        return False
+        
+    def _get_component_files(self, folder_path: Path) -> Dict[str, Path]:
+        """
+        Get component files from a folder based on naming convention.
+        
+        Supports both naming conventions:
+        1. New: component.js, component.css, component.py
+        2. Legacy: {folder_name}.js, {folder_name}.css, {folder_name}.py
+        
+        Args:
+            folder_path: Path to the component folder
+            
+        Returns:
+            Dictionary mapping file types to their paths
+        """
+        files = {}
+        folder_name = folder_path.name.lower()
+        
+        # Check for each file type
+        for extension in ['.js', '.css', '.py']:
+            ext_name = extension[1:]  # Remove the dot from extension
+            
+            # Check new naming convention first: component.{ext}
+            component_file = folder_path / f"component{extension}"
+            if component_file.exists():
+                files[ext_name] = component_file
+                continue
+                
+            # Check legacy naming convention: {folder_name}.{ext}
+            legacy_file = folder_path / f"{folder_name}{extension}"
+            if legacy_file.exists():
+                files[ext_name] = legacy_file
+                
+        return files
+        
+    def _extract_component_metadata(self, folder_path: Path) -> Dict:
+        """
+        Extract component metadata from folder structure.
+        
+        Args:
+            folder_path: Path to the component folder
+            
+        Returns:
+            Component metadata dictionary
+        """
+        folder_name = folder_path.name.lower()
+        
+        # Determine category from parent folder
+        category = None
+        parent_path = folder_path.parent
+        if parent_path != self.components_dir:
+            category = parent_path.name.lower()
+            
+        # Get component files
+        component_files = self._get_component_files(folder_path)
+        
+        # Build component info
+        component_info = {
+            'name': folder_name,
+            'directory': folder_path,
+            'category': category
+        }
+        
+        # Add file paths
+        if 'js' in component_files:
+            component_info['js_path'] = component_files['js']
+        if 'css' in component_files:
+            component_info['css_path'] = component_files['css']
+        if 'py' in component_files:
+            component_info['py_path'] = component_files['py']
+            
+        return component_info
+        
+    def _discover_folder_based_components(self, directory: Path) -> List[Dict]:
+        """
+        Recursively discover components using folder-based naming convention.
+        
+        Args:
+            directory: Directory to scan for components
+            
+        Returns:
+            List of component metadata dictionaries
+        """
+        components = []
+        
+        if not directory.exists():
+            return components
+            
+        try:
+            # Recursively walk through directories
+            for item in directory.rglob('*'):
+                if item.is_dir() and self._is_component_folder(item):
+                    component_info = self._extract_component_metadata(item)
+                    components.append(component_info)
+                    print(f"[ComponentCompiler] Discovered folder-based component: {component_info['name']}")
+                    
+        except Exception as e:
+            print(f"[ComponentCompiler] Error during folder-based discovery: {e}")
+            
         return components
         
     def _read_component_js(self, js_path: Path) -> str:
@@ -163,10 +350,18 @@ class ComponentCompiler:
             if 'css_path' in component:
                 css_content = self._read_component_css(component['css_path'])
                 if css_content:
-                    # Add component header comment
-                    css_parts.append(f"/* Component: {component['name']} */")
+                    # Determine component type for better logging
+                    component_type = "folder-based" if 'category' in component else "meta.json"
+                    
+                    # Add component header comment with type info
+                    css_parts.append(f"/* Component: {component['name']} ({component_type}) */")
                     css_parts.append(css_content)
                     css_parts.append("")  # Add empty line between components
+                    
+                    print(f"[ComponentCompiler] Added CSS for {component_type} component: {component['name']}")
+                else:
+                    component_type = "folder-based" if 'category' in component else "meta.json"
+                    print(f"[ComponentCompiler] Warning: Empty CSS content for {component_type} component: {component['name']}")
                     
         return '\n'.join(css_parts).strip()
             
@@ -181,13 +376,22 @@ class ComponentCompiler:
             Wrapped JavaScript code as string
         """
         name = component_info['name']
+        
+        # Check if component has JavaScript file
+        if 'js_path' not in component_info:
+            component_type = "folder-based" if 'category' in component_info else "meta.json"
+            print(f"[ComponentCompiler] Skipping {component_type} component '{name}' - no JavaScript file found")
+            return ""
+            
         js_content = self._read_component_js(component_info['js_path'])
         
         if not js_content:
+            component_type = "folder-based" if 'category' in component_info else "meta.json"
+            print(f"[ComponentCompiler] Failed to read JavaScript for {component_type} component: {name}")
             return ""
             
         # Convert component name to valid JavaScript identifier
-        # Convert hyphens to camelCase (e.g., "enhanced-table" -> "enhancedTable")
+        # Convert hyphens to camelCase (e.g., "enhanced-table" -> "table")
         def to_camel_case(text):
             parts = text.split('-')
             return parts[0] + ''.join(word.capitalize() for word in parts[1:])
@@ -197,7 +401,7 @@ class ComponentCompiler:
         
         # Generate both camelCase and lowercase keys for maximum compatibility
         component_key_camel = name
-        component_key_lower = name.lower()  # enhancedtable
+        component_key_lower = name.lower()  # table
         
         wrapper = f"""
 // Auto-generated component: {name}
@@ -278,12 +482,17 @@ class ComponentCompiler:
         
         # Check if any component files are newer than the output
         for component in self.discovered_components:
-            if component['js_path'].stat().st_mtime > min_output_mtime:
+            # Check JavaScript files if they exist
+            if 'js_path' in component and component['js_path'].stat().st_mtime > min_output_mtime:
                 return True
-            if component['meta_path'].stat().st_mtime > min_output_mtime:
+            # Check meta.json files if they exist (for meta.json-based components)
+            if 'meta_path' in component and component['meta_path'].stat().st_mtime > min_output_mtime:
                 return True
             # Check CSS files if they exist
             if 'css_path' in component and component['css_path'].stat().st_mtime > min_output_mtime:
+                return True
+            # Check Python files if they exist
+            if 'py_path' in component and component['py_path'].stat().st_mtime > min_output_mtime:
                 return True
                 
         return False

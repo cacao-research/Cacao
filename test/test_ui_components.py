@@ -2,7 +2,7 @@ import pytest
 from cacao.ui.components.base import Component
 from cacao.ui.components.layout import Grid, Column
 from cacao.ui.components.data import (
-    Table, Plot, EnhancedTable, List, Card, Image, Badge, Avatar, Tag, Timeline
+    Table, Plot, Table, List, Card, Image, Badge, Avatar, Tag, Timeline
 )
 from cacao.ui.components.inputs import Slider, Input, TextArea, SearchInput, Select, Checkbox, Radio, Switch, DatePicker, TimePicker
 from cacao.ui.components.forms import Form, FormItem
@@ -109,11 +109,11 @@ def test_enhanced_table_component():
         {"key": "2", "name": "Jim Green", "age": 42, "address": "London No. 1 Lake Park"}
     ]
     pagination = {"page_size": 10, "current": 1}
-    
-    table = EnhancedTable(columns=columns, data_source=data_source, pagination=pagination)
+
+    table = Table(columns=columns, data_source=data_source, pagination=pagination)
     rendered = table.render()
     
-    assert rendered["type"] == "EnhancedTable"
+    assert rendered["type"] == "table"
     assert rendered["props"]["columns"] == columns
     assert rendered["props"]["dataSource"] == data_source
     assert rendered["props"]["pagination"] == pagination

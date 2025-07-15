@@ -225,7 +225,7 @@ class DataDisplayPage:
                                                         {
                                                             "type": "avatar",
                                                             "props": {
-                                                                "src": "https://via.placeholder.com/40",
+                                                                "src": "https://picsum.photos/id/64/200/200",
                                                                 "shape": "circle",
                                                                 "size": "large"
                                                             }
