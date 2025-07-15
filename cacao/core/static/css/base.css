@@ -18,24 +18,19 @@ body {
 }
 
 /* Navbar Styles */
-.navbar {
+.sidebar {
   background-color: #333;
-  padding: 1rem;
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
-.navbar .brand {
+.sidebar .brand {
   font-size: 1.5rem;
   font-weight: bold;
 }
 
-.navbar a {
+.sidebar a {
   color: #fff;
   text-decoration: none;
-  margin-left: 1rem;
 }
 
 /* Hero Section */

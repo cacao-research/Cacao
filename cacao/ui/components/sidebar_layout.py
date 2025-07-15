@@ -204,14 +204,12 @@ class SidebarLayout(Component, LoggingMixin):
         
         # Add main content wrapper
         content_children.append({
-            "type": "div",
+            "type": "section",
             "props": {
+                "className": "content-wrapper",
                 "style": {
                     "backgroundColor": self.styles.get("card_bg", get_color("card_bg")),
-                    "borderRadius": "8px",
-                    "boxShadow": f"0 1px 3px rgba(107, 66, 38, 0.1)",
                     "padding": self.styles.get("card_padding", "24px"),
-                    "border": f"1px solid {self.styles.get('card_border', get_color('card_border'))}"
                 },
                 "children": [current_content]
             }

@@ -3,7 +3,7 @@ Inputs module for UI components in the Cacao framework.
 Provides implementations for interactive input elements such as sliders and forms.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional, Callable, Union
 from .base import Component
 
 class Slider(Component):
@@ -26,21 +26,8 @@ class Slider(Component):
                 "value": self.value
             }
         }
+# Form component has been moved to forms.py
 
-class Form(Component):
-    """
-    A simple form component for handling user input.
-    """
-    def __init__(self, fields: Dict[str, Any]) -> None:
-        self.fields = fields
-
-    def render(self) -> Dict[str, Any]:
-        return {
-            "type": "form",
-            "props": {
-                "fields": self.fields
-            }
-        }
 
 
 def slider(min_value: float, max_value: float, step: float = 1.0,
@@ -69,82 +56,384 @@ def slider(min_value: float, max_value: float, step: float = 1.0,
         }
     }
 
+# --- New Input Components ---
 
-def range_sliders(min_value: float, max_value: float, step: float = 1.0,
-                 lower_value: float = None, upper_value: float = None,
-                 on_change: dict = None) -> dict:
+class Input(Component):
     """
-    Create a range sliders component that allows selecting a range between min and max values.
-    Provides two handles for selecting both lower and upper bounds.
-
-    Args:
-        min_value (float): Minimum value of the range
-        max_value (float): Maximum value of the range
-        step (float): Step size for the sliders
-        lower_value (float): Initial lower bound value
-        upper_value (float): Initial upper bound value
-        on_change (dict): Action configuration for value changes
-
-    Returns:
-        dict: Component definition
+    Single-line text input with support for type, placeholder, value, etc.
     """
-    return {
-        "type": "range-sliders",
-        "props": {
-            "min": min_value,
-            "max": max_value,
-            "step": step,
-            "lowerValue": lower_value if lower_value is not None else min_value,
-            "upperValue": upper_value if upper_value is not None else max_value,
-            "onChange": on_change
-        }
-    }
-
-
-class RangeSliders(Component):
-    """
-    A range sliders component that allows selecting a range between min and max values.
-    Provides two handles for selecting both lower and upper bounds.
-    """
-    def __init__(self,
-                 min_value: float,
-                 max_value: float,
-                 step: float = 1.0,
-                 lower_value: float = None,
-                 upper_value: float = None,
-                 on_change: callable = None) -> None:
-        """
-        Initialize a RangeSliders component.
-        
-        Args:
-            min_value (float): Minimum value of the range
-            max_value (float): Maximum value of the range
-            step (float): Step size for the sliders
-            lower_value (float): Initial lower bound value
-            upper_value (float): Initial upper bound value
-            on_change (callable): Callback function when values change
-        """
-        self.min_value = min_value
-        self.max_value = max_value
-        self.step = step
-        self.lower_value = lower_value if lower_value is not None else min_value
-        self.upper_value = upper_value if upper_value is not None else max_value
+    def __init__(
+        self,
+        input_type: str = "text",
+        value: str = "",
+        placeholder: str = "",
+        on_change: Optional[Callable[[str], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.input_type = input_type
+        self.value = value
+        self.placeholder = placeholder
         self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
 
     def render(self) -> Dict[str, Any]:
         return {
-            "type": "range-sliders",
+            "type": "input",
             "props": {
-                "min": self.min_value,
-                "max": self.max_value,
-                "step": self.step,
-                "lowerValue": self.lower_value,
-                "upperValue": self.upper_value,
-                "onChange": {
-                    "action": "update_range",
-                    "params": {
-                        "component_type": "range-sliders"
-                    }
-                } if self.on_change else None
+                "inputType": self.input_type,
+                "value": self.value,
+                "placeholder": self.placeholder,
+                "disabled": self.disabled,
+                **self.extra_props
             }
         }
+
+class TextArea(Component):
+    """
+    Multi-line text input.
+    """
+    def __init__(
+        self,
+        value: str = "",
+        placeholder: str = "",
+        rows: int = 4,
+        on_change: Optional[Callable[[str], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.value = value
+        self.placeholder = placeholder
+        self.rows = rows
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "textarea",
+            "props": {
+                "value": self.value,
+                "placeholder": self.placeholder,
+                "rows": self.rows,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class SearchInput(Component):
+    """
+    Input field with a built-in search button.
+    """
+    def __init__(
+        self,
+        value: str = "",
+        placeholder: str = "",
+        on_search: Optional[Callable[[str], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.value = value
+        self.placeholder = placeholder
+        self.on_search = on_search
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "search",
+            "props": {
+                "value": self.value,
+                "placeholder": self.placeholder,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class InputGroup(Component):
+    """
+    Groups multiple input fields together.
+    """
+    def __init__(
+        self,
+        children: List[Component],
+        **kwargs
+    ) -> None:
+        self.children = children
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "inputGroup",
+            "props": {
+                "children": [child.render() for child in self.children],
+                **self.extra_props
+            }
+        }
+
+class Select(Component):
+    """
+    Allows users to choose from a list of options.
+    """
+    def __init__(
+        self,
+        options: List[Dict[str, Any]],
+        value: Any = None,
+        placeholder: str = "",
+        on_change: Optional[Callable[[Any], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.options = options
+        self.value = value
+        self.placeholder = placeholder
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "select",
+            "props": {
+                "options": self.options,
+                "value": self.value,
+                "placeholder": self.placeholder,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Cascader(Component):
+    """
+    Select options from a hierarchical menu.
+    """
+    def __init__(
+        self,
+        options: List[Dict[str, Any]],
+        value: Any = None,
+        placeholder: str = "",
+        on_change: Optional[Callable[[Any], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.options = options
+        self.value = value
+        self.placeholder = placeholder
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "cascader",
+            "props": {
+                "options": self.options,
+                "value": self.value,
+                "placeholder": self.placeholder,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Checkbox(Component):
+    """
+    Allows users to select one or more options.
+    """
+    def __init__(
+        self,
+        label: str = "",
+        checked: bool = False,
+        on_change: Optional[Callable[[bool], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.label = label
+        self.checked = checked
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "checkbox",
+            "props": {
+                "label": self.label,
+                "checked": self.checked,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Radio(Component):
+    """
+    Allows users to select a single option from a group.
+    """
+    def __init__(
+        self,
+        options: List[Dict[str, Any]],
+        value: Any = None,
+        on_change: Optional[Callable[[Any], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.options = options
+        self.value = value
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "radio",
+            "props": {
+                "options": self.options,
+                "value": self.value,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Switch(Component):
+    """
+    Toggles between two states (on/off).
+    """
+    def __init__(
+        self,
+        checked: bool = False,
+        on_change: Optional[Callable[[bool], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.checked = checked
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "switch",
+            "props": {
+                "checked": self.checked,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Rate(Component):
+    """
+    Allows users to give a rating (e.g., stars).
+    """
+    def __init__(
+        self,
+        value: int = 0,
+        max_value: int = 5,
+        on_change: Optional[Callable[[int], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.value = value
+        self.max_value = max_value
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "rate",
+            "props": {
+                "value": self.value,
+                "max": self.max_value,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class DatePicker(Component):
+    """
+    Allows users to select a date or date range.
+    """
+    def __init__(
+        self,
+        value: Any = None,
+        range: bool = False,
+        on_change: Optional[Callable[[Any], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.value = value
+        self.range = range
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "datepicker",
+            "props": {
+                "value": self.value,
+                "range": self.range,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class TimePicker(Component):
+    """
+    Allows users to select a time.
+    """
+    def __init__(
+        self,
+        value: Any = None,
+        on_change: Optional[Callable[[Any], None]] = None,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.value = value
+        self.on_change = on_change
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "timepicker",
+            "props": {
+                "value": self.value,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+class Upload(Component):
+    """
+    Allows users to upload files.
+    """
+    def __init__(
+        self,
+        files: Optional[List[Any]] = None,
+        on_upload: Optional[Callable[[List[Any]], None]] = None,
+        multiple: bool = False,
+        disabled: bool = False,
+        **kwargs
+    ) -> None:
+        self.files = files or []
+        self.on_upload = on_upload
+        self.multiple = multiple
+        self.disabled = disabled
+        self.extra_props = kwargs
+
+    def render(self) -> Dict[str, Any]:
+        return {
+            "type": "upload",
+            "props": {
+                "files": self.files,
+                "multiple": self.multiple,
+                "disabled": self.disabled,
+                **self.extra_props
+            }
+        }
+
+# Add Input subclasses as properties
+Input.TextArea = TextArea
+Input.Search = SearchInput
+Input.Group = InputGroup
