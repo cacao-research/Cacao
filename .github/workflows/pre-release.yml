@@ -1,8 +1,11 @@
+# .github/workflows/pre-release.yml
+
 name: Pre‑release Pipeline
 
 on:
   push:
-    branches: [ pre-release ]
+    branches:
+      - pre-release
 
 permissions:
   contents: write
@@ -11,54 +14,56 @@ jobs:
   bump-and-publish:
     runs-on: ubuntu-latest
     steps:
-
-      # 1) Checkout
-      - name: Checkout repo
+      # 1) Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Read current VERSION
+      # 2) Bump version (skip if [skip ci] is in the commit)
       - name: Read current version
-        id: read_version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+        id: ver
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
 
-      # 3) Calculate next -rc.N
       - name: Compute next RC version
         id: bump
+        if: "! contains(github.event.head_commit.message, '[skip ci]')"
         shell: bash
         run: |
-          # Get current version and strip suffixes
-          base_ver=$(echo "$VERSION" | sed 's/\.dev[0-9]*$//' | sed 's/-rc\.[0-9]*$//')
-
-          if [[ "$VERSION" =~ -rc\.([0-9]+)$ ]]; then
-              # Increment RC number
-              rc_num=$((${BASH_REMATCH[1]} + 1))
+          raw="${{ steps.ver.outputs.version }}"
+          # strip any .devN suffix (so 1.0.26.dev1 -> 1.0.26)
+          base="${raw%%.dev*}"
+          IFS='.' read -r maj min patch <<< "$base"
+          # detect existing RC
+          if [[ "$raw" =~ -rc\.([0-9]+)$ ]]; then
+            rc=$((BASH_REMATCH[1] + 1))
           else
-              # First RC from dev version
-              rc_num=1
+            rc=1
           fi
+          new="${maj}.${min}.${patch}-rc.${rc}"
+          echo "new_version=$new" >> $GITHUB_OUTPUT
 
-          NEW_VERSION="${base_ver}-rc.${rc_num}"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "✔️ Bumping to $NEW_VERSION"
-
-      # 4) Update files in workspace
-      - name: Write bumped version
+      - name: Write new version
+        if: steps.bump.outcome == 'success'
         run: |
-          echo "$NEW_VERSION" > VERSION
-          sed -i "s|^__version__ = .*|__version__ = \"$NEW_VERSION\"|" cacao/__init__.py
+          echo "${{ steps.bump.outputs.new_version }}" > VERSION
+          sed -i "s|^__version__ = .*|__version__ = \"${{ steps.bump.outputs.new_version }}\"|" cacao/__init__.py
 
-      # 5) (Optional) Commit bump back to branch
-      - name: Commit bumped VERSION
+      - name: Commit bumped version
+        if: steps.bump.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION cacao/__init__.py
-          git commit -m "🔖 Bump to $NEW_VERSION [skip ci]" || echo "No changes to commit"
+          git commit -m "🔖 Bump to ${{ steps.bump.outputs.new_version }} [skip ci]"
           git push origin pre-release
 
-      # 6) Set up Python & build
+      # 3) Get the version (either newly bumped, or old if we skipped)
+      - name: Get version for publish
+        id: get_version
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
+      # 4) Build & publish
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -69,12 +74,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
 
-      - name: Build package
+      - name: Build distribution
         run: |
           rm -rf dist
           python setup.py sdist bdist_wheel
 
-      # 7) Publish bumped RC to PyPI
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
@@ -82,14 +86,13 @@ jobs:
         run: |
           twine upload dist/*
 
-      # 8) Create GitHub prerelease
       - name: Create GitHub prerelease
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ env.NEW_VERSION }}
-          release_name: Pre‑release v${{ env.NEW_VERSION }}
-          body: "Pre‑release version v${{ env.NEW_VERSION }}"
+          tag_name: v${{ steps.get_version.outputs.version }}
+          release_name: Pre‑release v${{ steps.get_version.outputs.version }}
+          body: "Pre‑lease version v${{ steps.get_version.outputs.version }}"
           draft: false
           prerelease: true

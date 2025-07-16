@@ -8,7 +8,7 @@ permissions:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,29 +23,14 @@ jobs:
         id: bump
         shell: bash
         run: |
-          # Get current version
           ver="${{ steps.ver.outputs.version }}"
-
-          # Extract base version (strip .devN and -rc.N)
-          base_ver=$(echo "$ver" | sed 's/\.dev[0-9]*$//' | sed 's/-rc\.[0-9]*$//')
-
-          if [[ "$ver" =~ \.dev([0-9]+)$ ]]; then
-              # Increment dev number
-              dev_num=$((${BASH_REMATCH[1]} + 1))
-              new_version="${base_ver}.dev${dev_num}"
-          elif [[ "$ver" =~ -rc\.([0-9]+)$ ]]; then
-              # Reset to dev1 with same patch
-              new_version="${base_ver}.dev1"
-          else
-              # New release cycle - increment patch
-              IFS='.' read -r -a parts <<< "$base_ver"
-              maj=${parts[0]}
-              min=${parts[1]}
-              patch=$((${parts[2]} + 1))
-              new_version="${maj}.${min}.${patch}.dev1"
-          fi
-          
-          echo "new_version=${new_version}" >> $GITHUB_OUTPUT
+          # Split into an array so suffixes don't get lumped into $patch
+          IFS='.' read -r -a parts <<< "$ver"
+          maj=${parts[0]}
+          min=${parts[1]}
+          patch=${parts[2]}
+          next=$((patch + 1))
+          echo "new_version=${maj}.${min}.${next}.dev1" >> $GITHUB_OUTPUT
 
       - name: Write new version
         run: |
