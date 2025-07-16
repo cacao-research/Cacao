@@ -18,7 +18,6 @@ Whether you're creating dashboards, internal tools, or interactive data apps, Ca
 
 > **⚠️ Warning:** Cacao is currently in early development. Features and APIs are subject to change, and breaking changes may occur in future updates. Use with caution in production environments.
 
-
 ## 🏗️ Architecture
 
 ### Core System
