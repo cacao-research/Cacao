@@ -28,18 +28,18 @@ jobs:
         id: bump
         shell: bash
         run: |
-          # strip off any .devX and existing -rc.Y
-          BASE="${VERSION%%.dev*}"
-          BASE="${BASE%-rc*}"
-          IFS='.' read -r MAJ MIN PATCH <<< "$BASE"
+          # Get current version and strip suffixes
+          base_ver=$(echo "$VERSION" | sed 's/\.dev[0-9]*$//' | sed 's/-rc\.[0-9]*$//')
 
           if [[ "$VERSION" =~ -rc\.([0-9]+)$ ]]; then
-            NEXT_RC=$(( ${BASH_REMATCH[1]} + 1 ))
+              # Increment RC number
+              rc_num=$((${BASH_REMATCH[1]} + 1))
           else
-            NEXT_RC=1
+              # First RC from dev version
+              rc_num=1
           fi
 
-          NEW_VERSION="${MAJ}.${MIN}.${PATCH}-rc.${NEXT_RC}"
+          NEW_VERSION="${base_ver}-rc.${rc_num}"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "✔️ Bumping to $NEW_VERSION"
 
