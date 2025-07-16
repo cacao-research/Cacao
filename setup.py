@@ -9,14 +9,14 @@ long_description = (HERE / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="cacao",
-    version='1.0.23',
+    version=(HERE / "VERSION").read_text(encoding="utf-8").strip(),
     description="Cacao is a high-performance, reactive web framework for Python, designed to simplify building interactive dashboards and data apps.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Juan Denis",
     author_email="Juan@vene.co",
     python_requires=">=3.7",
-    url="https://github.com/jhd3197/Cacao",
+    url="https://github.com/cacao-research/Cacao",
     license="MIT",
     classifiers=[
         "Programming Language :: Python :: 3",

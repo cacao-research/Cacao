@@ -95,6 +95,8 @@ class CacaoServer(LoggingMixin):
         }
 
     def _print_banner(self):
+        # Ensure theme API routes are registered at runtime to avoid circular import
+        import cacao.core.theme
         """Print server banner with proper emoji handling based on ASCII_DEBUG_MODE."""
         # Title line with chocolate bar emojis
         self.log(f"Starting Cacao Server v{__version__}", "warning", "🍫")
@@ -485,6 +487,38 @@ class CacaoServer(LoggingMixin):
             # Handle event requests
             elif path == "/api/event":
                 return await self._handle_event(query_params, writer, session_id)
+            
+            # Check for registered routes
+            from .decorators import ROUTES
+            if path in ROUTES:
+                self.log(f"Found registered route for: {path}", "info", "🛤️")
+                try:
+                    # Create a simple response object for theme handler
+                    class SimpleResponse:
+                        def __init__(self):
+                            self.headers = {}
+                    
+                    response_obj = SimpleResponse()
+                    # Call the registered route handler
+                    result = ROUTES[path](None, response_obj)
+                    if isinstance(result, str):
+                        # Return as text response
+                        response_data = result.encode('utf-8')
+                        response_headers = (
+                            b"HTTP/1.1 200 OK\r\n"
+                            b"Content-Type: text/css\r\n"
+                            b"Content-Length: " + str(len(response_data)).encode() + b"\r\n"
+                            b"Cache-Control: no-cache\r\n"
+                            b"\r\n"
+                        )
+                        writer.write(response_headers + response_data)
+                        await writer.drain()
+                        return
+                except Exception as e:
+                    self.log(f"Error in route handler for {path}: {str(e)}", "error", "❌")
+                    writer.write(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")
+                    await writer.drain()
+                    return
             
             # Serve HTML template for other paths with HTML accept header
             if "accept" in headers and "text/html" in headers["accept"]:
@@ -1028,6 +1062,8 @@ class CacaoServer(LoggingMixin):
         global global_server
         try:
             global_server = self
+            # Ensure theme API routes are registered at the latest possible moment to avoid circular import
+            import cacao.core.theme
             self._print_banner()
             
             # Apply extensions

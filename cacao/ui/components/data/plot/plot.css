@@ -1,0 +1,421 @@
+/* Plot Component - Cacao UI Framework */
+
+.plot {
+    position: relative;
+    background-color: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+    overflow: hidden;
+}
+
+.plot-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plot-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+}
+
+/* Plot Title */
+.plot-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* Plot Legend */
+.plot-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e8e8e8;
+}
+
+.plot-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+}
+
+.plot-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* Plot Axes */
+.plot-axis {
+    color: #666;
+    font-size: 11px;
+}
+
+.plot-axis-title {
+    font-weight: 500;
+    color: #333;
+}
+
+/* Plot Placeholder */
+.plot-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+}
+
+.plot-placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* Plot Loading State */
+.plot.loading {
+    position: relative;
+}
+
+.plot.loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.plot.loading::after {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e8e8e8;
+    border-top: 4px solid #8B4513;
+    border-radius: 50%;
+    animation: plotSpin 1s linear infinite;
+}
+
+@keyframes plotSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Plot Error State */
+.plot.error {
+    border-color: #ffccc7;
+    background-color: #fff2f0;
+}
+
+.plot-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: #ff4d4f;
+    font-size: 14px;
+    text-align: center;
+}
+
+.plot-error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+
+/* Plot Toolbar */
+.plot-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.plot-toolbar-button {
+    padding: 4px 8px;
+    font-size: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.plot-toolbar-button:hover {
+    background-color: #e9ecef;
+    border-color: #8B4513;
+}
+
+.plot-toolbar-button.active {
+    background-color: #8B4513;
+    color: #fff;
+    border-color: #8B4513;
+}
+
+/* Plot Tooltip */
+.plot-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.plot-tooltip.visible {
+    opacity: 1;
+}
+
+.plot-tooltip::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Plot Sizes */
+.plot.small {
+    padding: 12px;
+}
+
+.plot.small .plot-container {
+    height: 250px;
+}
+
+.plot.small .plot-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.plot.large {
+    padding: 24px;
+}
+
+.plot.large .plot-container {
+    height: 500px;
+}
+
+.plot.large .plot-title {
+    font-size: 18px;
+    margin-bottom: 24px;
+}
+
+/* Plot Responsive */
+.plot.responsive {
+    width: 100%;
+    height: auto;
+}
+
+.plot.responsive .plot-container {
+    aspect-ratio: 16/9;
+    height: auto;
+}
+
+/* Plot Fullscreen */
+.plot.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 24px;
+    background-color: #fff;
+}
+
+.plot.fullscreen .plot-container {
+    height: calc(100vh - 48px);
+}
+
+/* Plot Types */
+.plot.line-chart {
+    border-left: 3px solid #1890ff;
+}
+
+.plot.bar-chart {
+    border-left: 3px solid #52c41a;
+}
+
+.plot.pie-chart {
+    border-left: 3px solid #faad14;
+}
+
+.plot.scatter-chart {
+    border-left: 3px solid #722ed1;
+}
+
+.plot.area-chart {
+    border-left: 3px solid #f759ab;
+}
+
+/* Plot Data Labels */
+.plot-data-label {
+    font-size: 10px;
+    fill: #666;
+    text-anchor: middle;
+}
+
+/* Plot Grid */
+.plot-grid {
+    stroke: #e8e8e8;
+    stroke-width: 1;
+    stroke-dasharray: 2,2;
+}
+
+.plot-grid-major {
+    stroke: #d9d9d9;
+    stroke-width: 1;
+}
+
+/* Plot Zoom */
+.plot.zoomable {
+    cursor: crosshair;
+}
+
+.plot.zoomable.zooming {
+    cursor: move;
+}
+
+.plot-zoom-overlay {
+    position: absolute;
+    background-color: rgba(139, 69, 19, 0.2);
+    border: 1px solid #8B4513;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .plot {
+        padding: 12px;
+        margin: 12px 0;
+    }
+    
+    .plot-container {
+        height: 300px;
+    }
+    
+    .plot-title {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .plot-legend {
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+    
+    .plot-legend-item {
+        font-size: 11px;
+    }
+    
+    .plot-toolbar {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .plot.large .plot-container {
+        height: 350px;
+    }
+    
+    .plot.small .plot-container {
+        height: 200px;
+    }
+}
+
+/* Accessibility */
+.plot:focus {
+    outline: 2px solid #8B4513;
+    outline-offset: 2px;
+}
+
+.plot-toolbar-button:focus {
+    outline: 2px solid #8B4513;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .plot {
+        border: 2px solid #000;
+    }
+    
+    .plot-toolbar-button {
+        border: 2px solid #000;
+    }
+    
+    .plot-legend {
+        border-top: 2px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .plot.loading::after {
+        animation: none;
+    }
+    
+    .plot-tooltip {
+        transition: none;
+    }
+    
+    .plot-toolbar-button {
+        transition: none;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .plot {
+        break-inside: avoid;
+        border: 1px solid #000;
+    }
+    
+    .plot-toolbar {
+        display: none;
+    }
+    
+    .plot.fullscreen {
+        position: static;
+        padding: 16px;
+        background-color: #fff;
+    }
+}

@@ -68,7 +68,7 @@ class App:
     def brew(self, type: str = "web", host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
              title: str = "Cacao App", width: int = 800, height: int = 600,
              resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False,
-             theme: Dict[str, Any] = None):
+             theme: Dict[str, Any] = None, compile_components: bool = True):
         """
         Start the application in web or desktop mode.
         Like brewing a delicious cup of hot chocolate!
@@ -85,6 +85,7 @@ class App:
             fullscreen: Whether to start in fullscreen mode (desktop mode only)
             ASCII_debug: If True, disables emojis in logs for better compatibility
             theme: Dictionary containing theme properties to apply globally
+            compile_components: If True, automatically compile component JS files on startup
         """
         # Set the global ASCII debug mode
         global ASCII_DEBUG_MODE
@@ -94,6 +95,24 @@ class App:
         if theme:
             from .theme import set_theme
             set_theme(theme)
+        
+        # Compile components if enabled
+        if compile_components:
+            try:
+                from .component_compiler import compile_components as compile_comp
+                emoji = "🔧" if not ASCII_debug else "[BUILD]"
+                print(f"{emoji} Compiling modular components...")
+                success = compile_comp(verbose=not ASCII_debug)
+                if success:
+                    emoji_success = "✅" if not ASCII_debug else "[OK]"
+                    print(f"{emoji_success} Component compilation completed")
+                else:
+                    emoji_warn = "⚠️" if not ASCII_debug else "[WARN]"
+                    print(f"{emoji_warn} Component compilation failed, continuing with static components only")
+            except Exception as e:
+                emoji_error = "❌" if not ASCII_debug else "[ERROR]"
+                print(f"{emoji_error} Component compilation error: {e}")
+                print("Continuing with static components only...")
         
         import inspect
         
