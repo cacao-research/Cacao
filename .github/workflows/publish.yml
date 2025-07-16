@@ -18,17 +18,119 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate Merge Source
+        run: |
+          echo "🔍 Checking merge source for publish workflow..."
+          
+          # Get the latest commit message
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          echo "📝 Latest commit message: $COMMIT_MSG"
+          
+          # Check if this is a merge commit from pre-release branch
+          if [[ "$COMMIT_MSG" =~ ^Merge\ pull\ request.*[/\ ]pre-release($|\ ) ]] || \
+             [[ "$COMMIT_MSG" =~ ^Merge\ branch.*[/\ ]pre-release($|\ ) ]] || \
+             [[ "$COMMIT_MSG" =~ ^Merge.*[/\ ]pre-release.*into.*main ]]; then
+            echo "✅ Detected merge from pre-release branch - proceeding with publish"
+            echo "merge_from_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Push to main did not come from pre-release branch merge"
+            echo "📋 Commit message patterns checked:"
+            echo "   - 'Merge pull request.*[/\ ]pre-release($|\ )'"
+            echo "   - 'Merge branch.*[/\ ]pre-release($|\ )'"
+            echo "   - 'Merge.*[/\ ]pre-release.*into.*main'"
+            echo "🚫 Skipping publish workflow - not a pre-release merge"
+            echo "merge_from_prerelease=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        id: validate_merge
+
       - name: Set up Python
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
       - name: Get Version
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         id: get_version
         run: |
-          echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+          echo "🔍 Reading and cleaning version from VERSION file..."
+          
+          # Read the original version from VERSION file
+          ORIGINAL_VERSION=$(cat VERSION)
+          echo "📝 Original version: $ORIGINAL_VERSION"
+          
+          # Clean the version by removing pre-release suffixes
+          # Remove -rc.X suffixes (e.g., 1.0.29-rc.1 -> 1.0.29)
+          CLEANED_VERSION=${ORIGINAL_VERSION%-rc.*}
+          
+          # Remove .dev and .devX suffixes (e.g., 1.0.29.dev1 -> 1.0.29)
+          CLEANED_VERSION=${CLEANED_VERSION%.dev*}
+          
+          echo "🧹 Cleaned version: $CLEANED_VERSION"
+          
+          # Validation: Ensure the version was actually cleaned (proves it was a pre-release)
+          if [[ "$ORIGINAL_VERSION" == "$CLEANED_VERSION" ]]; then
+            echo "❌ ERROR: Version was not cleaned - this suggests it's not a pre-release version"
+            echo "💡 Expected pre-release suffixes: -rc.X or .dev/.devX"
+            echo "📋 Original: $ORIGINAL_VERSION"
+            echo "📋 Cleaned: $CLEANED_VERSION"
+            exit 1
+          fi
+          
+          # Safety check: Validate semantic version format (X.Y.Z)
+          if [[ ! "$CLEANED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ ERROR: Cleaned version does not match semantic version format (X.Y.Z)"
+            echo "📋 Cleaned version: $CLEANED_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Version cleaning successful!"
+          echo "📋 Transform: $ORIGINAL_VERSION → $CLEANED_VERSION"
+          echo "🚀 Publishing version: $CLEANED_VERSION"
+          
+          # Output the cleaned version for use in subsequent steps
+          echo "version=$CLEANED_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version files with final version
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
+        run: |
+          echo "🔄 Updating version files with final version: ${{ steps.get_version.outputs.version }}"
+          
+          # Update VERSION file
+          echo "${{ steps.get_version.outputs.version }}" > VERSION
+          echo "✅ Updated VERSION file"
+          
+          # Update cacao/__init__.py
+          sed -i "s|^__version__ = .*|__version__ = \"${{ steps.get_version.outputs.version }}\"|" cacao/__init__.py
+          echo "✅ Updated cacao/__init__.py"
+          
+          # Verify the changes
+          echo "📋 Verification:"
+          echo "   VERSION file: $(cat VERSION)"
+          echo "   cacao/__init__.py version: $(grep '^__version__' cacao/__init__.py)"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "⚠️  No changes detected in version files"
+            exit 0
+          fi
+          
+          # Stage and commit the changes
+          git add VERSION cacao/__init__.py
+          git commit -m "🔖 Release ${{ steps.get_version.outputs.version }} [skip ci]"
+          
+          # Push the changes back to main
+          git push origin main
+          
+          echo "✅ Version files updated and committed successfully"
 
       - name: Cache pip
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -37,15 +139,18 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Build Dependencies
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
 
       - name: Build Package
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         run: |
           python setup.py sdist bdist_wheel
 
       - name: Publish to PyPI
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
@@ -53,6 +158,7 @@ jobs:
           twine upload dist/*
 
       - name: Create GitHub Release
+        if: steps.validate_merge.outputs.merge_from_prerelease == 'true'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
