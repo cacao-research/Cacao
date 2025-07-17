@@ -62,12 +62,14 @@ jobs:
           ORIGINAL_VERSION=$(cat VERSION)
           echo "📝 Original version: $ORIGINAL_VERSION"
           
-          # Clean the version by removing pre-release suffixes
-          # Remove -rc.X suffixes (e.g., 1.0.29-rc.1 -> 1.0.29)
-          CLEANED_VERSION=${ORIGINAL_VERSION%-rc.*}
-          
-          # Remove .dev and .devX suffixes (e.g., 1.0.29.dev1 -> 1.0.29)
-          CLEANED_VERSION=${CLEANED_VERSION%.dev*}
+          # Clean the version to ensure strict X.Y.Z format (no suffixes)
+          # This extracts the first X.Y.Z pattern from the version string, ignoring any pre-release or dev suffixes.
+          # Examples:
+          #   1.2.3-rc.1-rc.2   -> 1.2.3
+          #   2.0.0.dev1-rc.3   -> 2.0.0
+          #   3.4.5-rc.1.dev2   -> 3.4.5
+          #   4.5.6             -> 4.5.6
+          CLEANED_VERSION=$(echo "$ORIGINAL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
           
           echo "🧹 Cleaned version: $CLEANED_VERSION"
           
@@ -81,6 +83,7 @@ jobs:
           fi
           
           # Safety check: Validate semantic version format (X.Y.Z)
+          # Validation: Ensure the cleaned version matches strict X.Y.Z format
           if [[ ! "$CLEANED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ ERROR: Cleaned version does not match semantic version format (X.Y.Z)"
             echo "📋 Cleaned version: $CLEANED_VERSION"
