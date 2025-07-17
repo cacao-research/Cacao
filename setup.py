@@ -33,7 +33,7 @@ setup(
             'cli/templates/**/*',
             'ui/components/**/*.js',
             'ui/components/**/*.css',
-            'ui/components/**/*.py'
+            'ui/components/**/*.py',
             'ui/themes/*.py'
         ]
     },
@@ -44,6 +44,7 @@ setup(
         "watchfiles",
         "colorama",
         "pywebview>=4.0.2",
+        "pandas",
     ],
     entry_points={
         "console_scripts": [
