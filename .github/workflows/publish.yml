@@ -26,6 +26,8 @@ jobs:
           COMMIT_MSG=$(git log -1 --pretty=format:"%s")
           echo "📝 Latest commit message: $COMMIT_MSG"
           
+          #example: "Merge pull request #123 from user/pre-release"
+          
           # Check if this is a merge commit from pre-release branch
           if [[ "$COMMIT_MSG" =~ ^Merge\ pull\ request.*[/\ ]pre-release($|\ ) ]] || \
              [[ "$COMMIT_MSG" =~ ^Merge\ branch.*[/\ ]pre-release($|\ ) ]] || \

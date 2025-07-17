@@ -76,6 +76,11 @@ def build_components_command(args: List[str]) -> None:
         from cacao.core.component_compiler import compile_components
         
         print(f"🔧 Building components from {parsed_args.components_dir}...")
+        print("📝 Automatic function call transformation enabled")
+        print("   Direct CacaoCore function calls will be auto-namespaced")
+        print("   See docs/COMPONENT_DEVELOPMENT_GUIDE.md for best practices")
+        print()
+        
         success = compile_components(
             components_dir=parsed_args.components_dir,
             output_path=parsed_args.output,

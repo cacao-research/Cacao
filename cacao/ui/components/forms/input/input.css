@@ -1,0 +1,30 @@
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input[type="date"],
+input[type="time"] {
+    width: 100%;
+    padding: var(--input-padding);
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    background: var(--input-bg);
+    color: var(--font-color);
+    font-family: var(--font-family);
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--input-focus);
+}
+input[disabled] {
+    background: var(--input-disabled);
+    color: #aaa;
+    cursor: not-allowed;
+}

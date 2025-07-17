@@ -9,6 +9,157 @@
     let lastVersion = null;
     let errorCount = 0;
     const MAX_ERROR_ALERTS = 3;
+    
+    // Debug mode configuration
+    let debugMode = false;
+    const DEBUG_PREFIX = "[CacaoCore Debug]";
+    
+    // Function availability tracking
+    const REQUIRED_FUNCTIONS = ['renderChildren', 'applyContent', 'renderComponent'];
+    
+    /**
+     * Debug logging function that only logs when debug mode is enabled
+     * @param {string} message - The debug message
+     * @param {any} data - Optional data to log
+     */
+    function debugLog(message, data = null) {
+        if (debugMode) {
+            if (data !== null) {
+                console.log(DEBUG_PREFIX, message, data);
+            } else {
+                console.log(DEBUG_PREFIX, message);
+            }
+        }
+    }
+    
+    /**
+     * Enhanced error logging with context and suggestions
+     * @param {string} context - Where the error occurred
+     * @param {Error|string} error - The error that occurred
+     * @param {Object} component - The component that caused the error (optional)
+     * @param {Object} suggestions - Suggested fixes (optional)
+     */
+    function logDetailedError(context, error, component = null, suggestions = null) {
+        const errorMessage = error instanceof Error ? error.message : error;
+        console.error(`[CacaoCore Error] ${context}:`, errorMessage);
+        
+        if (component) {
+            console.error("Component that failed:", component);
+        }
+        
+        // Check for common scope-related issues
+        if (errorMessage.includes('not defined') || errorMessage.includes('undefined')) {
+            const missingFunction = errorMessage.match(/(\w+) is not defined/);
+            if (missingFunction && REQUIRED_FUNCTIONS.includes(missingFunction[1])) {
+                console.error("SCOPE ISSUE DETECTED:");
+                console.error(`- Function '${missingFunction[1]}' is not accessible`);
+                console.error("- This is likely a scope-related issue in auto-generated components");
+                console.error("- Ensure window.CacaoCore exists and contains the required functions");
+                console.error("- Try accessing functions via window.CacaoCore instead of direct references");
+            }
+        }
+        
+        if (suggestions) {
+            console.error("Suggested fixes:", suggestions);
+        }
+        
+        // Log current CacaoCore state for debugging
+        if (window.CacaoCore) {
+            console.error("Available CacaoCore functions:", Object.keys(window.CacaoCore));
+        } else {
+            console.error("CRITICAL: window.CacaoCore is not available!");
+        }
+    }
+    
+    /**
+     * Validate that required functions are available in the global scope
+     * @returns {Object} Validation result with missing functions
+     */
+    function validateFunctionAvailability() {
+        const missing = [];
+        const available = [];
+        
+        REQUIRED_FUNCTIONS.forEach(func => {
+            if (window.CacaoCore && typeof window.CacaoCore[func] === 'function') {
+                available.push(func);
+            } else {
+                missing.push(func);
+            }
+        });
+        
+        debugLog("Function availability check:", { available, missing });
+        
+        return {
+            isValid: missing.length === 0,
+            missing,
+            available
+        };
+    }
+    
+    /**
+     * Create a defensive wrapper for component rendering that validates scope
+     * @param {Object} component - The component to render
+     * @param {string} rendererType - Type of renderer being used
+     * @returns {HTMLElement} The rendered element or error element
+     */
+    function safeComponentRender(component, rendererType) {
+        try {
+            // Validate function availability before rendering
+            const validation = validateFunctionAvailability();
+            if (!validation.isValid) {
+                throw new Error(`Missing required functions: ${validation.missing.join(', ')}`);
+            }
+            
+            debugLog(`Rendering component with ${rendererType} renderer:`, component);
+            
+            let el;
+            if (rendererType === 'custom' && componentRenderers[component.type]) {
+                el = componentRenderers[component.type](component);
+            } else if (rendererType === 'standard' && STANDARD_TAGS.has(component.type)) {
+                el = renderStandardElement(component);
+            } else {
+                throw new Error(`Unknown renderer type: ${rendererType}`);
+            }
+            
+            debugLog(`Successfully rendered ${component.type} component`);
+            return el;
+            
+        } catch (error) {
+            logDetailedError(
+                `Component rendering (${rendererType})`,
+                error,
+                component,
+                {
+                    "Check window.CacaoCore": "Ensure window.CacaoCore object exists and is properly initialized",
+                    "Validate component structure": "Ensure component has required 'type' property",
+                    "Check component renderer": `Verify ${component.type} renderer is properly defined`,
+                    "Enable debug mode": "Set window.CacaoCore.setDebugMode(true) for more details"
+                }
+            );
+            
+            // Return a detailed error element
+            const errorEl = document.createElement("div");
+            errorEl.className = "cacao-error";
+            errorEl.style.cssText = `
+                color: #dc3545;
+                background: #f8d7da;
+                border: 1px solid #f5c6cb;
+                padding: 10px;
+                margin: 5px 0;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 12px;
+            `;
+            errorEl.innerHTML = `
+                <strong>Cacao Render Error:</strong><br>
+                <strong>Component:</strong> ${component.type || 'unknown'}<br>
+                <strong>Error:</strong> ${error.message}<br>
+                <strong>Renderer:</strong> ${rendererType}<br>
+                <small>Check console for detailed debugging information</small>
+            `;
+            return errorEl;
+        }
+    }
 
     // Extend the existing CacaoWS object instead of replacing it
     if (!window.CacaoWS) {
@@ -144,9 +295,41 @@
      * Render array of children onto a parent element.
      */
     function renderChildren(parent, childrenArray) {
+        if (!parent) {
+            logDetailedError("renderChildren", "Parent element is null or undefined", null, {
+                "Check parent element": "Ensure parent element exists before calling renderChildren"
+            });
+            return;
+        }
+        
         if (Array.isArray(childrenArray)) {
-            childrenArray.forEach(child => {
-                parent.appendChild(renderComponent(child));
+            debugLog(`Rendering ${childrenArray.length} children`);
+            childrenArray.forEach((child, index) => {
+                try {
+                    const childElement = renderComponent(child);
+                    if (childElement) {
+                        parent.appendChild(childElement);
+                        debugLog(`Child ${index} rendered successfully`);
+                    } else {
+                        logDetailedError("renderChildren", `Child ${index} rendered as null/undefined`, child);
+                    }
+                } catch (error) {
+                    logDetailedError("renderChildren", `Failed to render child ${index}`, child, {
+                        "Check child component": "Ensure child component has valid structure",
+                        "Validate child type": "Ensure child.type is a recognized component type"
+                    });
+                    
+                    // Create error placeholder for failed child
+                    const errorEl = document.createElement("div");
+                    errorEl.className = "cacao-child-error";
+                    errorEl.style.cssText = "color: red; font-size: 12px; padding: 2px; border: 1px dashed red;";
+                    errorEl.textContent = `Error rendering child ${index}: ${error.message}`;
+                    parent.appendChild(errorEl);
+                }
+            });
+        } else if (childrenArray !== undefined && childrenArray !== null) {
+            logDetailedError("renderChildren", "childrenArray is not an array", childrenArray, {
+                "Check children property": "Ensure children is an array or null/undefined"
             });
         }
     }
@@ -181,7 +364,7 @@
         "h1", "h2", "h3", "h4", "h5", "h6",
         "form", "textarea", "input", "button", // Form elements
         "thead", "tbody", "tr", "td", "th", // Table elements
-        "img", "a", "label", "select", "option", // Other common elements
+        "img", "a", "label", "option", // Other common elements
         "svg", "path", "circle", "rect", "g", "text", // SVG elements
         "i", "span", "br", "hr", "strong", "em", "u", "s", "sub", "sup", // Text formatting elements
         "details", "summary", // Collapsible elements
@@ -193,14 +376,6 @@
      * Specialized renderers for components needing custom logic or event handling
      */
     const componentRenderers = {
-
-
-        text: (component) => {
-            const el = document.createElement("p");
-            el.className = "text";
-            applyContent(el, component.props.content);
-            return el;
-        },
         
         navbar: (component) => {
             const el = document.createElement("nav");
@@ -223,204 +398,6 @@
                 });
                 el.appendChild(linksDiv);
             }
-            return el;
-        },
-
-        sidebar: (component) => {
-            const el = document.createElement("div");
-            el.className = "sidebar";
-            
-            // Apply styles from props
-            if (component.props?.style) {
-                Object.assign(el.style, component.props.style);
-            }
-            if (component.props?.content) {
-                applyContent(el, component.props.content);
-            }
-            if (component.children) {
-                renderChildren(el, component.children);
-            } else if (component.props?.children) {
-                renderChildren(el, component.props.children);
-            }
-            return el;
-        },
-
-        "nav-item": (component) => {
-            const el = document.createElement("div");
-            el.className = "nav-item";
-            
-            // If children array is available, use that
-            if (component.props?.children && Array.isArray(component.props.children)) {
-                component.props.children.forEach(child => {
-                    el.appendChild(renderComponent(child));
-                });
-            } else {
-                // Simple/legacy rendering
-                if (component.props?.icon) {
-                    const iconSpan = document.createElement("span");
-                    applyContent(iconSpan, component.props.icon);
-                    iconSpan.style.marginRight = "8px";
-                    el.appendChild(iconSpan);
-                }
-                if (component.props?.label) {
-                    const labelSpan = document.createElement("span");
-                    applyContent(labelSpan, component.props.label);
-                    el.appendChild(labelSpan);
-                }
-            }
-            
-            if (component.props?.isActive) {
-                el.classList.add("active");
-            }
-            
-            if (component.props?.onClick) {
-                el.onclick = async () => {
-                    try {
-                        const action = component.props.onClick.action;
-                        const state = component.props.onClick.state;
-                        const value = component.props.onClick.value;
-                        const immediate = component.props.onClick.immediate === true;
-                        
-                        // Check if we're clicking the same page
-                        if (state === 'current_page' && window.location.hash === `#${value}`) {
-                            console.log("[CacaoCore] Clicked same page, skipping refresh");
-                            return;
-                        }
-                        
-                        document.querySelector('.refresh-overlay').classList.add('active');
-                        
-                        console.log(`[CacaoCore] Handling nav click: ${action} state=${state} value=${value} immediate=${immediate}`);
-                        
-                        const response = await fetch(`/api/action?action=${action}&component_type=${state}&value=${value}&immediate=${immediate}&t=${Date.now()}`, {
-                            method: 'GET',
-                            headers: {
-                                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                'Pragma': 'no-cache',
-                                'Expires': '0'
-                            }
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error(`Server returned ${response.status}`);
-                        }
-                        const data = await response.json();
-                        console.log("[CacaoCore] Navigation state updated:", data);
-                        
-                        if (state === 'current_page') {
-                            window.location.hash = value;
-                        }
-                        
-                        if (data.immediate === true) {
-                            // fetch UI directly
-                            const uiResponse = await fetch(`/api/ui?force=true&_hash=${value}&t=${Date.now()}`, {
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                    'Pragma': 'no-cache',
-                                    'Expires': '0'
-                                }
-                            });
-                            
-                            if (!uiResponse.ok) {
-                                throw new Error(`UI update failed with status ${uiResponse.status}`);
-                            }
-                            
-                            const uiData = await uiResponse.json();
-                            window.CacaoCore.render(uiData);
-                        } else {
-                            // Force UI refresh
-                            window.CacaoWS.requestServerRefresh();
-                        }
-                    } catch (err) {
-                        console.error('[CacaoCore] Error handling nav item click:', err);
-                        document.querySelector('.refresh-overlay').classList.remove('active');
-                    }
-                };
-            }
-            
-            return el;
-        },
-
-        button: (component) => {
-            const el = document.createElement("button");
-            el.className = "button";
-            applyContent(el, component.props.label);
-            
-            if (component.props?.action) {
-                el.onclick = async () => {
-                    try {
-                        console.log("[Cacao] Sending event:", component.props.on_click || component.props.action);
-                        document.querySelector('.refresh-overlay').classList.add('active');
-                        
-                        const parentSection = el.closest('section[data-component-type]');
-                        const componentType = parentSection ? parentSection.dataset.componentType : 'unknown';
-                        
-                        // If WebSocket is open
-                        if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
-                            const eventName = component.props.on_click || component.props.action;
-                            console.log("[Cacao] Sending WebSocket event:", eventName);
-                            // Include the data property from the component if available
-                            const eventData = { component_type: componentType };
-                            
-                            // Add the data property from the component if it exists
-                            if (component.props.data) {
-                                console.log("[Cacao] Including custom data in event:", component.props.data);
-                                Object.assign(eventData, component.props.data);
-                            }
-                            
-                            window.socket.send(JSON.stringify({
-                                type: 'event',
-                                event: eventName,
-                                data: eventData
-                            }));
-                        } else {
-                            // Fallback to HTTP
-                            console.log("[Cacao] WebSocket not available, using HTTP fallback");
-                            const action = component.props.on_click || component.props.action;
-                            // Build query parameters including custom data
-                            let queryParams = `action=${action}&component_type=${componentType}`;
-                            
-                            // Add the data property from the component if it exists
-                            if (component.props.data) {
-                                console.log("[Cacao] Including custom data in HTTP fallback:", component.props.data);
-                                for (const [key, value] of Object.entries(component.props.data)) {
-                                    queryParams += `&${key}=${encodeURIComponent(value)}`;
-                                }
-                            }
-                            
-                            const response = await fetch(`/api/action?${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                    'Pragma': 'no-cache',
-                                    'Expires': '0'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                const errorText = await response.text();
-                                console.error("[Cacao] Server error response:", errorText);
-                                throw new Error(`Server returned ${response.status}: ${errorText}`);
-                            }
-                            
-                            const responseData = await response.json();
-                            console.log("[CacaoCore] Server response data:", responseData);
-                            window.CacaoWS.requestServerRefresh();
-                        }
-                    } catch (err) {
-                        console.error('Error handling action:', err);
-                        document.querySelector('.refresh-overlay').classList.remove('active');
-                        
-                        if (errorCount < MAX_ERROR_ALERTS) {
-                            errorCount++;
-                            alert(`Error: ${err.message}\nPlease try again or reload the page.`);
-                        } else if (errorCount === MAX_ERROR_ALERTS) {
-                            errorCount++;
-                            console.error("Too many errors. Suppressing further alerts.");
-                        }
-                    }
-                };
-            }
-            
             return el;
         },
 
@@ -499,969 +476,258 @@
             return el;
         },
         
-        upload: (component) => {
-            console.log("[CacaoCore] Rendering upload component:", component);
-            
-            // Create wrapper div
-            const wrapper = document.createElement("div");
-            wrapper.className = "upload-wrapper";
-            
-            // Create file input
-            const input = document.createElement("input");
-            input.type = "file";
-            if (component.props.multiple) input.multiple = true;
-            if (component.props.disabled) input.disabled = true;
-            
-            // Apply styles
-            if (component.props.style) {
-                Object.assign(wrapper.style, component.props.style);
-            }
-            
-            // Add label or placeholder
-            const label = document.createElement("div");
-            label.textContent = component.props.label || "Click or drag files here to upload";
-            wrapper.appendChild(label);
-            
-            // Add file input
-            wrapper.appendChild(input);
-            
-            // Add event listener for changes
-            if (component.props.onUpload) {
-                input.addEventListener("change", async (e) => {
-                    console.log("[CacaoCore] Files selected:", e.target.files);
-                    
-                    // In a real implementation, you would upload the files here
-                    // For now, just trigger the event
-                    const action = component.props.onUpload.action || "file_upload";
-                    const params = {
-                        ...(component.props.onUpload.params || {}),
-                        fileCount: e.target.files.length
-                    };
-                    
-                    // HTTP fallback
-                    const queryParams = Object.entries(params)
-                        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-                        .join("&");
-                        
-                    const url = `/api/event?event=${action}&${queryParams}&t=${Date.now()}`;
-                    try {
-                        console.log("[CacaoCore] Sending upload event:", url);
-                        const response = await fetch(url, {
-                            method: "GET",
-                            headers: {
-                                "Cache-Control": "no-cache, no-store, must-revalidate"
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            console.log("[CacaoCore] Upload event successful");
-                            window.CacaoWS.requestServerRefresh();
-                        } else {
-                            console.error("[CacaoCore] Upload event failed:", response.status);
-                        }
-                    } catch (err) {
-                        console.error("[CacaoCore] Error sending upload event:", err);
-                    }
-                });
-            }
-            
-            return wrapper;
-        },
-        
-        "range-slider": (component) => {
-            const slider = document.createElement("input");
-            slider.type = "range";
-            slider.className = component.props.className || "range-slider";
-            slider.min = component.props.min;
-            slider.max = component.props.max;
-            slider.step = component.props.step;
-            slider.value = component.props.value;
-
-            let updateTimeout;
-            const updateValue = async () => {
-                if (component.props.onChange) {
-                    // Clear any existing timeout to debounce
-                    clearTimeout(updateTimeout);
-                    
-                    // Re-introduce setTimeout with a longer delay (150ms)
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            // Consider adding a subtle visual cue instead of the full overlay for frequent events
-                            // document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: slider.value // Use the current slider value at the time of execution
-                            };
-                            
-                            const queryParams = Object.entries(params)
-                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                .join('&');
-                                
-                            // console.log(`[CacaoCore] Sending event (debounced): ${action} with params: ${queryParams}`); // Optional: uncomment for debugging
-                            
-                            // Send event via HTTP GET
-                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
-                            const data = await response.json();
-                            // console.log("[CacaoCore] Event response (debounced):", data); // Optional: uncomment for debugging
-                            
-                            // Update slider value based on response *if* backend sends it back
-                            // This helps keep frontend consistent if backend modifies the value
-                            if (data.value !== undefined) {
-                                // Check if the slider element still exists before updating
-                                if (document.body.contains(slider)) {
-                                   slider.value = data.value;
-                                }
-                            }
-                            
-                            // Trigger a UI refresh to show the updated value in other components
-                            window.CacaoWS.requestServerRefresh();
-                            
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating slider (debounced):', err);
-                            // Remove overlay if it was added
-                            // document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 450); // Increased debounce to 450ms for smoother interaction
-                }
-            };
-
-            // Use the 'input' event for continuous updates while dragging
-            slider.addEventListener('input', updateValue);
-            
-            // Add mouseup event to ensure we always get a final update when the user releases the slider
-            // This ensures the final value is captured even after quick drags
-            const finalUpdate = async () => {
-                // Clear any pending timeouts
-                clearTimeout(updateTimeout);
-                
-                // Immediately send the final value
-                try {
-                    const action = component.props.onChange.action;
-                    const params = {
-                        ...component.props.onChange.params,
-                        value: slider.value
-                    };
-                    
-                    const queryParams = Object.entries(params)
-                        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                        .join('&');
-                    
-                    console.log(`[CacaoCore] Sending final slider value: ${slider.value}`);
-                    
-                    const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                        method: 'GET',
-                        headers: {
-                            'Cache-Control': 'no-cache, no-store, must-revalidate'
-                        }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Server returned ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Update slider value if needed
-                    if (data.value !== undefined && document.body.contains(slider)) {
-                        slider.value = data.value;
-                    }
-                    
-                    // Always refresh UI on final update
-                    window.CacaoWS.requestServerRefresh();
-                    
-                } catch (err) {
-                    console.error('[CacaoCore] Error sending final slider value:', err);
-                }
-            };
-            
-            slider.addEventListener('mouseup', finalUpdate);
-            slider.addEventListener('touchend', finalUpdate);
-            
-            return slider; // Return the created slider element
-        },
-
-        // --- INPUT COMPONENTS ---
-        "input": (component) => {
-            const el = document.createElement("input");
-            el.type = component.props.inputType || "text";
-            el.value = component.props.value || "";
-            if (component.props.placeholder) el.placeholder = component.props.placeholder;
-            if (component.props.disabled) el.disabled = true;
-            if (component.props.style) Object.assign(el.style, component.props.style);
-            if (component.props.className) el.className = component.props.className;
-            // No onChange binding by default (add if needed)
-            return el;
-        },
-
-        "search": (component) => {
-            // Render as input[type=search] + button (or just input)
-            const wrapper = document.createElement("div");
-            wrapper.className = "search-input-wrapper";
-            const input = document.createElement("input");
-            input.type = "search";
-            input.value = component.props.value || "";
-            if (component.props.placeholder) input.placeholder = component.props.placeholder;
-            if (component.props.disabled) input.disabled = true;
-            if (component.props.style) Object.assign(input.style, component.props.style);
-            if (component.props.className) input.className = component.props.className;
-            wrapper.appendChild(input);
-            // Optionally add a search button
-            // const button = document.createElement("button");
-            // button.textContent = "Search";
-            // wrapper.appendChild(button);
-            return wrapper;
-        },
-
-        "select": (component) => {
-            const el = document.createElement("select");
-            if (component.props.disabled) el.disabled = true;
-            if (component.props.style) Object.assign(el.style, component.props.style);
-            if (component.props.className) el.className = component.props.className;
-            if (component.props.placeholder) {
-                const placeholderOption = document.createElement("option");
-                placeholderOption.value = "";
-                placeholderOption.disabled = true;
-                placeholderOption.selected = !component.props.value;
-                placeholderOption.hidden = true;
-                placeholderOption.textContent = component.props.placeholder;
-                el.appendChild(placeholderOption);
-            }
-            if (Array.isArray(component.props.options)) {
-                component.props.options.forEach(opt => {
-                    const option = document.createElement("option");
-                    option.value = opt.value;
-                    option.textContent = opt.label;
-                    if (component.props.value === opt.value) option.selected = true;
-                    el.appendChild(option);
-                });
-            }
-            return el;
-        },
-
-        "checkbox": (component) => {
-            const wrapper = document.createElement("label");
-            wrapper.className = "checkbox-wrapper";
-            const input = document.createElement("input");
-            input.type = "checkbox";
-            input.checked = !!component.props.checked;
-            if (component.props.disabled) input.disabled = true;
-            if (component.props.style) Object.assign(input.style, component.props.style);
-            if (component.props.className) input.className = component.props.className;
-            wrapper.appendChild(input);
-            if (component.props.label) {
-                const span = document.createElement("span");
-                span.textContent = component.props.label;
-                wrapper.appendChild(span);
-            }
-            return wrapper;
-        },
-
-        "radio": (component) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "radio-group";
-            if (Array.isArray(component.props.options)) {
-                component.props.options.forEach(opt => {
-                    const label = document.createElement("label");
-                    label.className = "radio-wrapper";
-                    const input = document.createElement("input");
-                    input.type = "radio";
-                    input.name = "radio-group-" + Math.random().toString(36).substr(2, 6);
-                    input.value = opt.value;
-                    if (component.props.value === opt.value) input.checked = true;
-                    if (component.props.disabled) input.disabled = true;
-                    label.appendChild(input);
-                    const span = document.createElement("span");
-                    span.textContent = opt.label;
-                    label.appendChild(span);
-                    wrapper.appendChild(label);
-                });
-            }
-            return wrapper;
-        },
-
-        "switch": (component) => {
-            // Styled checkbox
-            const wrapper = document.createElement("label");
-            wrapper.className = "switch-wrapper";
-            const input = document.createElement("input");
-            input.type = "checkbox";
-            input.checked = !!component.props.checked;
-            if (component.props.disabled) input.disabled = true;
-            if (component.props.className) input.className = component.props.className;
-            wrapper.appendChild(input);
-            const slider = document.createElement("span");
-            slider.className = "switch-slider";
-            wrapper.appendChild(slider);
-            return wrapper;
-        },
-
-        "datepicker": (component) => {
-            const el = document.createElement("input");
-            el.type = "date";
-            if (component.props.value) el.value = component.props.value;
-            if (component.props.disabled) el.disabled = true;
-            if (component.props.style) Object.assign(el.style, component.props.style);
-            if (component.props.className) el.className = component.props.className;
-            return el;
-        },
-
-        "timepicker": (component) => {
-            const el = document.createElement("input");
-            el.type = "time";
-            if (component.props.value) el.value = component.props.value;
-            if (component.props.disabled) el.disabled = true;
-            if (component.props.style) Object.assign(el.style, component.props.style);
-            if (component.props.className) el.className = component.props.className;
-            return el;
-        },
-
-        "upload": (component) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "upload-wrapper";
-            const input = document.createElement("input");
-            input.type = "file";
-            if (component.props.multiple) input.multiple = true;
-            if (component.props.disabled) input.disabled = true;
-            if (component.props.style) Object.assign(input.style, component.props.style);
-            if (component.props.className) input.className = component.props.className;
-            wrapper.appendChild(input);
-            return wrapper;
-        },
-        
-        textarea: (component) => {
-            const el = document.createElement("textarea");
-            el.className = component.props.className || "textarea";
-            
-            // Apply content
-            if (component.props.content) {
-                el.value = component.props.content;
-            }
-            
-            // Apply styles
-            if (component.props.style) {
-                Object.assign(el.style, component.props.style);
-            }
-            
-            // Handle content changes
-            if (component.props.action) {
-                let updateTimeout;
-                
-                el.addEventListener("input", () => {
-                    // Clear any existing timeout to debounce
-                    clearTimeout(updateTimeout);
-                    
-                    // Set a timeout to avoid sending too many events
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            const action = component.props.action;
-                            const componentType = component.component_type || "textarea";
-                            
-                            // Build event data including the textarea content
-                            const eventData = {
-                                component_type: componentType,
-                                content: el.value
-                            };
-                            
-                            // Add the data property from the component if it exists
-                            if (component.props.data) {
-                                console.log("[Cacao] Including custom data in textarea event:", component.props.data);
-                                Object.assign(eventData, component.props.data);
-                            }
-                            
-                            console.log("[Cacao] Sending textarea content update:", action, eventData);
-                            
-                            // If WebSocket is open
-                            if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
-                                window.socket.send(JSON.stringify({
-                                    type: 'event',
-                                    event: action,
-                                    data: eventData
-                                }));
-                            } else {
-                                // Fallback to HTTP
-                                console.log("[Cacao] WebSocket not available, using HTTP fallback for textarea");
-                                
-                                // Build query parameters
-                                let queryParams = `action=${action}&component_type=${componentType}`;
-                                
-                                // Add the data property from the component if it exists
-                                if (component.props.data) {
-                                    for (const [key, value] of Object.entries(component.props.data)) {
-                                        queryParams += `&${key}=${encodeURIComponent(value)}`;
-                                    }
-                                }
-                                
-                                // Add content parameter
-                                queryParams += `&content=${encodeURIComponent(el.value)}`;
-                                
-                                const response = await fetch(`/api/action?${queryParams}&t=${Date.now()}`, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                                        'Pragma': 'no-cache',
-                                        'Expires': '0'
-                                    }
-                                });
-                                
-                                if (!response.ok) {
-                                    const errorText = await response.text();
-                                    console.error("[Cacao] Server error response:", errorText);
-                                    throw new Error(`Server returned ${response.status}: ${errorText}`);
-                                }
-                                
-                                const responseData = await response.json();
-                                console.log("[CacaoCore] Server response data:", responseData);
-                            }
-                        } catch (err) {
-                            console.error('[CacaoCore] Error handling textarea input:', err);
-                        }
-                    }, 1000); // 1 second debounce
-                });
-            }
-            
-            return el;
-        },
-
-        menu: (component) => {
-            console.log("[CacaoCore] Rendering menu component:", component);
-            const el = document.createElement("nav");
-            el.className = "menu";
-
-            // Add mode class (horizontal/vertical)
-            if (component.props.mode === "horizontal") {
-                el.classList.add("menu-horizontal");
-            }
-
-            // Apply custom styles
-            if (component.props.style) {
-                Object.assign(el.style, component.props.style);
-            }
-
-            // Create menu items
-            if (Array.isArray(component.props.items)) {
-                component.props.items.forEach(item => {
-                    const menuItem = document.createElement("div");
-                    menuItem.className = "menu-item";
-                    
-                    // Check if item is selected
-                    if (component.props.selectedKeys &&
-                        component.props.selectedKeys.includes(item.key)) {
-                        menuItem.classList.add("selected");
-                    }
-
-                    // Add label content
-                    applyContent(menuItem, item.label);
-
-                    // Handle click events
-                    menuItem.addEventListener("click", async (e) => {
-                        e.preventDefault();
-                        try {
-                            console.log("[CacaoCore] Menu item clicked:", item.key);
-                            
-                            // Send menu selection event
-                            const params = {
-                                component_type: "menu",
-                                key: item.key
-                            };
-
-                            const queryParams = Object.entries(params)
-                                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-                                .join("&");
-
-                            const url = `/api/event?event=menu_select&${queryParams}&t=${Date.now()}`;
-                            const response = await fetch(url, {
-                                method: "GET",
-                                headers: {
-                                    "Cache-Control": "no-cache, no-store, must-revalidate"
-                                }
-                            });
-
-                            if (response.ok) {
-                                // Update visual selection immediately
-                                el.querySelectorAll(".menu-item").forEach(mi => {
-                                    mi.classList.remove("selected");
-                                });
-                                menuItem.classList.add("selected");
-
-                                window.CacaoWS.requestServerRefresh();
-                            } else {
-                                console.error("[CacaoCore] Menu select failed:", response.status);
-                            }
-                        } catch (err) {
-                            console.error("[CacaoCore] Error handling menu selection:", err);
-                        }
-                    });
-
-                    el.appendChild(menuItem);
-                });
-            }
-
-            // Add menu styles
-            const style = document.createElement("style");
-            style.textContent = `
-                .menu {
-                    font-size: 14px;
-                    line-height: 1.5;
-                    margin: 0;
-                    padding: 0;
-                    background: #fff;
-                    border-bottom: 1px solid #f0f0f0;
-                }
-
-                .menu-horizontal {
-                    display: flex;
-                    flex-direction: row;
-                }
-
-                .menu-item {
-                    padding: 12px 20px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    position: relative;
-                    color: #595959;
-                }
-
-                .menu-item:hover {
-                    color: #8B4513;
-                }
-
-                .menu-item.selected {
-                    color: #8B4513;
-                    font-weight: 500;
-                }
-
-                .menu-item.selected::after {
-                    content: '';
-                    position: absolute;
-                    left: 20px;
-                    right: 20px;
-                    bottom: 0;
-                    height: 2px;
-                    background: #8B4513;
-                }
-
-                @media (max-width: 768px) {
-                    .menu-horizontal {
-                        overflow-x: auto;
-                        -webkit-overflow-scrolling: touch;
-                    }
-
-                    .menu-item {
-                        padding: 12px 16px;
-                        white-space: nowrap;
-                    }
-                }
-            `;
-            el.appendChild(style);
-
-            return el;
-        },
-
-        "slider": (component) => {
-            const slider = document.createElement("input");
-            slider.type = "range";
-            slider.className = component.props.className || "range-slider";
-            slider.min = component.props.min;
-            slider.max = component.props.max;
-            slider.step = component.props.step;
-            slider.value = component.props.value;
-
-            let updateTimeout;
-            const updateValue = async () => {
-                if (component.props.onChange) {
-                    clearTimeout(updateTimeout);
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            // Optionally show overlay
-                            // document.querySelector('.refresh-overlay').classList.add('active');
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: slider.value
-                            };
-                            const queryParams = Object.entries(params)
-                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                .join('&');
-                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            const data = await response.json();
-                            if (data.value !== undefined) {
-                                slider.value = data.value;
-                            }
-                            window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating slider:', err);
-                            // document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 200);
-                }
-            };
-            slider.addEventListener('input', updateValue);
-            return slider;
-        },
-
-        rate: (component) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "rate-wrapper";
-            const max = component.props.max || 5;
-            let value = component.props.value || 0;
-            let hoverValue = null;
-
-            function renderStars() {
-                wrapper.innerHTML = "";
-                for (let i = 1; i <= max; i++) {
-                    const star = document.createElement("span");
-                    star.className = "rate-star";
-                    // Half-star logic
-                    let fill = false;
-                    if (hoverValue !== null) {
-                        fill = i <= Math.floor(hoverValue);
-                        if (i === Math.ceil(hoverValue) && hoverValue % 1 >= 0.5) {
-                            star.classList.add("half");
-                        }
-                    } else {
-                        fill = i <= Math.floor(value);
-                        if (i === Math.ceil(value) && value % 1 >= 0.5) {
-                            star.classList.add("half");
-                        }
-                    }
-                    if (fill) star.classList.add("filled");
-                    star.textContent = "★";
-                    // Mouse events for half-star
-                    star.addEventListener("mousemove", (e) => {
-                        const rect = star.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        hoverValue = x < rect.width / 2 ? i - 0.5 : i;
-                        renderStars();
-                    });
-                    star.addEventListener("mouseleave", () => {
-                        hoverValue = null;
-                        renderStars();
-                    });
-                    star.addEventListener("click", (e) => {
-                        const rect = star.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        value = x < rect.width / 2 ? i - 0.5 : i;
-                        // Optionally: send event to backend here
-                        // If you want to send to backend:
-                        if (component.props.onChange) {
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                value: value
-                            };
-                            const queryParams = Object.entries(params)
-                                .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
-                                .join('&');
-                            fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            }).then(r => r.json()).then(data => {
-                                if (data.value !== undefined) value = data.value;
-                                window.CacaoWS.requestServerRefresh();
-                            });
-                        }
-                        renderStars();
-                    });
-                    wrapper.appendChild(star);
-                }
-            }
-            renderStars();
-            return wrapper;
-        },
-
-        "range-sliders": (component) => {
-            const container = document.createElement("div");
-            container.className = "range-sliders-container";
-            
-            // Create sliders container
-            const slidersContainer = document.createElement("div");
-            slidersContainer.className = "sliders-wrapper";
-            
-            // Create lower slider
-            const lowerSlider = document.createElement("input");
-            lowerSlider.type = "range";
-            lowerSlider.className = "range-slider lower";
-            lowerSlider.min = component.props.min;
-            lowerSlider.max = component.props.max;
-            lowerSlider.step = component.props.step;
-            lowerSlider.value = component.props.lowerValue;
-
-            // Create upper slider
-            const upperSlider = document.createElement("input");
-            upperSlider.type = "range";
-            upperSlider.className = "range-slider upper";
-            upperSlider.min = component.props.min;
-            upperSlider.max = component.props.max;
-            upperSlider.step = component.props.step;
-            upperSlider.value = component.props.upperValue;
-
-            // Add value displays
-            const lowerDisplay = document.createElement("div");
-            lowerDisplay.className = "range-value lower";
-            lowerDisplay.textContent = `$${component.props.lowerValue}`;
-
-            const upperDisplay = document.createElement("div");
-            upperDisplay.className = "range-value upper";
-            upperDisplay.textContent = `$${component.props.upperValue}`;
-
-            const rangeDisplay = document.createElement("div");
-            rangeDisplay.className = "range-display";
-            rangeDisplay.appendChild(lowerDisplay);
-            rangeDisplay.appendChild(document.createTextNode(" - "));
-            rangeDisplay.appendChild(upperDisplay);
-
-           let updateTimeout;
-           const updateValues = async () => {
-               const lower = parseFloat(lowerSlider.value);
-               const upper = parseFloat(upperSlider.value);
-               
-               // Ensure lower value doesn't exceed upper value and vice versa
-               if (lower > upper) {
-                   if (lowerSlider === document.activeElement) {
-                       upperSlider.value = lower;
-                   } else {
-                       lowerSlider.value = upper;
-                   }
-               }
-                
-               // Update displays immediately
-               lowerDisplay.textContent = `$${lowerSlider.value}`;
-               upperDisplay.textContent = `$${upperSlider.value}`;
-
-                if (component.props.onChange) {
-                    clearTimeout(updateTimeout);
-                    updateTimeout = setTimeout(async () => {
-                        try {
-                            document.querySelector('.refresh-overlay').classList.add('active');
-                            
-                            const action = component.props.onChange.action;
-                            const params = {
-                                ...component.props.onChange.params,
-                                lower_value: lowerSlider.value,
-                                upper_value: upperSlider.value
-                            };
-                            
-                            const queryParams = Object.entries(params)
-                                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                                .join('&');
-                                
-                            const response = await fetch(`/api/event?event=${action}&${queryParams}&t=${Date.now()}`, {
-                                method: 'GET',
-                                headers: {
-                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Server returned ${response.status}`);
-                            }
-                            
-                            const data = await response.json();
-                            if (data.lower_value !== undefined) {
-                                lowerSlider.value = data.lower_value;
-                            }
-                            if (data.upper_value !== undefined) {
-                                upperSlider.value = data.upper_value;
-                            }
-                            window.CacaoWS.requestServerRefresh();
-                        } catch (err) {
-                            console.error('[CacaoCore] Error updating range:', err);
-                            document.querySelector('.refresh-overlay').classList.remove('active');
-                        }
-                    }, 100); // Debounce updates
-                }
-            };
-
-            // Add styles
-            const styleEl = document.createElement('style');
-            styleEl.textContent = `
-                .range-sliders-container {
-                    width: 100%;
-                    padding: 20px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-                .sliders-wrapper {
-                    width: 100%;
-                    position: relative;
-                    padding: 10px 0;
-                }
-                .range-slider {
-                    width: 100%;
-                    margin: 10px 0;
-                    -webkit-appearance: none;
-                    background: transparent;
-                }
-                .range-slider::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    height: 24px;
-                    width: 24px;
-                    border-radius: 50%;
-                    background: #ffffff;
-                    cursor: pointer;
-                    margin-top: -10px;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                    border: 2px solid #D2691E;
-                    transition: all 0.2s ease;
-                }
-                .range-slider::-webkit-slider-thumb:hover {
-                    transform: scale(1.1);
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-                }
-                .range-slider::-webkit-slider-runnable-track {
-                    width: 100%;
-                    height: 4px;
-                    background: rgba(255,255,255,0.3);
-                    border-radius: 2px;
-                }
-                .range-display {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    margin-top: 20px;
-                    font-size: 20px;
-                    color: #ffffff;
-                    font-weight: bold;
-                    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-                }
-                .range-value {
-                    min-width: 60px;
-                    text-align: center;
-                    padding: 5px 10px;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 15px;
-                    margin: 0 10px;
-                }
-            `;
-            
-            container.appendChild(styleEl);
-            slidersContainer.appendChild(lowerSlider);
-            slidersContainer.appendChild(upperSlider);
-            container.appendChild(slidersContainer);
-            container.appendChild(rangeDisplay);
-
-            lowerSlider.addEventListener('input', updateValues);
-            upperSlider.addEventListener('input', updateValues);
-            
-            return container;
-        }
     };
 
     /**
      * Main function that decides how to render a component.
      */
     function renderComponent(component) {
-        // Basic validation
-        if (!component || !component.type) {
-            console.error("[CacaoCore] Invalid component:", component);
-            const errorEl = document.createElement("div");
-            errorEl.textContent = "Error: Invalid component";
-            errorEl.style.color = "red";
-            return errorEl;
+        // Enhanced validation with detailed error reporting
+        if (!component) {
+            logDetailedError("renderComponent", "Component is null or undefined", null, {
+                "Check component input": "Ensure a valid component object is passed to renderComponent"
+            });
+            return createErrorElement("Invalid component: null or undefined");
         }
+        
+        if (!component.type) {
+            logDetailedError("renderComponent", "Component missing required 'type' property", component, {
+                "Add type property": "Ensure component object has a 'type' property",
+                "Check component structure": "Verify component follows expected format: { type: 'componentName', props: {...} }"
+            });
+            return createErrorElement(`Invalid component: missing 'type' property`);
+        }
+
+        // Validate window.CacaoCore exists and has required functions
+        if (!window.CacaoCore) {
+            logDetailedError("renderComponent", "window.CacaoCore is not available", component, {
+                "Initialize CacaoCore": "Ensure cacao-core.js has loaded and window.CacaoCore is initialized",
+                "Check script loading": "Verify cacao-core.js is included before component rendering"
+            });
+            return createErrorElement("CacaoCore not initialized");
+        }
+
+        debugLog("Starting component render:", { type: component.type, hasProps: !!component.props });
 
         let el;
-        // 1. Special case for textarea - use our custom renderer
-        if (component.type === "textarea") {
-            console.log("[CacaoCore] Using custom textarea renderer");
-            el = componentRenderers.textarea(component);
-        }
-        // 2. If there's a specialized renderer in componentRenderers, use it
-        else if (componentRenderers[component.type]) {
-            el = componentRenderers[component.type](component);
-        }
-        // 3. Else if it's a known standard HTML tag, use the fallback
-        else if (STANDARD_TAGS.has(component.type)) {
-            el = renderStandardElement(component);
-        }
-        // 3. Otherwise, fallback to raw JSON
-        else {
-            el = document.createElement("pre");
-            el.textContent = JSON.stringify(component, null, 2);
-        }
-
-        // After we have the element, apply any custom classes/styles
-        if (component.props?.className) {
-            // If the renderer added a className already, append a space
-            if (el.className) {
-                el.className += ` ${component.props.className}`;
-            } else {
-                el.className = component.props.className;
+        try {
+            // 1. Special case for textarea - use our custom renderer
+            if (component.type === "textarea") {
+                debugLog("Using custom textarea renderer");
+                if (!componentRenderers.textarea) {
+                    throw new Error("textarea renderer not found in componentRenderers");
+                }
+                el = safeComponentRender(component, 'custom');
             }
-        }
-        if (component.props?.style) {
-            Object.assign(el.style, component.props.style);
-        }
+            // 2. If there's a specialized renderer in componentRenderers, use it
+            else if (componentRenderers[component.type]) {
+                debugLog(`Using custom renderer for ${component.type}`);
+                el = safeComponentRender(component, 'custom');
+            }
+            // 3. Else if it's a known standard HTML tag, use the fallback
+            else if (STANDARD_TAGS.has(component.type)) {
+                debugLog(`Using standard renderer for ${component.type}`);
+                el = safeComponentRender(component, 'standard');
+            }
+            // 4. Otherwise, fallback to raw JSON with warning
+            else {
+                logDetailedError("renderComponent", `Unknown component type: ${component.type}`, component, {
+                    "Add component renderer": `Add a renderer for '${component.type}' in componentRenderers object`,
+                    "Check component type": `Verify '${component.type}' is a valid component type`,
+                    "Use standard HTML tag": "If this should be a standard HTML element, add it to STANDARD_TAGS"
+                });
+                
+                el = document.createElement("pre");
+                el.className = "cacao-unknown-component";
+                el.style.cssText = "background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 5px; font-family: monospace; font-size: 12px;";
+                el.textContent = `Unknown component type: ${component.type}\n\n${JSON.stringify(component, null, 2)}`;
+            }
 
-        // Store component type as a data-attribute if available
-        if (component.component_type) {
-            el.dataset.componentType = component.component_type;
-        }
+            // After we have the element, apply any custom classes/styles
+            if (el && component.props?.className) {
+                // If the renderer added a className already, append a space
+                if (el.className) {
+                    el.className += ` ${component.props.className}`;
+                } else {
+                    el.className = component.props.className;
+                }
+                debugLog("Applied custom className:", component.props.className);
+            }
+            
+            if (el && component.props?.style) {
+                Object.assign(el.style, component.props.style);
+                debugLog("Applied custom styles:", component.props.style);
+            }
 
-        return el;
+            // Store component type as a data-attribute if available
+            if (el && component.component_type) {
+                el.dataset.componentType = component.component_type;
+            }
+
+            debugLog(`Successfully rendered component: ${component.type}`);
+            return el;
+            
+        } catch (error) {
+            logDetailedError("renderComponent", `Failed to render component ${component.type}`, component, {
+                "Check component renderer": `Verify ${component.type} renderer is properly implemented`,
+                "Validate component props": "Ensure component props are valid and complete",
+                "Enable debug mode": "Set window.CacaoCore.setDebugMode(true) for detailed logging"
+            });
+            
+            return createErrorElement(`Failed to render ${component.type}: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Helper function to create consistent error elements
+     * @param {string} message - Error message to display
+     * @returns {HTMLElement} Error element
+     */
+    function createErrorElement(message) {
+        const errorEl = document.createElement("div");
+        errorEl.className = "cacao-error";
+        errorEl.style.cssText = `
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+        `;
+        errorEl.innerHTML = `<strong>Cacao Error:</strong> ${message}`;
+        return errorEl;
     }
 
     /**
      * Renders the entire UI definition into #app.
      */
     function render(uiDefinition) {
-        console.log("[CacaoCore] Rendering UI definition:", uiDefinition);
+        debugLog("Starting UI render with definition:", uiDefinition);
         
-        // Skip if version unchanged and not forced
-        if (uiDefinition._v === lastVersion && !uiDefinition._force && !uiDefinition.force) {
-            console.log("[CacaoCore] Skipping render - same version");
-            return;
-        }
-        lastVersion = uiDefinition._v;
-        
-        const app = document.getElementById("app");
-        if (!app) {
-            console.error("[CacaoCore] Could not find app container");
-            return;
-        }
-        
-        // Clear existing content
-        while (app.firstChild) {
-            app.removeChild(app.firstChild);
-        }
+        try {
+            // Enhanced validation
+            if (!uiDefinition) {
+                logDetailedError("render", "UI definition is null or undefined", null, {
+                    "Check server response": "Ensure server returns valid UI definition",
+                    "Verify data flow": "Check that UI data is properly passed to render function"
+                });
+                return;
+            }
+            
+            // Skip if version unchanged and not forced
+            if (uiDefinition._v === lastVersion && !uiDefinition._force && !uiDefinition.force) {
+                debugLog("Skipping render - same version:", lastVersion);
+                return;
+            }
+            lastVersion = uiDefinition._v;
+            
+            const app = document.getElementById("app");
+            if (!app) {
+                logDetailedError("render", "Could not find app container element", null, {
+                    "Check HTML structure": "Ensure an element with id='app' exists in the DOM",
+                    "Verify DOM ready": "Make sure DOM is fully loaded before calling render"
+                });
+                return;
+            }
+            
+            debugLog("Clearing existing app content");
+            
+            // Clear existing content safely
+            try {
+                while (app.firstChild) {
+                    app.removeChild(app.firstChild);
+                }
+            } catch (clearError) {
+                logDetailedError("render", "Error clearing app content", clearError);
+                // Try alternative clearing method
+                app.innerHTML = '';
+            }
 
-        // If there's a layout with children or a div with children
-        if ((uiDefinition.layout === 'column' || uiDefinition.type === 'div') && uiDefinition.children) {
-            uiDefinition.children.forEach(child => {
-                app.appendChild(renderComponent(child));
+            // Render content with error handling
+            try {
+                if ((uiDefinition.layout === 'column' || uiDefinition.type === 'div') && uiDefinition.children) {
+                    debugLog(`Rendering ${uiDefinition.children.length} child components`);
+                    uiDefinition.children.forEach((child, index) => {
+                        try {
+                            const childElement = renderComponent(child);
+                            if (childElement) {
+                                app.appendChild(childElement);
+                                debugLog(`Successfully rendered child ${index}`);
+                            } else {
+                                logDetailedError("render", `Child ${index} rendered as null`, child);
+                            }
+                        } catch (childError) {
+                            logDetailedError("render", `Failed to render child ${index}`, child, {
+                                "Check child structure": "Ensure child component has valid structure",
+                                "Skip broken children": "Consider adding error boundaries for individual components"
+                            });
+                            
+                            // Add error placeholder for failed child
+                            const errorEl = createErrorElement(`Failed to render child component ${index}`);
+                            app.appendChild(errorEl);
+                        }
+                    });
+                } else {
+                    // single component
+                    debugLog("Rendering single component:", uiDefinition.type);
+                    const element = renderComponent(uiDefinition);
+                    if (element) {
+                        app.appendChild(element);
+                    } else {
+                        logDetailedError("render", "Single component rendered as null", uiDefinition);
+                    }
+                }
+                
+                debugLog("UI rendered successfully");
+                console.log("[CacaoCore] UI rendered successfully");
+                
+            } catch (renderError) {
+                logDetailedError("render", "Error during component rendering", renderError, {
+                    "Check component definitions": "Verify all components are properly defined",
+                    "Enable debug mode": "Set window.CacaoCore.setDebugMode(true) for detailed logging",
+                    "Check browser console": "Review console for additional error details"
+                });
+                
+                // Show error message in app
+                const errorEl = createErrorElement("Failed to render UI components. Check console for details.");
+                app.appendChild(errorEl);
+            }
+            
+        } catch (generalError) {
+            logDetailedError("render", "General rendering error", generalError, {
+                "Check error details": "Review the specific error message for guidance",
+                "Reload page": "Try refreshing the page if the error persists",
+                "Check server status": "Verify the application server is running properly"
             });
-        } else {
-            // single component
-            app.appendChild(renderComponent(uiDefinition));
+            
+            // Last resort error display
+            const app = document.getElementById("app");
+            if (app) {
+                app.innerHTML = `
+                    <div style="color: red; padding: 20px; text-align: center; font-family: sans-serif;">
+                        <h3>Cacao Rendering Error</h3>
+                        <p>Failed to render the application. Please check the browser console for details.</p>
+                        <button onclick="window.location.reload()" style="padding: 10px 20px; margin-top: 10px;">
+                            Reload Page
+                        </button>
+                    </div>
+                `;
+            }
+        } finally {
+            // Always try to hide refresh overlay
+            try {
+                const overlay = document.querySelector('.refresh-overlay');
+                if (overlay) {
+                    overlay.classList.remove('active');
+                }
+            } catch (overlayError) {
+                // Ignore overlay errors
+                debugLog("Error hiding refresh overlay:", overlayError);
+            }
         }
-        
-        console.log("[CacaoCore] UI rendered successfully");
-        
-        // Hide refresh overlay
-        document.querySelector('.refresh-overlay').classList.remove('active');
     }
 
     // Handle browser back/forward buttons and initial hash
@@ -1474,11 +740,73 @@
     window.CacaoCore = {
         render,
         componentRenderers,
-        renderComponent, // MISSING: Add renderComponent to global exposure
+        renderComponent,
+        renderChildren,
+        applyContent,
         clearCache: () => {
             lastVersion = null;
             errorCount = 0;  // Reset error count when cache is cleared
+            debugLog("Cache cleared and error count reset");
+        },
+        
+        // Debug and error handling functions
+        setDebugMode: (enabled) => {
+            debugMode = enabled;
+            console.log(`[CacaoCore] Debug mode ${enabled ? 'enabled' : 'disabled'}`);
+        },
+        
+        getDebugMode: () => debugMode,
+        
+        validateFunctionAvailability,
+        
+        // Utility functions for external debugging
+        debugLog,
+        logDetailedError,
+        createErrorElement,
+        
+        // Version and status information
+        getVersion: () => "1.0.0-enhanced",
+        getStatus: () => ({
+            lastVersion,
+            errorCount,
+            debugMode,
+            functionsAvailable: validateFunctionAvailability()
+        }),
+        
+        // Manual error reporting for external components
+        reportError: (context, error, component = null, suggestions = null) => {
+            logDetailedError(context, error, component, suggestions);
         }
     };
+    
+    // Initialize with improved error boundary
+    try {
+        // Validate that all required functions are properly exposed
+        const validation = validateFunctionAvailability();
+        if (!validation.isValid) {
+            console.warn("[CacaoCore] Some functions may not be properly exposed:", validation.missing);
+        } else {
+            debugLog("CacaoCore initialized successfully with all required functions");
+        }
+        
+        // Add global error handler for uncaught component errors
+        window.addEventListener('error', function(event) {
+            if (event.error && event.error.stack && event.error.stack.includes('renderComponent')) {
+                logDetailedError(
+                    "Uncaught component error",
+                    event.error,
+                    null,
+                    {
+                        "Check component structure": "Verify all component objects have valid structure",
+                        "Enable debug mode": "Call window.CacaoCore.setDebugMode(true) for detailed logging",
+                        "Check console": "Review browser console for additional error details"
+                    }
+                );
+            }
+        });
+        
+    } catch (initError) {
+        console.error("[CacaoCore] Initialization error:", initError);
+    }
     
 })();

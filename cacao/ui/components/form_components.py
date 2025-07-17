@@ -1,10 +1,26 @@
 """
 Forms module for UI components in the Cacao framework.
-Provides implementations for form elements with validation, labels, and controls.
+Provides backward compatibility imports for components that have been migrated to the new folder structure.
 """
 
 from typing import List, Dict, Any, Optional, Callable, Union
 from .base import Component
+
+from .forms import (
+    Input,
+    SearchInput,
+    Select,
+    Checkbox,
+    Radio,
+    Switch,
+    Textarea,
+    Datepicker,
+    Timepicker,
+    Slider,
+    Rate,
+    Upload
+)
+
 
 class Form(Component):
     """
@@ -103,3 +119,19 @@ def create_form(
             "onSubmit": on_submit
         }
     }
+
+# Export all form components and helpers for backward compatibility
+__all__ = [
+    # Base form components
+    'Form', 'FormItem', 'create_form',
+    
+    # Individual component classes
+    'Input', 'SearchInput', 'Select', 'Checkbox',
+    'Radio', 'Switch', 'Textarea', 'Datepicker',
+    'Timepicker', 'Slider', 'Rate', 'Upload',
+    
+    # Helper functions
+    'create_input', 'create_search', 'create_select', 'create_checkbox',
+    'create_radio', 'create_switch', 'create_textarea', 'create_datepicker',
+    'create_timepicker', 'create_slider', 'create_rate', 'create_upload'
+]
