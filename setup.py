@@ -34,6 +34,7 @@ setup(
             'ui/components/**/*.js',
             'ui/components/**/*.css',
             'ui/components/**/*.py'
+            'ui/themes/*.py'
         ]
     },
     include_package_data=True,
