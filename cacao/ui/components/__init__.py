@@ -4,20 +4,27 @@ Provides base components and common UI elements.
 """
 
 from .base import Component, ComponentProps
+
 from .inputs import (
-    Slider, Input, TextArea, SearchInput, InputGroup, 
-    Select, Cascader, Checkbox, Radio, Switch, Rate, 
-    DatePicker, TimePicker, Upload
+    InputGroup,  Cascader
 )
+
+from .forms import (
+    Slider, Input, Textarea, SearchInput, 
+    Select, Checkbox, Radio, Switch, Rate, 
+    Datepicker, Timepicker, Upload
+)
+
 from .data import (
     Plot, List, Descriptions, Tooltip, Popover,
     Card, Carousel, Collapse, Image, Badge, Avatar, Tag, Timeline
 )
+
 from .layout import Grid, Column
 from .sidebar_layout import SidebarLayout
-from .range_sliders import RangeSliders
-from .forms import Form, FormItem
-from .navigation import Menu, Breadcrumb, Tabs, Dropdown, Pagination, Steps
+from .form_components import Form, FormItem
+from .navigation import Menu, NavItem, Navbar, Tabs, Breadcrumb
+from .ui import Button, Sidebar, Text
 
 __all__ = [
     # Base
@@ -27,7 +34,7 @@ __all__ = [
     # Inputs
     "Slider",
     "Input",
-    "TextArea",
+    "Textarea",
     "SearchInput",
     "InputGroup",
     "Select",
@@ -36,8 +43,8 @@ __all__ = [
     "Radio",
     "Switch",
     "Rate",
-    "DatePicker",
-    "TimePicker",
+    "Datepicker",
+    "Timepicker",
     "Upload",
     
     # Data
@@ -54,7 +61,6 @@ __all__ = [
     "Avatar",
     "Tag",
     "Timeline",
-    "RangeSliders",
     
     # Layout
     "Grid",
@@ -67,9 +73,13 @@ __all__ = [
     
     # Navigation
     "Menu",
-    "Breadcrumb",
+    "NavItem",
+    "Navbar",
     "Tabs",
-    "Dropdown",
-    "Pagination",
-    "Steps"
+    "Breadcrumb",
+    
+    # UI Components
+    "Button",
+    "Sidebar",
+    "Text"
 ]

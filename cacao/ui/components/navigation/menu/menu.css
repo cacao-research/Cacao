@@ -1,0 +1,599 @@
+/**
+ * Menu Component Styles
+ * Provides styling for menu navigation with submenus and various themes
+ */
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: #fff;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.menu-horizontal {
+    flex-direction: row;
+    align-items: center;
+}
+
+.menu-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-horizontal .menu-item {
+    flex-direction: row;
+}
+
+.menu-link,
+.menu-submenu-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    background: none;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 400;
+    position: relative;
+    outline: none;
+}
+
+.menu-link:hover,
+.menu-submenu-toggle:hover {
+    color: #1890ff;
+    background-color: #f0f8ff;
+}
+
+.menu-link:focus,
+.menu-submenu-toggle:focus {
+    background-color: #f0f8ff;
+    box-shadow: inset 0 0 0 2px #1890ff;
+}
+
+.menu-link:focus-visible,
+.menu-submenu-toggle:focus-visible {
+    outline: 2px solid #1890ff;
+    outline-offset: -2px;
+}
+
+.menu-link-content,
+.menu-submenu-toggle-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+.menu-icon {
+    font-size: 16px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.menu-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menu-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background-color: #ff4d4f;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 9px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.menu-arrow {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid currentColor;
+    margin-left: auto;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.menu-horizontal .menu-arrow {
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 4px solid currentColor;
+    border-right: none;
+}
+
+/* Active state */
+.menu-item-active > .menu-link,
+.menu-item-active > .menu-submenu-toggle {
+    color: #1890ff;
+    background-color: #e6f7ff;
+    font-weight: 500;
+}
+
+.menu-item-active > .menu-link::after,
+.menu-item-active > .menu-submenu-toggle::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #1890ff;
+}
+
+.menu-horizontal .menu-item-active > .menu-link::after,
+.menu-horizontal .menu-item-active > .menu-submenu-toggle::after {
+    right: auto;
+    left: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 3px;
+}
+
+/* Disabled state */
+.menu-item-disabled > .menu-link,
+.menu-item-disabled > .menu-submenu-toggle {
+    color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.menu-item-disabled > .menu-link:hover,
+.menu-item-disabled > .menu-submenu-toggle:hover {
+    color: #ccc;
+    background-color: transparent;
+}
+
+/* Submenu */
+.menu-submenu {
+    display: none;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background-color: #fafafa;
+    border-left: 3px solid #e6f7ff;
+    margin-left: 16px;
+    border-radius: 0 4px 4px 0;
+    overflow: hidden;
+}
+
+.menu-horizontal .menu-submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    margin-left: 0;
+    border-left: none;
+}
+
+.menu-item-submenu-open > .menu-submenu {
+    display: flex;
+}
+
+.menu-item-submenu-open > .menu-submenu-toggle .menu-arrow {
+    transform: rotate(180deg);
+}
+
+.menu-horizontal .menu-item-submenu-open > .menu-submenu-toggle .menu-arrow {
+    transform: rotate(90deg);
+}
+
+.menu-submenu .menu-item {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.menu-submenu .menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-submenu .menu-link {
+    padding: 10px 16px;
+    font-size: 13px;
+    padding-left: 40px;
+}
+
+.menu-horizontal .menu-submenu .menu-link {
+    padding: 10px 16px;
+    padding-left: 16px;
+}
+
+/* Size variations */
+.menu-small {
+    font-size: 12px;
+}
+
+.menu-small .menu-link,
+.menu-small .menu-submenu-toggle {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.menu-small .menu-icon {
+    font-size: 14px;
+    width: 16px;
+    height: 16px;
+}
+
+.menu-small .menu-submenu .menu-link {
+    padding: 6px 12px;
+    padding-left: 28px;
+}
+
+.menu-large {
+    font-size: 16px;
+}
+
+.menu-large .menu-link,
+.menu-large .menu-submenu-toggle {
+    padding: 16px 20px;
+    font-size: 16px;
+}
+
+.menu-large .menu-icon {
+    font-size: 20px;
+    width: 24px;
+    height: 24px;
+}
+
+.menu-large .menu-submenu .menu-link {
+    padding: 12px 20px;
+    padding-left: 44px;
+}
+
+/* Variant styles */
+
+/* Inline variant */
+.menu-inline {
+    box-shadow: none;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.menu-inline .menu-item {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.menu-inline .menu-item:last-child {
+    border-bottom: none;
+}
+
+/* Vertical variant */
+.menu-vertical {
+    border-right: 1px solid #f0f0f0;
+}
+
+/* Theme variations */
+
+/* Dark theme */
+.menu-dark {
+    background-color: #001529;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.menu-dark .menu-link,
+.menu-dark .menu-submenu-toggle {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.menu-dark .menu-link:hover,
+.menu-dark .menu-submenu-toggle:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-dark .menu-item-active > .menu-link,
+.menu-dark .menu-item-active > .menu-submenu-toggle {
+    color: #1890ff;
+    background-color: rgba(24, 144, 255, 0.1);
+}
+
+.menu-dark .menu-submenu {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-color: rgba(24, 144, 255, 0.3);
+}
+
+.menu-dark .menu-submenu .menu-item {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme */
+.menu-light {
+    background-color: #fafafa;
+    border: 1px solid #f0f0f0;
+}
+
+.menu-light .menu-link:hover,
+.menu-light .menu-submenu-toggle:hover {
+    background-color: #fff;
+}
+
+.menu-light .menu-item-active > .menu-link,
+.menu-light .menu-item-active > .menu-submenu-toggle {
+    background-color: #fff;
+    border-color: #1890ff;
+}
+
+/* Collapsed state */
+.menu-collapsed {
+    width: 64px;
+    overflow: hidden;
+}
+
+.menu-collapsed .menu-label {
+    display: none;
+}
+
+.menu-collapsed .menu-badge {
+    display: none;
+}
+
+.menu-collapsed .menu-arrow {
+    display: none;
+}
+
+.menu-collapsed .menu-link,
+.menu-collapsed .menu-submenu-toggle {
+    justify-content: center;
+    padding: 12px;
+}
+
+.menu-collapsed .menu-submenu {
+    display: none !important;
+}
+
+.menu-collapsed .menu-icon {
+    margin: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .menu-horizontal {
+        flex-direction: column;
+    }
+    
+    .menu-horizontal .menu-item {
+        flex-direction: column;
+    }
+    
+    .menu-horizontal .menu-submenu {
+        position: static;
+        box-shadow: none;
+        border: none;
+        border-left: 3px solid #e6f7ff;
+        margin-left: 16px;
+        border-radius: 0 4px 4px 0;
+    }
+    
+    .menu-horizontal .menu-arrow {
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid currentColor;
+        border-bottom: none;
+    }
+    
+    .menu-horizontal .menu-item-submenu-open > .menu-submenu-toggle .menu-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .menu-horizontal .menu-item-active > .menu-link::after,
+    .menu-horizontal .menu-item-active > .menu-submenu-toggle::after {
+        right: 0;
+        left: auto;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        height: 100%;
+    }
+}
+
+/* Accessibility improvements */
+.menu-link:focus-visible,
+.menu-submenu-toggle:focus-visible {
+    outline: 2px solid #1890ff;
+    outline-offset: -2px;
+}
+
+/* Animation for submenu */
+.menu-submenu {
+    transition: all 0.3s ease;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.menu-item-submenu-open > .menu-submenu {
+    max-height: 1000px;
+}
+
+.menu-horizontal .menu-submenu {
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    max-height: none;
+}
+
+.menu-horizontal .menu-item-submenu-open > .menu-submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .menu {
+        border: 2px solid;
+    }
+    
+    .menu-link,
+    .menu-submenu-toggle {
+        border: 1px solid;
+    }
+    
+    .menu-item-active > .menu-link,
+    .menu-item-active > .menu-submenu-toggle {
+        background-color: ButtonFace;
+        border-color: ButtonText;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .menu-link,
+    .menu-submenu-toggle,
+    .menu-arrow,
+    .menu-submenu {
+        transition: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .menu {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .menu-submenu {
+        display: flex !important;
+    }
+}
+
+/* Loading state */
+.menu-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.menu-loading .menu-item::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border: 2px solid #1890ff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: menu-spin 1s linear infinite;
+}
+
+@keyframes menu-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Scroll indicators for long menus */
+.menu-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f1f1f1;
+}
+
+.menu-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.menu-scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.menu-scrollable::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.menu-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Tooltip for collapsed menu items */
+.menu-collapsed .menu-item {
+    position: relative;
+}
+
+.menu-collapsed .menu-item:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1001;
+    margin-left: 8px;
+}
+
+.menu-collapsed .menu-item:hover::before {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-right: 4px solid #333;
+    z-index: 1001;
+    margin-left: 4px;
+}
+
+/* RTL support */
+.menu[dir="rtl"] .menu-item-active > .menu-link::after,
+.menu[dir="rtl"] .menu-item-active > .menu-submenu-toggle::after {
+    right: auto;
+    left: 0;
+}
+
+.menu[dir="rtl"] .menu-submenu {
+    border-left: none;
+    border-right: 3px solid #e6f7ff;
+    margin-left: 0;
+    margin-right: 16px;
+    border-radius: 4px 0 0 4px;
+}
+
+.menu[dir="rtl"] .menu-arrow {
+    margin-left: 0;
+    margin-right: auto;
+}

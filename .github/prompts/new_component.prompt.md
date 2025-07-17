@@ -12,7 +12,6 @@ def update(self, state: State):
     # Handle state changes
 ```
 3. Add TypeScript type definitions in `static/js/types.d.ts`
-4. Create matching CSS rules in `themes/default.css`
-5. Register component in `ui/component_manager.py`
+4. Register component in `ui/component_manager.py`
 
 Example reference: [ui/components/table.py](../cacao/ui/components/table.py)

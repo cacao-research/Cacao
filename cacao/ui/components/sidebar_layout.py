@@ -1,3 +1,4 @@
+print("DEBUG: Loaded sidebar_layout.py from local source")
 """
 Sidebar layout components for Cacao framework.
 Provides components for creating a layout with a left navigation sidebar.
@@ -8,6 +9,8 @@ from .base import Component
 from ...core.state import State, get_state
 from ...core.mixins.logging import LoggingMixin
 from ...core.theme import get_theme, get_color
+from .navigation.nav_item.nav_item import NavItem
+from .ui.sidebar.sidebar import Sidebar
 import json
 
 # Debug flag for SidebarLayout component
@@ -174,7 +177,7 @@ class SidebarLayout(Component, LoggingMixin):
 
         # Prepare content area children
         content_children = []
-        
+
         # Add header if enabled
         if self.show_header:
             content_children.append({
@@ -201,7 +204,7 @@ class SidebarLayout(Component, LoggingMixin):
                     ]
                 }
             })
-        
+
         # Add main content wrapper
         content_children.append({
             "type": "section",
@@ -248,246 +251,5 @@ class SidebarLayout(Component, LoggingMixin):
                         }
                     }
                 ]
-            }
-        }
-
-class NavItem(Component):
-    def __init__(self, id: str, label: str, icon: Optional[str] = None, is_active: bool = False) -> None:
-        super().__init__()
-        self.id = id
-        self.label = label
-        self.icon = icon
-        self.is_active = is_active
-
-    def render(self) -> Dict[str, Any]:
-        # Get styles from parent component or use global theme
-        parent_styles = {}
-        if hasattr(self, 'parent') and hasattr(self.parent, 'styles'):
-            parent_styles = self.parent.styles
-        
-        # Get global theme and colors
-        theme = get_theme()
-        theme_colors = theme.get('colors', {})
-        
-        # Base and active styles
-        base_style = {
-            "display": "flex",
-            "alignItems": "center",
-            "padding": parent_styles.get("nav_item_padding", "12px 16px"),
-            "margin": "4px 8px",
-            "borderRadius": "8px",
-            "cursor": "pointer",
-            "transition": "all 0.2s ease",
-            "color": parent_styles.get("sidebar_text", theme_colors.get("sidebar_text", "#D6C3B6")),
-            "fontSize": parent_styles.get("nav_item_size", "15px"),
-            "fontWeight": parent_styles.get("nav_item_weight", "500"),
-            "textDecoration": "none",
-        }
-        
-        # Apply active styles when item is selected
-        if self.is_active:
-            # Get theme colors with proper fallbacks
-            theme = get_theme()
-            theme_colors = theme.get('colors', {})
-            active_styles = {
-                "backgroundColor": parent_styles.get("active_bg", theme_colors.get("active_bg", "#D6C3B6")),
-                "color": parent_styles.get("active_text", theme_colors.get("active_text", "#FFFFFF")),
-                "boxShadow": "0 2px 5px rgba(107, 66, 38, 0.3)"
-            }
-            # Merge active styles into base styles
-            base_style.update(active_styles)
-        else:
-            # Hover effect will be handled by CSS in the real app
-            # Here we're defining the non-active state
-            base_style["backgroundColor"] = "transparent"
-
-        if SIDEBAR_DEBUG:
-            # --- Debugging Start ---
-            print(f"[DEBUG NavItem {self.id}] is_active: {self.is_active}")
-
-        # Ensure hover style doesn't interfere if present
-        final_style = {k: v for k, v in base_style.items() if k != "&:hover"}
-
-        if SIDEBAR_DEBUG:
-            print(f"[DEBUG NavItem {self.id}] Final style prop: {json.dumps(final_style, indent=2)}")
-            # --- Debugging End ---
-                
-        # Create the icon element if provided
-        icon_element = None
-        if self.icon:
-            icon_element = {
-                "type": "div",
-                "props": {
-                    "style": {
-                        "width": "28px",
-                        "height": "28px", 
-                        "display": "flex",
-                        "alignItems": "center",
-                        "justifyContent": "center",
-                        "marginRight": "14px",
-                        "backgroundColor": parent_styles.get("active_icon_bg", theme_colors.get("active_icon_bg", "#8B5E41")) if self.is_active else parent_styles.get("inactive_icon_bg", theme_colors.get("inactive_icon_bg", "rgba(107, 66, 38, 0.3)")),
-                        "color": parent_styles.get("active_text", theme_colors.get("active_text", "#FFFFFF")),
-                        "borderRadius": "6px",
-                        "fontSize": "16px",
-                        "fontWeight": "bold"
-                    },
-                    "children": [{
-                        "type": "text",
-                        "props": {
-                            "content": self.icon,
-                            "style": {
-                                "color": parent_styles.get("active_text", get_color("active_text"))
-                            }
-                        }
-                    }]
-                }
-            }
-
-        children = []
-        if icon_element:
-            children.append(icon_element)
-            
-        # Add the label with improved visibility
-        children.append({
-            "type": "text",
-            "props": {
-                "content": self.label,
-                "style": {
-                    "whiteSpace": "nowrap",
-                    "overflow": "hidden",
-                    "textOverflow": "ellipsis",
-                    "fontWeight": "500",
-                    "fontSize": "15px",
-                    "color": parent_styles.get("active_text", get_color("active_text")) if self.is_active else parent_styles.get("sidebar_text", get_color("sidebar_text"))
-                }
-            }
-        })
-        
-        return {
-            "type": "nav-item",
-            "key": f"nav-{self.id}",
-            "props": {
-                "style": final_style, # Use the debugged style dict
-                "children": children,
-                "onClick": {
-                    "action": "set_state",
-                    "state": "current_page",
-                    "value": self.id,
-                    "immediate": True  # Signal that this state change should be applied immediately
-                }
-            }
-        }
-
-class Sidebar(Component):
-    def __init__(self, nav_items: List[NavItem], app_title: str = "Cacao App", 
-                 show_footer: bool = True, footer_text: str = "© 2025 Cacao Framework") -> None:
-        """Initialize sidebar with navigation items.
-        
-        Args:
-            nav_items: List of NavItem components
-            app_title: Title to display in the sidebar header
-            show_footer: Whether to show the footer in the sidebar
-            footer_text: Custom text to display in the footer (if shown)
-        """
-        # The theme will be set by the parent SidebarLayout component
-        super().__init__()
-        self.nav_items = nav_items
-        self.app_title = app_title
-        self.show_footer = show_footer
-        self.footer_text = footer_text
-        
-    def render(self) -> Dict[str, Any]:
-        # Get theme colors
-        theme = get_theme()
-        theme_colors = theme.get('colors', {})
-        
-        children = [
-            # App header/brand section
-            {
-                "type": "div",
-                "props": {
-                    "style": {
-                        "padding": "20px 16px",
-                        "borderBottom": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
-                        "display": "flex",
-                        "alignItems": "center",
-                        "height": "64px",
-                        "backgroundColor": self.parent.styles.get("sidebar_header_bg", get_color("sidebar_header_bg"))
-                    },
-                    "children": [
-                        {
-                            "type": "h2",
-                            "props": {
-                                "content": self.app_title,
-                                "style": {
-                                    "margin": 0,
-                                    "fontSize": "18px",
-                                    "fontWeight": "600",
-                                    "color": self.parent.styles.get("app_title_color", theme_colors.get("app_title_color", "#D6C3B6"))
-                                }
-                            }
-                        }
-                    ]
-                }
-            },
-            # Navigation items container
-            {
-                "type": "div",
-                "props": {
-                    "style": {
-                        "padding": "16px 0",
-                        "flex": 1,
-                        "overflowY": "auto"
-                    },
-                    "children": [nav_item.render() for nav_item in self.nav_items]
-                }
-            }
-        ]
-        
-        # Add footer if enabled
-        if self.show_footer:
-            children.append({
-                "type": "div",
-                "props": {
-                    "style": {
-                        "borderTop": f"1px solid {self.parent.styles.get('sidebar_border', get_color('sidebar_border'))}",
-                        "padding": "16px",
-                        "fontSize": "12px",
-                        "color": self.parent.styles.get("sidebar_text", get_color("sidebar_text"))
-                    },
-                    "children": [
-                        {
-                            "type": "text",
-                            "props": {
-                                "content": self.footer_text,
-                                "style": {
-                                    "margin": 0
-                                }
-                            }
-                        }
-                    ]
-                }
-            })
-        
-        return {
-            "type": "sidebar",
-            "key": "sidebar",
-            "props": {
-                "style": {
-                    "width": self.parent.styles.get("sidebar_width", "250px") if sidebar_expanded_state.value else self.parent.styles.get("sidebar_collapsed_width", "64px"),
-                    "height": "100vh",
-                    "position": "fixed",
-                    "top": 0,
-                    "left": 0,
-                    "backgroundColor": self.parent.styles.get("sidebar_bg", get_color("sidebar_bg")),
-                    "color": self.parent.styles.get("active_text", get_color("active_text")),
-                    "boxShadow": "0 0 15px rgba(107, 66, 38, 0.15)",
-                    "transition": "width 0.3s ease",
-                    "padding": "0",
-                    "display": "flex",
-                    "flexDirection": "column",
-                    "zIndex": 1000
-                },
-                "children": children
             }
         }

@@ -334,6 +334,77 @@ class ComponentCompiler:
             print(f"[ComponentCompiler] Error reading {css_path}: {e}")
             return ""
             
+    def _transform_function_calls(self, js_content: str) -> str:
+        """
+        Transform direct CacaoCore function calls to use proper namespacing.
+        
+        This method transforms direct function calls like:
+        - renderChildren(el, children) -> window.CacaoCore.renderChildren(el, children)
+        - applyContent(el, content) -> window.CacaoCore.applyContent(el, content)
+        - renderComponent(component) -> window.CacaoCore.renderComponent(component)
+        
+        Args:
+            js_content: Original JavaScript content
+            
+        Returns:
+            Transformed JavaScript content with proper namespacing
+        """
+        import re
+        
+        # Define the whitelist of CacaoCore functions that need transformation
+        cacao_core_functions = [
+            'renderChildren',
+            'applyContent',
+            'renderComponent'
+        ]
+        
+        transformed_content = js_content
+        transformations_made = []
+        
+        for func_name in cacao_core_functions:
+            # Pattern to match direct function calls (not method calls or already namespaced)
+            # This pattern matches: functionName( but not object.functionName( or window.CacaoCore.functionName(
+            pattern = r'(?<![\w.])\b' + re.escape(func_name) + r'\s*\('
+            
+            # Find all matches to track transformations
+            matches = re.findall(pattern, transformed_content)
+            if matches:
+                transformations_made.extend([func_name] * len(matches))
+                
+                # Replace with namespaced version
+                replacement = f'window.CacaoCore.{func_name}('
+                transformed_content = re.sub(pattern, replacement, transformed_content)
+        
+        # Log transformations for debugging
+        if transformations_made:
+            print(f"[ComponentCompiler] Transformed function calls: {', '.join(transformations_made)}")
+        
+        return transformed_content
+        
+    def _validate_function_calls(self, js_content: str, component_name: str) -> List[str]:
+        """
+        Validate that all CacaoCore function calls are properly namespaced.
+        
+        Args:
+            js_content: JavaScript content to validate
+            component_name: Name of the component being validated
+            
+        Returns:
+            List of validation warnings
+        """
+        import re
+        
+        warnings = []
+        cacao_core_functions = ['renderChildren', 'applyContent', 'renderComponent']
+        
+        for func_name in cacao_core_functions:
+            # Check for direct function calls that weren't properly transformed
+            direct_call_pattern = r'(?<![\w.])\b' + re.escape(func_name) + r'\s*\('
+            if re.search(direct_call_pattern, js_content):
+                warnings.append(f"Component '{component_name}' contains direct call to '{func_name}()' - should use 'window.CacaoCore.{func_name}()'")
+        
+        return warnings
+            
     def _aggregate_css(self, components: List[Dict]) -> str:
         """
         Aggregate CSS from all components into a single CSS string.
@@ -368,62 +439,108 @@ class ComponentCompiler:
     def _wrap_component(self, component_info: Dict) -> str:
         """
         Wrap a component's JavaScript with registration logic.
-        
-        Args:
-            component_info: Component metadata dictionary
-            
-        Returns:
-            Wrapped JavaScript code as string
+        Ensures that any errors in component registration are caught
+        and do not break the overall application.
         """
-        name = component_info['name']
-        
-        # Check if component has JavaScript file
-        if 'js_path' not in component_info:
-            component_type = "folder-based" if 'category' in component_info else "meta.json"
-            print(f"[ComponentCompiler] Skipping {component_type} component '{name}' - no JavaScript file found")
-            return ""
-            
-        js_content = self._read_component_js(component_info['js_path'])
-        
-        if not js_content:
-            component_type = "folder-based" if 'category' in component_info else "meta.json"
-            print(f"[ComponentCompiler] Failed to read JavaScript for {component_type} component: {name}")
-            return ""
-            
-        # Convert component name to valid JavaScript identifier
-        # Convert hyphens to camelCase (e.g., "enhanced-table" -> "table")
-        def to_camel_case(text):
-            parts = text.split('-')
-            return parts[0] + ''.join(word.capitalize() for word in parts[1:])
-        
-        # Generate valid JavaScript variable name
-        js_var_name = to_camel_case(name) if '-' in name else name
-        
-        # Generate both camelCase and lowercase keys for maximum compatibility
-        component_key_camel = name
-        component_key_lower = name.lower()  # table
-        
-        wrapper = f"""
+        # Safely get component name
+        name = component_info.get('name', 'UnknownComponent')
+        try:
+            # Skip if no JS path provided
+            if 'js_path' not in component_info:
+                comp_type = "folder-based" if 'category' in component_info else "meta.json"
+                print(f"[ComponentCompiler] Skipping {comp_type} component '{name}' - no JavaScript file found")
+                return ""
+
+            # Read JS content with its own try/except
+            try:
+                js_content = self._read_component_js(component_info['js_path'])
+            except Exception as e:
+                print(f"[ComponentCompiler] Error reading JS for '{name}': {e}")
+                return ""
+
+            if not js_content:
+                comp_type = "folder-based" if 'category' in component_info else "meta.json"
+                print(f"[ComponentCompiler] Failed to read JavaScript for {comp_type} component: {name}")
+                return ""
+
+            # Transform function calls safely
+            try:
+                js_content = self._transform_function_calls(js_content)
+            except Exception as e:
+                print(f"[ComponentCompiler] Error transforming JS for '{name}': {e}")
+
+            # Validate function calls safely
+            try:
+                validation_warnings = self._validate_function_calls(js_content, name)
+                for warning in validation_warnings:
+                    print(f"[ComponentCompiler] WARNING: {warning}")
+            except Exception as e:
+                print(f"[ComponentCompiler] Error validating JS for '{name}': {e}")
+
+            # Helper to convert hyphens to camelCase
+            def to_camel_case(text):
+                parts = text.split('-')
+                return parts[0] + ''.join(word.capitalize() for word in parts[1:])
+
+            js_var_name = to_camel_case(name) if '-' in name else name
+
+            import re
+            is_class = js_content.strip().startswith('class ')
+            if is_class:
+                match = re.match(r'class\s+([A-Za-z0-9_]+)', js_content.strip())
+                class_name = match.group(1) if match else 'UnknownClass'
+
+                wrapper = f"""
 // Auto-generated component: {name}
-(function() {{
-    // Component renderer function
-    const {js_var_name}Renderer = {js_content};
-    
-    // Ensure the global registry exists (defensive programming)
-    if (!window.CacaoCore) {{
-        console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
-        window.CacaoCore = {{}};
+(function(){{
+    try {{
+        {js_content}
+
+        // Ensure the global registry exists
+        if (!window.CacaoCore) {{
+            console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
+            window.CacaoCore = {{}};
+        }}
+        if (!window.CacaoCore.componentRenderers) {{
+            window.CacaoCore.componentRenderers = {{}};
+        }}
+
+        // Register the class directly
+        window.CacaoCore.componentRenderers['{name}'] = {class_name};
+    }} catch (error) {{
+        console.error('[CacaoComponents] Error registering component: {name}', error);
     }}
-    if (!window.CacaoCore.componentRenderers) {{
-        window.CacaoCore.componentRenderers = {{}};
-    }}
-    
-    // Extend the existing registry with the new component (both camelCase and lowercase for compatibility)
-    window.CacaoCore.componentRenderers['{name}'] = {js_var_name}Renderer;
 }})();
 """
-        return wrapper.strip()
-        
+            else:
+                wrapper = f"""
+// Auto-generated component: {name}
+(function(){{
+    try {{
+        const {js_var_name}Renderer = {js_content};
+
+        // Ensure the global registry exists
+        if (!window.CacaoCore) {{
+            console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
+            window.CacaoCore = {{}};
+        }}
+        if (!window.CacaoCore.componentRenderers) {{
+            window.CacaoCore.componentRenderers = {{}};
+        }}
+
+        // Register the renderer function
+        window.CacaoCore.componentRenderers['{name}'] = {js_var_name}Renderer;
+    }} catch (error) {{
+        console.error('[CacaoComponents] Error registering component: {name}', error);
+    }}
+}})();
+"""
+            return wrapper.strip()
+
+        except Exception as e:
+            print(f"[ComponentCompiler] Unexpected error wrapping component '{name}': {e}")
+            return ""
+
     def _generate_file_header(self) -> str:
         """
         Generate the header comment for the compiled file.
