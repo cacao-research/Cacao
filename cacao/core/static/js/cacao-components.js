@@ -1,7 +1,7 @@
 /*
  * Auto-generated Cacao Components
- * Generated on: 2025-07-17 01:02:00
- * Components: 36
+ * Generated on: 2025-07-17 11:08:53
+ * Components: 37
  *
  * This file extends window.CacaoCore.componentRenderers with compiled components.
  * It must be loaded AFTER cacao-core.js to ensure the global registry exists.
@@ -1433,6 +1433,110 @@
     }
 })();
 
+// Auto-generated component: tree_viewer
+(function(){
+    try {
+        const tree_viewerRenderer = (component) => {
+    console.log("[CacaoCore] Rendering tree_viewer component:", component);
+    const tree = document.createElement('div');
+    tree.className = 'tree_viewer';
+    
+    // Extract props
+    const expandAll = component.props.expand_all || false;
+    const onNodeClick = component.props.on_node_click;
+    const data = component.props.data;
+    const theme = component.props.theme || 'light';
+    
+    // Apply theme class
+    tree.classList.add(`theme-${theme}`);
+    
+    // Set ID if provided
+    if (component.props.id) {
+        tree.id = component.props.id;
+    }
+
+    function renderNode(key, value, parent) {
+        const node = document.createElement('div');
+        node.className = 'tree-node';
+        const isObject = value !== null && typeof value === 'object';
+
+        // toggle handle
+        const toggle = document.createElement('span');
+        toggle.className = 'tree-expand-toggle';
+        toggle.textContent = isObject ? (expandAll ? '▼' : '▶') : '';
+        node.appendChild(toggle);
+
+        // key
+        const keySpan = document.createElement('span');
+        keySpan.className = 'tree-key';
+        keySpan.textContent = key;
+        node.appendChild(keySpan);
+
+        node.appendChild(document.createTextNode(':'));
+
+        // primitive value
+        if (!isObject) {
+            const val = document.createElement('span');
+            val.className = 'tree-value';
+            val.textContent = JSON.stringify(value);
+            node.appendChild(val);
+        }
+
+        // children
+        if (isObject) {
+            const childrenWrapper = document.createElement('div');
+            childrenWrapper.className = 'tree-children';
+            if (!expandAll) {
+                childrenWrapper.style.display = 'none';
+                node.classList.add('collapsed');
+            }
+            Object.entries(value).forEach(([k, v]) =>
+                renderNode(k, v, childrenWrapper)
+            );
+            node.appendChild(childrenWrapper);
+
+            toggle.addEventListener('click', () => {
+                const collapsed = node.classList.toggle('collapsed');
+                childrenWrapper.style.display = collapsed ? 'none' : 'block';
+                toggle.textContent = collapsed ? '▶' : '▼';
+            });
+        }
+
+        // optional click event
+        if (onNodeClick) {
+            keySpan.style.cursor = 'pointer';
+            keySpan.addEventListener('click', () => {
+                const evt = new CustomEvent(onNodeClick, { detail: { key } });
+                tree.dispatchEvent(evt);
+            });
+        }
+
+        parent.appendChild(node);
+    }
+
+    if (typeof data === 'object' && data !== null) {
+        Object.entries(data).forEach(([k, v]) => renderNode(k, v, tree));
+    }
+    
+    return tree;
+};
+
+        // Ensure the global registry exists
+        if (!window.CacaoCore) {
+            console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
+            window.CacaoCore = {};
+        }
+        if (!window.CacaoCore.componentRenderers) {
+            window.CacaoCore.componentRenderers = {};
+        }
+
+        // Register the renderer function
+        window.CacaoCore.componentRenderers['tree_viewer'] = tree_viewerRenderer;
+    } catch (error) {
+        console.error('[CacaoComponents] Error registering component: tree_viewer', error);
+    }
+})();
+
 // Auto-generated component: checkbox
 (function(){
     try {
@@ -2186,479 +2290,300 @@ if (typeof window !== 'undefined' && window.CacaoComponents) {
     }
 })();
 
+// Auto-generated component: breadcrumb
+(function(){
+    try {
+        const breadcrumbRenderer = // Breadcrumb Component Renderer
+(component) => {
+  const props = component.props;
+  const items = Array.isArray(props.items) ? props.items : [];
+  const separator = props.separator || 'arrow';
+  const separatorIcon = props.separator_icon;
+  const showHome = props.show_home !== false;
+  const homeUrl = props.home_url || '/';
+  const homeIcon = props.home_icon;
+  const maxItems = typeof props.max_items === 'number' ? props.max_items : null;
+  const responsive = props.responsive !== false;
+  const size = props.size || 'medium';
+  const variant = props.variant || 'default';
+
+  // Helper to build separator elements
+  function createSeparator() {
+    const sep = document.createElement('li');
+    sep.className = 'breadcrumb-separator';
+    if (separatorIcon) {
+      const i = document.createElement('i');
+      i.className = `icon-${separatorIcon}`;
+      sep.appendChild(i);
+    } else if (separator === 'slash') {
+      sep.textContent = '/';
+    } else if (separator === 'dot') {
+      sep.textContent = '•';
+    } else {
+      // default arrow
+      sep.textContent = '>';
+    }
+    return sep;
+  }
+
+  // Build the <nav> wrapper
+  const nav = document.createElement('nav');
+  nav.className = `breadcrumb breadcrumb--${size} breadcrumb--${variant}` + (responsive ? ' breadcrumb--responsive' : '');
+  nav.setAttribute('aria-label', 'breadcrumb');
+
+  // Build the <ol> list
+  const ol = document.createElement('ol');
+  ol.className = 'breadcrumb-list';
+
+  // Prepare full items array (with home)
+  let allItems = [];
+  if (showHome) {
+    allItems.push({ label: '', url: homeUrl, icon: homeIcon });
+  }
+  allItems = allItems.concat(items);
+
+  // Handle collapsing if too many items
+  let displayItems = allItems;
+  if (maxItems && allItems.length > maxItems) {
+    const keepStart = Math.ceil(maxItems / 2);
+    const keepEnd = Math.floor(maxItems / 2);
+    const startSlice = allItems.slice(0, keepStart);
+    const endSlice = allItems.slice(allItems.length - keepEnd);
+    const overflowSlice = allItems.slice(keepStart, allItems.length - keepEnd);
+
+    displayItems = [
+      ...startSlice,
+      { label: '…', isOverflow: true, overflowItems: overflowSlice },
+      ...endSlice
+    ];
+  }
+
+  // Render each item (and separators)
+  displayItems.forEach((item, idx) => {
+    const isLast = idx === displayItems.length - 1;
+    const li = document.createElement('li');
+    li.className = 'breadcrumb-item';
+
+    if (item.isOverflow) {
+      // overflow dropdown
+      const drop = document.createElement('span');
+      drop.className = 'breadcrumb-overflow';
+      drop.textContent = item.label;
+      drop.tabIndex = 0;
+
+      const submenu = document.createElement('ul');
+      submenu.className = 'breadcrumb-overflow-menu';
+      item.overflowItems.forEach(sub => {
+        const subLi = document.createElement('li');
+        subLi.className = 'breadcrumb-overflow-item';
+        if (sub.url) {
+          const a = document.createElement('a');
+          a.href = sub.url;
+          a.textContent = sub.label;
+          subLi.appendChild(a);
+        } else {
+          subLi.textContent = sub.label;
+        }
+        submenu.appendChild(subLi);
+      });
+
+      drop.appendChild(submenu);
+      li.appendChild(drop);
+    } else {
+      // normal item
+      if (item.icon && idx === 0 && showHome) {
+        const a = document.createElement('a');
+        a.href = item.url;
+        const i = document.createElement('i');
+        i.className = `icon-${item.icon}`;
+        a.appendChild(i);
+        li.appendChild(a);
+      } else if (item.url && !isLast) {
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.textContent = item.label;
+        li.appendChild(a);
+      } else {
+        const span = document.createElement('span');
+        span.textContent = item.label;
+        li.appendChild(span);
+      }
+    }
+
+    ol.appendChild(li);
+
+    if (!isLast) {
+      ol.appendChild(createSeparator());
+    }
+  });
+
+  nav.appendChild(ol);
+  return nav;
+};
+
+        // Ensure the global registry exists
+        if (!window.CacaoCore) {
+            console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
+            window.CacaoCore = {};
+        }
+        if (!window.CacaoCore.componentRenderers) {
+            window.CacaoCore.componentRenderers = {};
+        }
+
+        // Register the renderer function
+        window.CacaoCore.componentRenderers['breadcrumb'] = breadcrumbRenderer;
+    } catch (error) {
+        console.error('[CacaoComponents] Error registering component: breadcrumb', error);
+    }
+})();
+
 // Auto-generated component: menu
 (function(){
     try {
-        const menuRenderer = /**
- * Menu Component JavaScript
- * Handles menu rendering, navigation, and interactions
- */
+        const menuRenderer = // Menu Component Renderer
+(component) => {
+  const props = component.props;
+  const items = Array.isArray(props.items) ? props.items : [];
+  const mode = ['horizontal', 'vertical', 'inline'].includes(props.mode) ? props.mode : 'horizontal';
+  const theme = props.theme === 'dark' ? 'dark' : 'light';
+  const collapsed = props.collapsed === true;
+  let selectedKey = props.default_selected || null;
 
-class MenuRenderer {
-    constructor(containerId, props = {}) {
-        this.containerId = containerId;
-        this.props = props;
-        this.menuElement = null;
-        this.openSubmenus = new Set();
-        this.focusedItem = null;
-        this.keydownHandler = null;
-        
-        this.init();
+  // Helper to send selection events
+  async function sendEvent(eventName, data = {}) {
+    if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+      window.socket.send(JSON.stringify({ type: 'event', event: eventName, data }));
+    } else {
+      let params = `event=${encodeURIComponent(eventName)}&t=${Date.now()}`;
+      for (let [k, v] of Object.entries(data)) {
+        params += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+      }
+      await fetch(`/api/action?${params}`, { method: 'GET' });
+    }
+  }
+
+  // Create root <ul>
+  const root = document.createElement('ul');
+  root.className = `menu menu--${mode} menu--${theme}` + (collapsed ? ' menu--collapsed' : '');
+  root.setAttribute('role', 'menu');
+  root.setAttribute('tabindex', '0');
+  root.setAttribute('aria-label', props.ariaLabel || 'Main menu');
+
+  // Keyboard navigation support
+  root.addEventListener('keydown', (e) => {
+    const itemsEls = Array.from(root.querySelectorAll('.menu-item:not(.is-disabled)'));
+    const current = root.querySelector('.menu-item.is-selected');
+    let idx = itemsEls.indexOf(current);
+    if (e.key === 'ArrowDown' || (e.key === 'ArrowRight' && mode === 'horizontal')) {
+      idx = (idx + 1) % itemsEls.length;
+      itemsEls[idx].querySelector('button, a').focus();
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp' || (e.key === 'ArrowLeft' && mode === 'horizontal')) {
+      idx = (idx - 1 + itemsEls.length) % itemsEls.length;
+      itemsEls[idx].querySelector('button, a').focus();
+      e.preventDefault();
+    } else if (e.key === 'Home') {
+      itemsEls[0].querySelector('button, a').focus();
+      e.preventDefault();
+    } else if (e.key === 'End') {
+      itemsEls[itemsEls.length - 1].querySelector('button, a').focus();
+      e.preventDefault();
+    }
+  });
+
+  // Recursive renderer for each item (and submenu)
+  function renderItem(item, container, parentKey = null) {
+    const li = document.createElement('li');
+    li.className = 'menu-item' + (item.disabled ? ' is-disabled' : '') + (item.key === selectedKey ? ' is-selected' : '');
+    li.setAttribute('role', 'menuitem');
+    li.setAttribute('tabindex', item.key === selectedKey ? '0' : '-1');
+    if (item.key) li.dataset.key = item.key;
+    if (item.disabled) li.setAttribute('aria-disabled', 'true');
+    if (item.key === selectedKey) li.setAttribute('aria-current', 'true');
+
+    // Icon if present
+    if (item.icon) {
+      const iconEl = document.createElement('span');
+      iconEl.className = 'menu-item__icon';
+      iconEl.innerHTML = `<img src="/cacao/core/static/icons/menu.svg" alt="" aria-hidden="true" />`;
+      li.appendChild(iconEl);
     }
 
-    init() {
-        this.render();
-        this.setupEventListeners();
-        this.setupKeyboardNavigation();
+    // Label (link or button)
+    let trigger;
+    if (item.url && !item.disabled) {
+      trigger = document.createElement('a');
+      trigger.href = item.url;
+      trigger.className = 'menu-item__link';
+      trigger.textContent = item.label || '';
+      trigger.setAttribute('tabindex', '-1');
+    } else {
+      trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'menu-item__button';
+      trigger.textContent = item.label || '';
+      if (item.disabled) trigger.disabled = true;
+      trigger.setAttribute('tabindex', '-1');
+    }
+    li.appendChild(trigger);
+
+    // Click handler for selection
+    if (!item.disabled) {
+      trigger.addEventListener('click', e => {
+        e.preventDefault();
+        if (selectedKey !== item.key) {
+          root.querySelectorAll('.menu-item.is-selected').forEach(el => {
+            el.classList.remove('is-selected');
+            el.removeAttribute('aria-current');
+            el.setAttribute('tabindex', '-1');
+          });
+          li.classList.add('is-selected');
+          li.setAttribute('aria-current', 'true');
+          li.setAttribute('tabindex', '0');
+          selectedKey = item.key;
+          sendEvent(props.on_select || 'menu:select', { key: item.key });
+          trigger.focus();
+        }
+      });
+      // Keyboard: Enter/Space selects
+      trigger.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !item.disabled) {
+          trigger.click();
+        }
+      });
     }
 
-    render() {
-        const container = document.getElementById(this.containerId);
-        if (!container) return;
+    container.appendChild(li);
 
-        const menu = this.createMenu();
-        container.innerHTML = '';
-        container.appendChild(menu);
-        
-        this.menuElement = menu;
+    // Submenu (children) support
+    if (Array.isArray(item.children) && item.children.length) {
+      const subUl = document.createElement('ul');
+      subUl.className = 'menu-submenu';
+      subUl.setAttribute('role', 'menu');
+      subUl.setAttribute('aria-label', item.label ? `${item.label} submenu` : 'Submenu');
+      item.children.forEach(child => renderItem(child, subUl, item.key));
+      li.appendChild(subUl);
+      li.setAttribute('aria-haspopup', 'true');
+      li.setAttribute('aria-expanded', 'false');
+      // Expand/collapse logic could be added here if needed
     }
+  }
 
-    createMenu() {
-        const menu = document.createElement('ul');
-        menu.className = this.getMenuClasses();
-        menu.setAttribute('role', 'menu');
-        menu.setAttribute('aria-orientation', this.props.orientation || 'vertical');
+  // Render all top‑level items
+  items.forEach(item => renderItem(item, root));
 
-        if (this.props.items && this.props.items.length > 0) {
-            this.props.items.forEach(item => {
-                const menuItem = this.createMenuItem(item);
-                menu.appendChild(menuItem);
-            });
-        }
-
-        return menu;
+  // Focus first selected or first item for accessibility
+  setTimeout(() => {
+    const selected = root.querySelector('.menu-item.is-selected button, .menu-item.is-selected a');
+    if (selected) selected.focus();
+    else {
+      const first = root.querySelector('.menu-item button, .menu-item a');
+      if (first) first.focus();
     }
+  }, 0);
 
-    createMenuItem(item) {
-        const listItem = document.createElement('li');
-        listItem.className = this.getMenuItemClasses(item);
-        listItem.setAttribute('role', 'none');
-
-        if (item.children && item.children.length > 0) {
-            // Create submenu
-            const submenuToggle = this.createSubmenuToggle(item);
-            const submenu = this.createSubmenu(item);
-            
-            listItem.appendChild(submenuToggle);
-            listItem.appendChild(submenu);
-        } else {
-            // Create regular menu item
-            const menuLink = this.createMenuLink(item);
-            listItem.appendChild(menuLink);
-        }
-
-        return listItem;
-    }
-
-    createMenuLink(item) {
-        const element = document.createElement(item.url ? 'a' : 'button');
-        element.className = 'menu-link';
-        element.setAttribute('role', 'menuitem');
-        element.setAttribute('tabindex', '-1');
-
-        if (item.url) {
-            element.href = item.url;
-        } else {
-            element.type = 'button';
-        }
-
-        if (item.disabled) {
-            element.setAttribute('aria-disabled', 'true');
-            element.setAttribute('disabled', 'true');
-        }
-
-        if (item.active) {
-            element.setAttribute('aria-current', 'page');
-        }
-
-        // Create link content
-        const linkContent = document.createElement('div');
-        linkContent.className = 'menu-link-content';
-
-        // Add icon if present
-        if (item.icon) {
-            const icon = document.createElement('i');
-            icon.className = `menu-icon ${item.icon}`;
-            linkContent.appendChild(icon);
-        }
-
-        // Add label
-        const label = document.createElement('span');
-        label.className = 'menu-label';
-        label.textContent = item.label;
-        linkContent.appendChild(label);
-
-        // Add badge if present
-        if (item.badge !== undefined && item.badge !== null) {
-            const badge = document.createElement('span');
-            badge.className = 'menu-badge';
-            badge.textContent = item.badge;
-            linkContent.appendChild(badge);
-        }
-
-        element.appendChild(linkContent);
-
-        // Add click handler
-        element.addEventListener('click', (e) => {
-            this.handleItemClick(e, item);
-        });
-
-        return element;
-    }
-
-    createSubmenuToggle(item) {
-        const button = document.createElement('button');
-        button.className = 'menu-submenu-toggle';
-        button.setAttribute('role', 'menuitem');
-        button.setAttribute('aria-haspopup', 'true');
-        button.setAttribute('aria-expanded', 'false');
-        button.setAttribute('tabindex', '-1');
-
-        if (item.disabled) {
-            button.setAttribute('aria-disabled', 'true');
-            button.setAttribute('disabled', 'true');
-        }
-
-        // Create toggle content
-        const toggleContent = document.createElement('div');
-        toggleContent.className = 'menu-submenu-toggle-content';
-
-        // Add icon if present
-        if (item.icon) {
-            const icon = document.createElement('i');
-            icon.className = `menu-icon ${item.icon}`;
-            toggleContent.appendChild(icon);
-        }
-
-        // Add label
-        const label = document.createElement('span');
-        label.className = 'menu-label';
-        label.textContent = item.label;
-        toggleContent.appendChild(label);
-
-        // Add badge if present
-        if (item.badge !== undefined && item.badge !== null) {
-            const badge = document.createElement('span');
-            badge.className = 'menu-badge';
-            badge.textContent = item.badge;
-            toggleContent.appendChild(badge);
-        }
-
-        // Add arrow
-        const arrow = document.createElement('i');
-        arrow.className = 'menu-arrow';
-        toggleContent.appendChild(arrow);
-
-        button.appendChild(toggleContent);
-
-        // Add click handler
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.toggleSubmenu(item.key, button);
-        });
-
-        return button;
-    }
-
-    createSubmenu(item) {
-        const submenu = document.createElement('ul');
-        submenu.className = 'menu-submenu';
-        submenu.setAttribute('role', 'menu');
-        submenu.setAttribute('aria-labelledby', item.key);
-
-        if (item.children && item.children.length > 0) {
-            item.children.forEach(child => {
-                const childItem = this.createMenuItem(child);
-                submenu.appendChild(childItem);
-            });
-        }
-
-        return submenu;
-    }
-
-    getMenuClasses() {
-        let classes = 'menu';
-
-        if (this.props.orientation) {
-            classes += ` menu-${this.props.orientation}`;
-        }
-
-        if (this.props.size) {
-            classes += ` menu-${this.props.size}`;
-        }
-
-        if (this.props.variant) {
-            classes += ` menu-${this.props.variant}`;
-        }
-
-        if (this.props.theme) {
-            classes += ` menu-${this.props.theme}`;
-        }
-
-        if (this.props.collapsed) {
-            classes += ' menu-collapsed';
-        }
-
-        return classes;
-    }
-
-    getMenuItemClasses(item) {
-        let classes = 'menu-item';
-
-        if (item.active) {
-            classes += ' menu-item-active';
-        }
-
-        if (item.disabled) {
-            classes += ' menu-item-disabled';
-        }
-
-        if (item.children && item.children.length > 0) {
-            classes += ' menu-item-submenu';
-            
-            if (this.openSubmenus.has(item.key)) {
-                classes += ' menu-item-submenu-open';
-            }
-        }
-
-        return classes;
-    }
-
-    toggleSubmenu(key, button) {
-        if (this.openSubmenus.has(key)) {
-            this.closeSubmenu(key, button);
-        } else {
-            this.openSubmenu(key, button);
-        }
-    }
-
-    openSubmenu(key, button) {
-        this.openSubmenus.add(key);
-        button.setAttribute('aria-expanded', 'true');
-        button.parentElement.classList.add('menu-item-submenu-open');
-    }
-
-    closeSubmenu(key, button) {
-        this.openSubmenus.delete(key);
-        button.setAttribute('aria-expanded', 'false');
-        button.parentElement.classList.remove('menu-item-submenu-open');
-    }
-
-    handleItemClick(event, item) {
-        if (item.disabled) {
-            event.preventDefault();
-            return;
-        }
-
-        // Call click callback if provided
-        if (this.props.on_click) {
-            this.callCallback(this.props.on_click, { item, event });
-        }
-
-        // Handle active state
-        if (!item.url) {
-            event.preventDefault();
-            this.setActiveItem(item.key);
-        }
-    }
-
-    setActiveItem(key) {
-        // Remove active class from all items
-        const activeItems = this.menuElement.querySelectorAll('.menu-item-active');
-        activeItems.forEach(item => {
-            item.classList.remove('menu-item-active');
-            const link = item.querySelector('.menu-link, .menu-submenu-toggle');
-            if (link) {
-                link.removeAttribute('aria-current');
-            }
-        });
-
-        // Add active class to selected item
-        const items = this.menuElement.querySelectorAll('.menu-item');
-        items.forEach(item => {
-            const link = item.querySelector('.menu-link, .menu-submenu-toggle');
-            if (link && this.getItemKey(item) === key) {
-                item.classList.add('menu-item-active');
-                link.setAttribute('aria-current', 'page');
-            }
-        });
-    }
-
-    getItemKey(element) {
-        // Extract key from the data or generate from content
-        const link = element.querySelector('.menu-link, .menu-submenu-toggle');
-        if (link) {
-            const label = link.querySelector('.menu-label');
-            return label ? label.textContent : '';
-        }
-        return '';
-    }
-
-    setupEventListeners() {
-        // Close submenus when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!this.menuElement.contains(e.target)) {
-                this.closeAllSubmenus();
-            }
-        });
-
-        // Handle window resize for responsive behavior
-        window.addEventListener('resize', () => {
-            this.handleResize();
-        });
-    }
-
-    setupKeyboardNavigation() {
-        this.keydownHandler = (e) => {
-            this.handleKeydown(e);
-        };
-
-        this.menuElement.addEventListener('keydown', this.keydownHandler);
-
-        // Set up initial focus
-        this.setupInitialFocus();
-    }
-
-    setupInitialFocus() {
-        const firstItem = this.menuElement.querySelector('.menu-link, .menu-submenu-toggle');
-        if (firstItem) {
-            firstItem.setAttribute('tabindex', '0');
-            this.focusedItem = firstItem;
-        }
-    }
-
-    handleKeydown(e) {
-        const focusableItems = Array.from(
-            this.menuElement.querySelectorAll('.menu-link:not([disabled]), .menu-submenu-toggle:not([disabled])')
-        );
-
-        const currentIndex = focusableItems.indexOf(this.focusedItem);
-        let newIndex = currentIndex;
-
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                newIndex = currentIndex < focusableItems.length - 1 ? currentIndex + 1 : 0;
-                break;
-
-            case 'ArrowUp':
-                e.preventDefault();
-                newIndex = currentIndex > 0 ? currentIndex - 1 : focusableItems.length - 1;
-                break;
-
-            case 'ArrowRight':
-                e.preventDefault();
-                if (this.focusedItem.classList.contains('menu-submenu-toggle')) {
-                    this.focusedItem.click();
-                }
-                break;
-
-            case 'ArrowLeft':
-                e.preventDefault();
-                if (this.focusedItem.classList.contains('menu-submenu-toggle')) {
-                    const key = this.getItemKey(this.focusedItem.parentElement);
-                    if (this.openSubmenus.has(key)) {
-                        this.closeSubmenu(key, this.focusedItem);
-                    }
-                }
-                break;
-
-            case 'Enter':
-            case ' ':
-                e.preventDefault();
-                this.focusedItem.click();
-                break;
-
-            case 'Escape':
-                e.preventDefault();
-                this.closeAllSubmenus();
-                break;
-        }
-
-        if (newIndex !== currentIndex) {
-            this.moveFocus(focusableItems[newIndex]);
-        }
-    }
-
-    moveFocus(newFocusItem) {
-        if (this.focusedItem) {
-            this.focusedItem.setAttribute('tabindex', '-1');
-        }
-
-        this.focusedItem = newFocusItem;
-        this.focusedItem.setAttribute('tabindex', '0');
-        this.focusedItem.focus();
-    }
-
-    closeAllSubmenus() {
-        const submenuToggleButtons = this.menuElement.querySelectorAll('.menu-submenu-toggle');
-        submenuToggleButtons.forEach(button => {
-            const key = this.getItemKey(button.parentElement);
-            if (this.openSubmenus.has(key)) {
-                this.closeSubmenu(key, button);
-            }
-        });
-    }
-
-    handleResize() {
-        // Handle responsive behavior if needed
-        if (this.props.responsive) {
-            const width = window.innerWidth;
-            // Add responsive logic here
-        }
-    }
-
-    callCallback(callback, data) {
-        if (typeof callback === 'function') {
-            callback(data);
-        } else if (typeof callback === 'string') {
-            try {
-                const func = new Function('data', callback);
-                func(data);
-            } catch (e) {
-                console.error('Error executing callback:', e);
-            }
-        }
-    }
-
-    updateProps(newProps) {
-        this.props = { ...this.props, ...newProps };
-        this.render();
-    }
-
-    collapse() {
-        this.props.collapsed = true;
-        this.menuElement.classList.add('menu-collapsed');
-        this.closeAllSubmenus();
-    }
-
-    expand() {
-        this.props.collapsed = false;
-        this.menuElement.classList.remove('menu-collapsed');
-    }
-
-    destroy() {
-        if (this.keydownHandler) {
-            this.menuElement.removeEventListener('keydown', this.keydownHandler);
-        }
-
-        // Clean up event listeners
-        window.removeEventListener('resize', this.handleResize);
-    }
-}
-
-// Export for use in other components
-window.MenuRenderer = MenuRenderer;;
+  return root;
+};
 
         // Ensure the global registry exists
         if (!window.CacaoCore) {
@@ -3243,539 +3168,302 @@ window.NavbarRenderer = NavbarRenderer;;
 // Auto-generated component: tabs
 (function(){
     try {
-        const tabsRenderer = /**
- * Tabs Component JavaScript
- * Handles tab switching, animations, and user interactions
- */
+        const tabsRenderer = (component) => {
+  console.log("[CacaoCore] Rendering tabs component:", component);
+  const props = component.props;
+  const items = Array.isArray(props.items) ? props.items : [];
+  let activeKey = props.active_key || (items[0] && items[0].key) || null;
+  const orientation = props.orientation === 'vertical' ? 'vertical' : 'horizontal';
+  const size = props.size || 'medium';
+  const variant = props.variant || 'default';
+  const animated = props.animated !== false;
+  const closable = props.closable === true;
+  const centered = props.centered === true;
+  const showAdd = props.show_add_button === true;
+  const maxWidth = props.max_width || null;
 
-class TabsRenderer {
-    constructor(containerId, props = {}) {
-        this.containerId = containerId;
-        this.props = props;
-        this.tabsElement = null;
-        this.activeKey = props.active_key || null;
-        this.animationDuration = 300;
-        this.resizeObserver = null;
-        this.keyboardHandlers = new Map();
-        
-        this.init();
+  // Helper for sending events (change, close, add)
+  async function sendEvent(eventName, data = {}) {
+    console.log("[Cacao] Tab event:", eventName, data);
+    if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+      window.socket.send(JSON.stringify({ type: 'event', event: eventName, data }));
+    } else {
+      // HTTP fallback
+      let params = `event=${eventName}&t=${Date.now()}`;
+      for (const [k,v] of Object.entries(data)) {
+        params += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+      }
+      await fetch(`/api/action?${params}`, { method: 'GET' });
+    }
+  }
+
+  // Create root container
+  const root = document.createElement('div');
+  root.className = `tabs-container tabs-${orientation} tabs-${size} tabs-${variant}`;
+  if (centered) root.classList.add('tabs-centered');
+  if (animated) root.classList.add('tabs-animated');
+  if (closable) root.classList.add('tabs-closable');
+  if (showAdd) root.classList.add('tabs-has-add-button');
+  if (maxWidth) root.style.maxWidth = maxWidth;
+
+  // Set ID if provided
+  if (props.id) {
+    root.id = props.id;
+  }
+
+  // Create the navigation wrapper
+  const nav = document.createElement('div');
+  nav.className = 'tabs-nav';
+
+  // Create the tab list
+  const list = document.createElement('ul');
+  list.className = 'tabs-list';
+  list.setAttribute('role', 'tablist');
+  if (orientation === 'vertical') {
+    list.setAttribute('aria-orientation', 'vertical');
+  }
+
+  // Create panels container
+  const panels = document.createElement('div');
+  panels.className = 'tabs-content';
+
+  // Create indicator for active tab
+  const indicator = document.createElement('div');
+  indicator.className = 'tabs-indicator';
+  nav.appendChild(indicator);
+
+  // Track tab buttons for indicator positioning
+  const tabButtons = [];
+
+  // Render each tab + panel
+  items.forEach((item, index) => {
+    const key = item.key;
+    const disabled = item.disabled === true;
+    const isActive = key === activeKey;
+
+    // --- Tab Button ---
+    const li = document.createElement('li');
+    li.className = 'tabs-item';
+    
+    const btn = document.createElement('button');
+    btn.className = `tab-item${isActive ? ' tab-active' : ''}${disabled ? ' tab-disabled' : ''}`;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', isActive);
+    btn.setAttribute('aria-controls', `panel-${key}`);
+    btn.setAttribute('data-key', key);
+    btn.disabled = disabled;
+    btn.tabIndex = isActive ? 0 : -1;
+
+    // Tab content wrapper
+    const tabContent = document.createElement('div');
+    tabContent.className = 'tab-content';
+
+    // Icon
+    if (item.icon) {
+      const icon = document.createElement('span');
+      icon.className = `tab-icon icon-${item.icon}`;
+      tabContent.appendChild(icon);
     }
 
-    init() {
-        this.render();
-        this.setupEventListeners();
-        this.setupKeyboardNavigation();
-        this.setupResizeObserver();
+    // Label
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = item.label || '';
+    tabContent.appendChild(label);
+
+    // Badge
+    if (item.badge != null) {
+      const badge = document.createElement('span');
+      badge.className = 'tab-badge';
+      badge.textContent = item.badge;
+      tabContent.appendChild(badge);
     }
 
-    render() {
-        const container = document.getElementById(this.containerId);
-        if (!container) return;
+    btn.appendChild(tabContent);
 
-        const tabsContainer = this.createTabsContainer();
-        container.innerHTML = '';
-        container.appendChild(tabsContainer);
-        
-        this.tabsElement = tabsContainer;
-        this.updateActiveIndicator();
+    // Close button
+    if (closable && !disabled) {
+      const close = document.createElement('button');
+      close.className = 'tab-close';
+      close.innerHTML = '×';
+      close.title = 'Close tab';
+      close.setAttribute('aria-label', 'Close tab');
+      close.addEventListener('click', e => {
+        e.stopPropagation();
+        sendEvent(props.on_close || 'tabs:close', { key });
+        // remove item & panel
+        li.remove();
+        panel.remove();
+        if (activeKey === key && items.length > 1) {
+          // activate first remaining
+          const nextKey = root.querySelector('.tab-item:not(.tab-disabled)')?.dataset.key;
+          if (nextKey) activateTab(nextKey);
+        }
+      });
+      btn.appendChild(close);
     }
 
-    createTabsContainer() {
-        const container = document.createElement('div');
-        container.className = this.getContainerClasses();
-        container.setAttribute('role', 'tablist');
-        container.setAttribute('aria-orientation', this.props.orientation || 'horizontal');
+    btn.addEventListener('click', () => {
+      if (disabled) return;
+      if (key !== activeKey) {
+        activateTab(key);
+        sendEvent(props.on_change || 'tabs:change', { key });
+      }
+    });
 
-        if (this.props.max_width) {
-            container.style.maxWidth = this.props.max_width;
-        }
+    li.appendChild(btn);
+    list.appendChild(li);
+    tabButtons.push(btn);
 
-        // Create tab navigation
-        const tabNav = this.createTabNavigation();
-        container.appendChild(tabNav);
-
-        // Create tab content panels
-        const tabContent = this.createTabContent();
-        container.appendChild(tabContent);
-
-        return container;
+    // --- Content Panel ---
+    const panel = document.createElement('div');
+    panel.className = `tab-panel${isActive ? ' tab-panel-active' : ''}`;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('id', `panel-${key}`);
+    panel.setAttribute('aria-labelledby', `tab-${key}`);
+    panel.setAttribute('data-key', key);
+    if (!isActive) panel.hidden = true;
+    
+    // Handle content - it could be a string or a component
+    if (typeof item.content === 'string') {
+      panel.innerHTML = item.content;
+    } else if (item.content && typeof item.content === 'object') {
+      // Render as component
+      panel.appendChild(window.CacaoCore.renderComponent(item.content));
     }
+    
+    panels.appendChild(panel);
+  });
 
-    createTabNavigation() {
-        const nav = document.createElement('div');
-        nav.className = 'tabs-nav';
+  // Optional "Add" button
+  if (showAdd) {
+    const addLi = document.createElement('li');
+    addLi.className = 'tabs-item tabs-item--add';
+    const addBtn = document.createElement('button');
+    addBtn.className = 'tabs-add-button';
+    addBtn.innerHTML = '<span class="tabs-add-icon">+</span>';
+    addBtn.title = 'Add tab';
+    addBtn.setAttribute('aria-label', 'Add new tab');
+    addBtn.addEventListener('click', () => {
+      sendEvent(props.on_add || 'tabs:add', {});
+    });
+    addLi.appendChild(addBtn);
+    list.appendChild(addLi);
+  }
 
-        const tabList = document.createElement('div');
-        tabList.className = 'tabs-list';
+  nav.appendChild(list);
+  root.appendChild(nav);
+  root.appendChild(panels);
 
-        if (this.props.items && this.props.items.length > 0) {
-            this.props.items.forEach(item => {
-                const tab = this.createTabItem(item);
-                tabList.appendChild(tab);
-            });
-        }
-
-        // Add button for adding new tabs
-        if (this.props.show_add_button) {
-            const addButton = this.createAddButton();
-            tabList.appendChild(addButton);
-        }
-
-        nav.appendChild(tabList);
-
-        // Add active indicator for underline variant
-        if (this.props.variant === 'underline') {
-            const indicator = document.createElement('div');
-            indicator.className = 'tabs-indicator';
-            nav.appendChild(indicator);
-        }
-
-        return nav;
+  // Function to update indicator position
+  function updateIndicator() {
+    const activeBtn = root.querySelector('.tab-item.tab-active');
+    if (activeBtn) {
+      const rect = activeBtn.getBoundingClientRect();
+      const listRect = list.getBoundingClientRect();
+      
+      if (orientation === 'horizontal') {
+        indicator.style.left = `${activeBtn.offsetLeft}px`;
+        indicator.style.width = `${activeBtn.offsetWidth}px`;
+        indicator.style.height = '3px';
+        indicator.style.top = 'auto';
+        indicator.style.bottom = '0';
+      } else {
+        indicator.style.top = `${activeBtn.offsetTop}px`;
+        indicator.style.height = `${activeBtn.offsetHeight}px`;
+        indicator.style.width = '3px';
+        indicator.style.left = 'auto';
+        indicator.style.right = '0';
+      }
     }
+  }
 
-    createTabItem(item) {
-        const tab = document.createElement('button');
-        tab.className = this.getTabClasses(item);
-        tab.setAttribute('role', 'tab');
-        tab.setAttribute('aria-selected', item.key === this.activeKey ? 'true' : 'false');
-        tab.setAttribute('aria-controls', `${this.containerId}-panel-${item.key}`);
-        tab.setAttribute('id', `${this.containerId}-tab-${item.key}`);
-        tab.setAttribute('type', 'button');
-        tab.setAttribute('data-key', item.key);
-
-        if (item.disabled) {
-            tab.setAttribute('disabled', 'true');
-            tab.setAttribute('aria-disabled', 'true');
+  // Keyboard navigation
+  root.addEventListener('keydown', e => {
+    const triggers = Array.from(root.querySelectorAll('.tab-item:not(.tab-disabled)'));
+    if (!triggers.length) return;
+    
+    let currentIndex = triggers.findIndex(t => t.dataset.key === activeKey);
+    if (currentIndex === -1) return;
+    
+    let nextIndex = currentIndex;
+    
+    switch (e.key) {
+      case 'ArrowRight':
+        if (orientation === 'horizontal') {
+          e.preventDefault();
+          nextIndex = (currentIndex + 1) % triggers.length;
         }
-
-        // Create tab content
-        const tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
-
-        // Add icon if present
-        if (item.icon) {
-            const icon = document.createElement('i');
-            icon.className = `tab-icon ${item.icon}`;
-            tabContent.appendChild(icon);
+        break;
+      case 'ArrowLeft':
+        if (orientation === 'horizontal') {
+          e.preventDefault();
+          nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
         }
-
-        // Add label
-        const label = document.createElement('span');
-        label.className = 'tab-label';
-        label.textContent = item.label;
-        tabContent.appendChild(label);
-
-        // Add badge if present
-        if (item.badge !== undefined && item.badge !== null) {
-            const badge = document.createElement('span');
-            badge.className = 'tab-badge';
-            badge.textContent = item.badge;
-            tabContent.appendChild(badge);
+        break;
+      case 'ArrowDown':
+        if (orientation === 'vertical') {
+          e.preventDefault();
+          nextIndex = (currentIndex + 1) % triggers.length;
         }
-
-        // Add close button if closable
-        if (this.props.closable || item.closable) {
-            const closeButton = document.createElement('button');
-            closeButton.className = 'tab-close';
-            closeButton.setAttribute('type', 'button');
-            closeButton.setAttribute('aria-label', `Close ${item.label}`);
-            closeButton.innerHTML = '×';
-            
-            closeButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.closeTab(item.key);
-            });
-            
-            tabContent.appendChild(closeButton);
+        break;
+      case 'ArrowUp':
+        if (orientation === 'vertical') {
+          e.preventDefault();
+          nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
         }
-
-        tab.appendChild(tabContent);
-
-        // Add click handler
-        tab.addEventListener('click', () => {
-            if (!item.disabled) {
-                this.setActiveTab(item.key);
-            }
-        });
-
-        return tab;
+        break;
+      case 'Home':
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        nextIndex = triggers.length - 1;
+        break;
     }
-
-    createAddButton() {
-        const button = document.createElement('button');
-        button.className = 'tabs-add-button';
-        button.setAttribute('type', 'button');
-        button.setAttribute('aria-label', 'Add new tab');
-        button.innerHTML = '<i class="tabs-add-icon">+</i>';
-
-        button.addEventListener('click', () => {
-            this.addNewTab();
-        });
-
-        return button;
+    
+    if (nextIndex !== currentIndex) {
+      const nextBtn = triggers[nextIndex];
+      nextBtn.focus();
+      activateTab(nextBtn.dataset.key);
+      sendEvent(props.on_change || 'tabs:change', { key: nextBtn.dataset.key });
     }
+  });
 
-    createTabContent() {
-        const content = document.createElement('div');
-        content.className = 'tabs-content';
+  // Activate a tab by key
+  function activateTab(key) {
+    activeKey = key;
+    
+    // Update tab buttons
+    root.querySelectorAll('.tab-item').forEach(btn => {
+      const isActive = btn.dataset.key === key;
+      btn.classList.toggle('tab-active', isActive);
+      btn.setAttribute('aria-selected', isActive);
+      btn.tabIndex = isActive ? 0 : -1;
+    });
+    
+    // Update panels
+    root.querySelectorAll('.tab-panel').forEach(panel => {
+      const isActive = panel.dataset.key === key;
+      panel.classList.toggle('tab-panel-active', isActive);
+      panel.hidden = !isActive;
+    });
+    
+    // Update indicator position
+    updateIndicator();
+  }
 
-        if (this.props.items && this.props.items.length > 0) {
-            this.props.items.forEach(item => {
-                const panel = this.createTabPanel(item);
-                content.appendChild(panel);
-            });
-        }
+  // Initial indicator positioning
+  setTimeout(() => {
+    updateIndicator();
+  }, 0);
 
-        return content;
-    }
+  // Update indicator on window resize
+  window.addEventListener('resize', updateIndicator);
 
-    createTabPanel(item) {
-        const panel = document.createElement('div');
-        panel.className = this.getPanelClasses(item);
-        panel.setAttribute('role', 'tabpanel');
-        panel.setAttribute('aria-labelledby', `${this.containerId}-tab-${item.key}`);
-        panel.setAttribute('id', `${this.containerId}-panel-${item.key}`);
-        panel.setAttribute('data-key', item.key);
-
-        if (item.key !== this.activeKey) {
-            panel.setAttribute('hidden', 'true');
-        }
-
-        // Add content
-        if (item.content) {
-            if (typeof item.content === 'string') {
-                panel.innerHTML = item.content;
-            } else if (item.content instanceof HTMLElement) {
-                panel.appendChild(item.content);
-            }
-        }
-
-        return panel;
-    }
-
-    getContainerClasses() {
-        let classes = 'tabs-container';
-
-        if (this.props.orientation) {
-            classes += ` tabs-${this.props.orientation}`;
-        }
-
-        if (this.props.size) {
-            classes += ` tabs-${this.props.size}`;
-        }
-
-        if (this.props.variant) {
-            classes += ` tabs-${this.props.variant}`;
-        }
-
-        if (this.props.animated) {
-            classes += ' tabs-animated';
-        }
-
-        if (this.props.closable) {
-            classes += ' tabs-closable';
-        }
-
-        if (this.props.centered) {
-            classes += ' tabs-centered';
-        }
-
-        if (this.props.show_add_button) {
-            classes += ' tabs-has-add-button';
-        }
-
-        return classes;
-    }
-
-    getTabClasses(item) {
-        let classes = 'tab-item';
-
-        if (item.key === this.activeKey) {
-            classes += ' tab-active';
-        }
-
-        if (item.disabled) {
-            classes += ' tab-disabled';
-        }
-
-        if (this.props.closable || item.closable) {
-            classes += ' tab-closable';
-        }
-
-        return classes;
-    }
-
-    getPanelClasses(item) {
-        let classes = 'tab-panel';
-
-        if (item.key === this.activeKey) {
-            classes += ' tab-panel-active';
-        }
-
-        return classes;
-    }
-
-    setActiveTab(key) {
-        if (this.activeKey === key) return;
-
-        const oldKey = this.activeKey;
-        this.activeKey = key;
-
-        // Update tab buttons
-        const tabs = this.tabsElement.querySelectorAll('.tab-item');
-        tabs.forEach(tab => {
-            const tabKey = tab.getAttribute('data-key');
-            const isActive = tabKey === key;
-            
-            tab.classList.toggle('tab-active', isActive);
-            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-
-        // Update panels
-        this.updatePanels(oldKey, key);
-
-        // Update active indicator
-        this.updateActiveIndicator();
-
-        // Call change callback
-        if (this.props.on_change) {
-            this.callCallback(this.props.on_change, { key, oldKey });
-        }
-    }
-
-    updatePanels(oldKey, newKey) {
-        const panels = this.tabsElement.querySelectorAll('.tab-panel');
-        
-        panels.forEach(panel => {
-            const panelKey = panel.getAttribute('data-key');
-            const isActive = panelKey === newKey;
-            
-            panel.classList.toggle('tab-panel-active', isActive);
-            
-            if (this.props.animated) {
-                if (isActive) {
-                    panel.removeAttribute('hidden');
-                    panel.style.opacity = '0';
-                    panel.style.transform = 'translateX(10px)';
-                    
-                    requestAnimationFrame(() => {
-                        panel.style.transition = `opacity ${this.animationDuration}ms ease, transform ${this.animationDuration}ms ease`;
-                        panel.style.opacity = '1';
-                        panel.style.transform = 'translateX(0)';
-                    });
-                } else {
-                    panel.style.transition = `opacity ${this.animationDuration}ms ease`;
-                    panel.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        panel.setAttribute('hidden', 'true');
-                        panel.style.transition = '';
-                        panel.style.transform = '';
-                    }, this.animationDuration);
-                }
-            } else {
-                if (isActive) {
-                    panel.removeAttribute('hidden');
-                } else {
-                    panel.setAttribute('hidden', 'true');
-                }
-            }
-        });
-    }
-
-    updateActiveIndicator() {
-        const indicator = this.tabsElement.querySelector('.tabs-indicator');
-        if (!indicator) return;
-
-        const activeTab = this.tabsElement.querySelector('.tab-active');
-        if (!activeTab) return;
-
-        const tabList = this.tabsElement.querySelector('.tabs-list');
-        const tabRect = activeTab.getBoundingClientRect();
-        const listRect = tabList.getBoundingClientRect();
-
-        if (this.props.orientation === 'vertical') {
-            indicator.style.top = `${activeTab.offsetTop}px`;
-            indicator.style.height = `${activeTab.offsetHeight}px`;
-            indicator.style.width = '3px';
-            indicator.style.left = '0';
-        } else {
-            indicator.style.left = `${activeTab.offsetLeft}px`;
-            indicator.style.width = `${activeTab.offsetWidth}px`;
-            indicator.style.height = '3px';
-            indicator.style.top = 'auto';
-        }
-    }
-
-    closeTab(key) {
-        if (this.props.items.length <= 1) return; // Don't close if it's the last tab
-
-        // Find the tab to close
-        const tabIndex = this.props.items.findIndex(item => item.key === key);
-        if (tabIndex === -1) return;
-
-        // Remove from items array
-        this.props.items.splice(tabIndex, 1);
-
-        // Update active key if needed
-        if (this.activeKey === key) {
-            const newActiveIndex = Math.min(tabIndex, this.props.items.length - 1);
-            this.activeKey = this.props.items[newActiveIndex]?.key || null;
-        }
-
-        // Re-render
-        this.render();
-
-        // Call close callback
-        if (this.props.on_close) {
-            this.callCallback(this.props.on_close, { key });
-        }
-    }
-
-    addNewTab() {
-        if (this.props.on_add) {
-            this.callCallback(this.props.on_add, {});
-        }
-    }
-
-    setupEventListeners() {
-        // Handle window resize for indicator positioning
-        window.addEventListener('resize', () => {
-            this.updateActiveIndicator();
-        });
-
-        // Handle tab switching with mouse wheel (on tab navigation)
-        const tabNav = this.tabsElement.querySelector('.tabs-nav');
-        if (tabNav) {
-            tabNav.addEventListener('wheel', (e) => {
-                if (e.deltaY !== 0) {
-                    e.preventDefault();
-                    this.navigateWithWheel(e.deltaY > 0 ? 1 : -1);
-                }
-            });
-        }
-    }
-
-    setupKeyboardNavigation() {
-        this.tabsElement.addEventListener('keydown', (e) => {
-            const tabs = Array.from(this.tabsElement.querySelectorAll('.tab-item:not(.tab-disabled)'));
-            const currentIndex = tabs.findIndex(tab => tab.getAttribute('data-key') === this.activeKey);
-            
-            let newIndex = currentIndex;
-            
-            switch (e.key) {
-                case 'ArrowLeft':
-                case 'ArrowUp':
-                    e.preventDefault();
-                    newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-                    break;
-                    
-                case 'ArrowRight':
-                case 'ArrowDown':
-                    e.preventDefault();
-                    newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-                    break;
-                    
-                case 'Home':
-                    e.preventDefault();
-                    newIndex = 0;
-                    break;
-                    
-                case 'End':
-                    e.preventDefault();
-                    newIndex = tabs.length - 1;
-                    break;
-                    
-                case 'Enter':
-                case ' ':
-                    e.preventDefault();
-                    if (tabs[currentIndex]) {
-                        tabs[currentIndex].click();
-                    }
-                    break;
-            }
-            
-            if (newIndex !== currentIndex && tabs[newIndex]) {
-                const newKey = tabs[newIndex].getAttribute('data-key');
-                this.setActiveTab(newKey);
-                tabs[newIndex].focus();
-            }
-        });
-    }
-
-    setupResizeObserver() {
-        if (!window.ResizeObserver) return;
-
-        this.resizeObserver = new ResizeObserver(() => {
-            this.updateActiveIndicator();
-        });
-
-        this.resizeObserver.observe(this.tabsElement);
-    }
-
-    navigateWithWheel(direction) {
-        const enabledItems = this.props.items.filter(item => !item.disabled);
-        const currentIndex = enabledItems.findIndex(item => item.key === this.activeKey);
-        
-        if (currentIndex === -1) return;
-        
-        let newIndex;
-        if (direction > 0) {
-            newIndex = currentIndex < enabledItems.length - 1 ? currentIndex + 1 : 0;
-        } else {
-            newIndex = currentIndex > 0 ? currentIndex - 1 : enabledItems.length - 1;
-        }
-        
-        this.setActiveTab(enabledItems[newIndex].key);
-    }
-
-    callCallback(callback, data) {
-        if (typeof callback === 'function') {
-            callback(data);
-        } else if (typeof callback === 'string') {
-            // Try to evaluate as a function
-            try {
-                const func = new Function('data', callback);
-                func(data);
-            } catch (e) {
-                console.error('Error executing callback:', e);
-            }
-        }
-    }
-
-    updateProps(newProps) {
-        this.props = { ...this.props, ...newProps };
-        
-        if (newProps.active_key !== undefined) {
-            this.activeKey = newProps.active_key;
-        }
-        
-        this.render();
-    }
-
-    getActiveKey() {
-        return this.activeKey;
-    }
-
-    getActiveItem() {
-        return this.props.items.find(item => item.key === this.activeKey) || null;
-    }
-
-    destroy() {
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-        }
-        
-        // Clean up event listeners
-        this.keyboardHandlers.clear();
-        
-        // Remove window resize listener
-        window.removeEventListener('resize', this.updateActiveIndicator);
-    }
-}
-
-// Export for use in other components
-window.TabsRenderer = TabsRenderer;;
+  return root;
+};
 
         // Ensure the global registry exists
         if (!window.CacaoCore) {

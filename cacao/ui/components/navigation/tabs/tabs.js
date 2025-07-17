@@ -1,533 +1,296 @@
-/**
- * Tabs Component JavaScript
- * Handles tab switching, animations, and user interactions
- */
+(component) => {
+  console.log("[CacaoCore] Rendering tabs component:", component);
+  const props = component.props;
+  const items = Array.isArray(props.items) ? props.items : [];
+  let activeKey = props.active_key || (items[0] && items[0].key) || null;
+  const orientation = props.orientation === 'vertical' ? 'vertical' : 'horizontal';
+  const size = props.size || 'medium';
+  const variant = props.variant || 'default';
+  const animated = props.animated !== false;
+  const closable = props.closable === true;
+  const centered = props.centered === true;
+  const showAdd = props.show_add_button === true;
+  const maxWidth = props.max_width || null;
 
-class TabsRenderer {
-    constructor(containerId, props = {}) {
-        this.containerId = containerId;
-        this.props = props;
-        this.tabsElement = null;
-        this.activeKey = props.active_key || null;
-        this.animationDuration = 300;
-        this.resizeObserver = null;
-        this.keyboardHandlers = new Map();
-        
-        this.init();
+  // Helper for sending events (change, close, add)
+  async function sendEvent(eventName, data = {}) {
+    console.log("[Cacao] Tab event:", eventName, data);
+    if (window.CacaoWS && window.CacaoWS.getStatus() === 1) {
+      window.socket.send(JSON.stringify({ type: 'event', event: eventName, data }));
+    } else {
+      // HTTP fallback
+      let params = `event=${eventName}&t=${Date.now()}`;
+      for (const [k,v] of Object.entries(data)) {
+        params += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+      }
+      await fetch(`/api/action?${params}`, { method: 'GET' });
+    }
+  }
+
+  // Create root container
+  const root = document.createElement('div');
+  root.className = `tabs-container tabs-${orientation} tabs-${size} tabs-${variant}`;
+  if (centered) root.classList.add('tabs-centered');
+  if (animated) root.classList.add('tabs-animated');
+  if (closable) root.classList.add('tabs-closable');
+  if (showAdd) root.classList.add('tabs-has-add-button');
+  if (maxWidth) root.style.maxWidth = maxWidth;
+
+  // Set ID if provided
+  if (props.id) {
+    root.id = props.id;
+  }
+
+  // Create the navigation wrapper
+  const nav = document.createElement('div');
+  nav.className = 'tabs-nav';
+
+  // Create the tab list
+  const list = document.createElement('ul');
+  list.className = 'tabs-list';
+  list.setAttribute('role', 'tablist');
+  if (orientation === 'vertical') {
+    list.setAttribute('aria-orientation', 'vertical');
+  }
+
+  // Create panels container
+  const panels = document.createElement('div');
+  panels.className = 'tabs-content';
+
+  // Create indicator for active tab
+  const indicator = document.createElement('div');
+  indicator.className = 'tabs-indicator';
+  nav.appendChild(indicator);
+
+  // Track tab buttons for indicator positioning
+  const tabButtons = [];
+
+  // Render each tab + panel
+  items.forEach((item, index) => {
+    const key = item.key;
+    const disabled = item.disabled === true;
+    const isActive = key === activeKey;
+
+    // --- Tab Button ---
+    const li = document.createElement('li');
+    li.className = 'tabs-item';
+    
+    const btn = document.createElement('button');
+    btn.className = `tab-item${isActive ? ' tab-active' : ''}${disabled ? ' tab-disabled' : ''}`;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', isActive);
+    btn.setAttribute('aria-controls', `panel-${key}`);
+    btn.setAttribute('data-key', key);
+    btn.disabled = disabled;
+    btn.tabIndex = isActive ? 0 : -1;
+
+    // Tab content wrapper
+    const tabContent = document.createElement('div');
+    tabContent.className = 'tab-content';
+
+    // Icon
+    if (item.icon) {
+      const icon = document.createElement('span');
+      icon.className = `tab-icon icon-${item.icon}`;
+      tabContent.appendChild(icon);
     }
 
-    init() {
-        this.render();
-        this.setupEventListeners();
-        this.setupKeyboardNavigation();
-        this.setupResizeObserver();
+    // Label
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = item.label || '';
+    tabContent.appendChild(label);
+
+    // Badge
+    if (item.badge != null) {
+      const badge = document.createElement('span');
+      badge.className = 'tab-badge';
+      badge.textContent = item.badge;
+      tabContent.appendChild(badge);
     }
 
-    render() {
-        const container = document.getElementById(this.containerId);
-        if (!container) return;
+    btn.appendChild(tabContent);
 
-        const tabsContainer = this.createTabsContainer();
-        container.innerHTML = '';
-        container.appendChild(tabsContainer);
-        
-        this.tabsElement = tabsContainer;
-        this.updateActiveIndicator();
+    // Close button
+    if (closable && !disabled) {
+      const close = document.createElement('button');
+      close.className = 'tab-close';
+      close.innerHTML = '×';
+      close.title = 'Close tab';
+      close.setAttribute('aria-label', 'Close tab');
+      close.addEventListener('click', e => {
+        e.stopPropagation();
+        sendEvent(props.on_close || 'tabs:close', { key });
+        // remove item & panel
+        li.remove();
+        panel.remove();
+        if (activeKey === key && items.length > 1) {
+          // activate first remaining
+          const nextKey = root.querySelector('.tab-item:not(.tab-disabled)')?.dataset.key;
+          if (nextKey) activateTab(nextKey);
+        }
+      });
+      btn.appendChild(close);
     }
 
-    createTabsContainer() {
-        const container = document.createElement('div');
-        container.className = this.getContainerClasses();
-        container.setAttribute('role', 'tablist');
-        container.setAttribute('aria-orientation', this.props.orientation || 'horizontal');
+    btn.addEventListener('click', () => {
+      if (disabled) return;
+      if (key !== activeKey) {
+        activateTab(key);
+        sendEvent(props.on_change || 'tabs:change', { key });
+      }
+    });
 
-        if (this.props.max_width) {
-            container.style.maxWidth = this.props.max_width;
-        }
+    li.appendChild(btn);
+    list.appendChild(li);
+    tabButtons.push(btn);
 
-        // Create tab navigation
-        const tabNav = this.createTabNavigation();
-        container.appendChild(tabNav);
-
-        // Create tab content panels
-        const tabContent = this.createTabContent();
-        container.appendChild(tabContent);
-
-        return container;
+    // --- Content Panel ---
+    const panel = document.createElement('div');
+    panel.className = `tab-panel${isActive ? ' tab-panel-active' : ''}`;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('id', `panel-${key}`);
+    panel.setAttribute('aria-labelledby', `tab-${key}`);
+    panel.setAttribute('data-key', key);
+    if (!isActive) panel.hidden = true;
+    
+    // Handle content - it could be a string or a component
+    if (typeof item.content === 'string') {
+      panel.innerHTML = item.content;
+    } else if (item.content && typeof item.content === 'object') {
+      // Render as component
+      panel.appendChild(window.CacaoCore.renderComponent(item.content));
     }
+    
+    panels.appendChild(panel);
+  });
 
-    createTabNavigation() {
-        const nav = document.createElement('div');
-        nav.className = 'tabs-nav';
+  // Optional "Add" button
+  if (showAdd) {
+    const addLi = document.createElement('li');
+    addLi.className = 'tabs-item tabs-item--add';
+    const addBtn = document.createElement('button');
+    addBtn.className = 'tabs-add-button';
+    addBtn.innerHTML = '<span class="tabs-add-icon">+</span>';
+    addBtn.title = 'Add tab';
+    addBtn.setAttribute('aria-label', 'Add new tab');
+    addBtn.addEventListener('click', () => {
+      sendEvent(props.on_add || 'tabs:add', {});
+    });
+    addLi.appendChild(addBtn);
+    list.appendChild(addLi);
+  }
 
-        const tabList = document.createElement('div');
-        tabList.className = 'tabs-list';
+  nav.appendChild(list);
+  root.appendChild(nav);
+  root.appendChild(panels);
 
-        if (this.props.items && this.props.items.length > 0) {
-            this.props.items.forEach(item => {
-                const tab = this.createTabItem(item);
-                tabList.appendChild(tab);
-            });
-        }
-
-        // Add button for adding new tabs
-        if (this.props.show_add_button) {
-            const addButton = this.createAddButton();
-            tabList.appendChild(addButton);
-        }
-
-        nav.appendChild(tabList);
-
-        // Add active indicator for underline variant
-        if (this.props.variant === 'underline') {
-            const indicator = document.createElement('div');
-            indicator.className = 'tabs-indicator';
-            nav.appendChild(indicator);
-        }
-
-        return nav;
+  // Function to update indicator position
+  function updateIndicator() {
+    const activeBtn = root.querySelector('.tab-item.tab-active');
+    if (activeBtn) {
+      const rect = activeBtn.getBoundingClientRect();
+      const listRect = list.getBoundingClientRect();
+      
+      if (orientation === 'horizontal') {
+        indicator.style.left = `${activeBtn.offsetLeft}px`;
+        indicator.style.width = `${activeBtn.offsetWidth}px`;
+        indicator.style.height = '3px';
+        indicator.style.top = 'auto';
+        indicator.style.bottom = '0';
+      } else {
+        indicator.style.top = `${activeBtn.offsetTop}px`;
+        indicator.style.height = `${activeBtn.offsetHeight}px`;
+        indicator.style.width = '3px';
+        indicator.style.left = 'auto';
+        indicator.style.right = '0';
+      }
     }
+  }
 
-    createTabItem(item) {
-        const tab = document.createElement('button');
-        tab.className = this.getTabClasses(item);
-        tab.setAttribute('role', 'tab');
-        tab.setAttribute('aria-selected', item.key === this.activeKey ? 'true' : 'false');
-        tab.setAttribute('aria-controls', `${this.containerId}-panel-${item.key}`);
-        tab.setAttribute('id', `${this.containerId}-tab-${item.key}`);
-        tab.setAttribute('type', 'button');
-        tab.setAttribute('data-key', item.key);
-
-        if (item.disabled) {
-            tab.setAttribute('disabled', 'true');
-            tab.setAttribute('aria-disabled', 'true');
+  // Keyboard navigation
+  root.addEventListener('keydown', e => {
+    const triggers = Array.from(root.querySelectorAll('.tab-item:not(.tab-disabled)'));
+    if (!triggers.length) return;
+    
+    let currentIndex = triggers.findIndex(t => t.dataset.key === activeKey);
+    if (currentIndex === -1) return;
+    
+    let nextIndex = currentIndex;
+    
+    switch (e.key) {
+      case 'ArrowRight':
+        if (orientation === 'horizontal') {
+          e.preventDefault();
+          nextIndex = (currentIndex + 1) % triggers.length;
         }
-
-        // Create tab content
-        const tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
-
-        // Add icon if present
-        if (item.icon) {
-            const icon = document.createElement('i');
-            icon.className = `tab-icon ${item.icon}`;
-            tabContent.appendChild(icon);
+        break;
+      case 'ArrowLeft':
+        if (orientation === 'horizontal') {
+          e.preventDefault();
+          nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
         }
-
-        // Add label
-        const label = document.createElement('span');
-        label.className = 'tab-label';
-        label.textContent = item.label;
-        tabContent.appendChild(label);
-
-        // Add badge if present
-        if (item.badge !== undefined && item.badge !== null) {
-            const badge = document.createElement('span');
-            badge.className = 'tab-badge';
-            badge.textContent = item.badge;
-            tabContent.appendChild(badge);
+        break;
+      case 'ArrowDown':
+        if (orientation === 'vertical') {
+          e.preventDefault();
+          nextIndex = (currentIndex + 1) % triggers.length;
         }
-
-        // Add close button if closable
-        if (this.props.closable || item.closable) {
-            const closeButton = document.createElement('button');
-            closeButton.className = 'tab-close';
-            closeButton.setAttribute('type', 'button');
-            closeButton.setAttribute('aria-label', `Close ${item.label}`);
-            closeButton.innerHTML = '×';
-            
-            closeButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.closeTab(item.key);
-            });
-            
-            tabContent.appendChild(closeButton);
+        break;
+      case 'ArrowUp':
+        if (orientation === 'vertical') {
+          e.preventDefault();
+          nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
         }
-
-        tab.appendChild(tabContent);
-
-        // Add click handler
-        tab.addEventListener('click', () => {
-            if (!item.disabled) {
-                this.setActiveTab(item.key);
-            }
-        });
-
-        return tab;
+        break;
+      case 'Home':
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        nextIndex = triggers.length - 1;
+        break;
     }
-
-    createAddButton() {
-        const button = document.createElement('button');
-        button.className = 'tabs-add-button';
-        button.setAttribute('type', 'button');
-        button.setAttribute('aria-label', 'Add new tab');
-        button.innerHTML = '<i class="tabs-add-icon">+</i>';
-
-        button.addEventListener('click', () => {
-            this.addNewTab();
-        });
-
-        return button;
+    
+    if (nextIndex !== currentIndex) {
+      const nextBtn = triggers[nextIndex];
+      nextBtn.focus();
+      activateTab(nextBtn.dataset.key);
+      sendEvent(props.on_change || 'tabs:change', { key: nextBtn.dataset.key });
     }
+  });
 
-    createTabContent() {
-        const content = document.createElement('div');
-        content.className = 'tabs-content';
+  // Activate a tab by key
+  function activateTab(key) {
+    activeKey = key;
+    
+    // Update tab buttons
+    root.querySelectorAll('.tab-item').forEach(btn => {
+      const isActive = btn.dataset.key === key;
+      btn.classList.toggle('tab-active', isActive);
+      btn.setAttribute('aria-selected', isActive);
+      btn.tabIndex = isActive ? 0 : -1;
+    });
+    
+    // Update panels
+    root.querySelectorAll('.tab-panel').forEach(panel => {
+      const isActive = panel.dataset.key === key;
+      panel.classList.toggle('tab-panel-active', isActive);
+      panel.hidden = !isActive;
+    });
+    
+    // Update indicator position
+    updateIndicator();
+  }
 
-        if (this.props.items && this.props.items.length > 0) {
-            this.props.items.forEach(item => {
-                const panel = this.createTabPanel(item);
-                content.appendChild(panel);
-            });
-        }
+  // Initial indicator positioning
+  setTimeout(() => {
+    updateIndicator();
+  }, 0);
 
-        return content;
-    }
+  // Update indicator on window resize
+  window.addEventListener('resize', updateIndicator);
 
-    createTabPanel(item) {
-        const panel = document.createElement('div');
-        panel.className = this.getPanelClasses(item);
-        panel.setAttribute('role', 'tabpanel');
-        panel.setAttribute('aria-labelledby', `${this.containerId}-tab-${item.key}`);
-        panel.setAttribute('id', `${this.containerId}-panel-${item.key}`);
-        panel.setAttribute('data-key', item.key);
-
-        if (item.key !== this.activeKey) {
-            panel.setAttribute('hidden', 'true');
-        }
-
-        // Add content
-        if (item.content) {
-            if (typeof item.content === 'string') {
-                panel.innerHTML = item.content;
-            } else if (item.content instanceof HTMLElement) {
-                panel.appendChild(item.content);
-            }
-        }
-
-        return panel;
-    }
-
-    getContainerClasses() {
-        let classes = 'tabs-container';
-
-        if (this.props.orientation) {
-            classes += ` tabs-${this.props.orientation}`;
-        }
-
-        if (this.props.size) {
-            classes += ` tabs-${this.props.size}`;
-        }
-
-        if (this.props.variant) {
-            classes += ` tabs-${this.props.variant}`;
-        }
-
-        if (this.props.animated) {
-            classes += ' tabs-animated';
-        }
-
-        if (this.props.closable) {
-            classes += ' tabs-closable';
-        }
-
-        if (this.props.centered) {
-            classes += ' tabs-centered';
-        }
-
-        if (this.props.show_add_button) {
-            classes += ' tabs-has-add-button';
-        }
-
-        return classes;
-    }
-
-    getTabClasses(item) {
-        let classes = 'tab-item';
-
-        if (item.key === this.activeKey) {
-            classes += ' tab-active';
-        }
-
-        if (item.disabled) {
-            classes += ' tab-disabled';
-        }
-
-        if (this.props.closable || item.closable) {
-            classes += ' tab-closable';
-        }
-
-        return classes;
-    }
-
-    getPanelClasses(item) {
-        let classes = 'tab-panel';
-
-        if (item.key === this.activeKey) {
-            classes += ' tab-panel-active';
-        }
-
-        return classes;
-    }
-
-    setActiveTab(key) {
-        if (this.activeKey === key) return;
-
-        const oldKey = this.activeKey;
-        this.activeKey = key;
-
-        // Update tab buttons
-        const tabs = this.tabsElement.querySelectorAll('.tab-item');
-        tabs.forEach(tab => {
-            const tabKey = tab.getAttribute('data-key');
-            const isActive = tabKey === key;
-            
-            tab.classList.toggle('tab-active', isActive);
-            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-
-        // Update panels
-        this.updatePanels(oldKey, key);
-
-        // Update active indicator
-        this.updateActiveIndicator();
-
-        // Call change callback
-        if (this.props.on_change) {
-            this.callCallback(this.props.on_change, { key, oldKey });
-        }
-    }
-
-    updatePanels(oldKey, newKey) {
-        const panels = this.tabsElement.querySelectorAll('.tab-panel');
-        
-        panels.forEach(panel => {
-            const panelKey = panel.getAttribute('data-key');
-            const isActive = panelKey === newKey;
-            
-            panel.classList.toggle('tab-panel-active', isActive);
-            
-            if (this.props.animated) {
-                if (isActive) {
-                    panel.removeAttribute('hidden');
-                    panel.style.opacity = '0';
-                    panel.style.transform = 'translateX(10px)';
-                    
-                    requestAnimationFrame(() => {
-                        panel.style.transition = `opacity ${this.animationDuration}ms ease, transform ${this.animationDuration}ms ease`;
-                        panel.style.opacity = '1';
-                        panel.style.transform = 'translateX(0)';
-                    });
-                } else {
-                    panel.style.transition = `opacity ${this.animationDuration}ms ease`;
-                    panel.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        panel.setAttribute('hidden', 'true');
-                        panel.style.transition = '';
-                        panel.style.transform = '';
-                    }, this.animationDuration);
-                }
-            } else {
-                if (isActive) {
-                    panel.removeAttribute('hidden');
-                } else {
-                    panel.setAttribute('hidden', 'true');
-                }
-            }
-        });
-    }
-
-    updateActiveIndicator() {
-        const indicator = this.tabsElement.querySelector('.tabs-indicator');
-        if (!indicator) return;
-
-        const activeTab = this.tabsElement.querySelector('.tab-active');
-        if (!activeTab) return;
-
-        const tabList = this.tabsElement.querySelector('.tabs-list');
-        const tabRect = activeTab.getBoundingClientRect();
-        const listRect = tabList.getBoundingClientRect();
-
-        if (this.props.orientation === 'vertical') {
-            indicator.style.top = `${activeTab.offsetTop}px`;
-            indicator.style.height = `${activeTab.offsetHeight}px`;
-            indicator.style.width = '3px';
-            indicator.style.left = '0';
-        } else {
-            indicator.style.left = `${activeTab.offsetLeft}px`;
-            indicator.style.width = `${activeTab.offsetWidth}px`;
-            indicator.style.height = '3px';
-            indicator.style.top = 'auto';
-        }
-    }
-
-    closeTab(key) {
-        if (this.props.items.length <= 1) return; // Don't close if it's the last tab
-
-        // Find the tab to close
-        const tabIndex = this.props.items.findIndex(item => item.key === key);
-        if (tabIndex === -1) return;
-
-        // Remove from items array
-        this.props.items.splice(tabIndex, 1);
-
-        // Update active key if needed
-        if (this.activeKey === key) {
-            const newActiveIndex = Math.min(tabIndex, this.props.items.length - 1);
-            this.activeKey = this.props.items[newActiveIndex]?.key || null;
-        }
-
-        // Re-render
-        this.render();
-
-        // Call close callback
-        if (this.props.on_close) {
-            this.callCallback(this.props.on_close, { key });
-        }
-    }
-
-    addNewTab() {
-        if (this.props.on_add) {
-            this.callCallback(this.props.on_add, {});
-        }
-    }
-
-    setupEventListeners() {
-        // Handle window resize for indicator positioning
-        window.addEventListener('resize', () => {
-            this.updateActiveIndicator();
-        });
-
-        // Handle tab switching with mouse wheel (on tab navigation)
-        const tabNav = this.tabsElement.querySelector('.tabs-nav');
-        if (tabNav) {
-            tabNav.addEventListener('wheel', (e) => {
-                if (e.deltaY !== 0) {
-                    e.preventDefault();
-                    this.navigateWithWheel(e.deltaY > 0 ? 1 : -1);
-                }
-            });
-        }
-    }
-
-    setupKeyboardNavigation() {
-        this.tabsElement.addEventListener('keydown', (e) => {
-            const tabs = Array.from(this.tabsElement.querySelectorAll('.tab-item:not(.tab-disabled)'));
-            const currentIndex = tabs.findIndex(tab => tab.getAttribute('data-key') === this.activeKey);
-            
-            let newIndex = currentIndex;
-            
-            switch (e.key) {
-                case 'ArrowLeft':
-                case 'ArrowUp':
-                    e.preventDefault();
-                    newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-                    break;
-                    
-                case 'ArrowRight':
-                case 'ArrowDown':
-                    e.preventDefault();
-                    newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-                    break;
-                    
-                case 'Home':
-                    e.preventDefault();
-                    newIndex = 0;
-                    break;
-                    
-                case 'End':
-                    e.preventDefault();
-                    newIndex = tabs.length - 1;
-                    break;
-                    
-                case 'Enter':
-                case ' ':
-                    e.preventDefault();
-                    if (tabs[currentIndex]) {
-                        tabs[currentIndex].click();
-                    }
-                    break;
-            }
-            
-            if (newIndex !== currentIndex && tabs[newIndex]) {
-                const newKey = tabs[newIndex].getAttribute('data-key');
-                this.setActiveTab(newKey);
-                tabs[newIndex].focus();
-            }
-        });
-    }
-
-    setupResizeObserver() {
-        if (!window.ResizeObserver) return;
-
-        this.resizeObserver = new ResizeObserver(() => {
-            this.updateActiveIndicator();
-        });
-
-        this.resizeObserver.observe(this.tabsElement);
-    }
-
-    navigateWithWheel(direction) {
-        const enabledItems = this.props.items.filter(item => !item.disabled);
-        const currentIndex = enabledItems.findIndex(item => item.key === this.activeKey);
-        
-        if (currentIndex === -1) return;
-        
-        let newIndex;
-        if (direction > 0) {
-            newIndex = currentIndex < enabledItems.length - 1 ? currentIndex + 1 : 0;
-        } else {
-            newIndex = currentIndex > 0 ? currentIndex - 1 : enabledItems.length - 1;
-        }
-        
-        this.setActiveTab(enabledItems[newIndex].key);
-    }
-
-    callCallback(callback, data) {
-        if (typeof callback === 'function') {
-            callback(data);
-        } else if (typeof callback === 'string') {
-            // Try to evaluate as a function
-            try {
-                const func = new Function('data', callback);
-                func(data);
-            } catch (e) {
-                console.error('Error executing callback:', e);
-            }
-        }
-    }
-
-    updateProps(newProps) {
-        this.props = { ...this.props, ...newProps };
-        
-        if (newProps.active_key !== undefined) {
-            this.activeKey = newProps.active_key;
-        }
-        
-        this.render();
-    }
-
-    getActiveKey() {
-        return this.activeKey;
-    }
-
-    getActiveItem() {
-        return this.props.items.find(item => item.key === this.activeKey) || null;
-    }
-
-    destroy() {
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-        }
-        
-        // Clean up event listeners
-        this.keyboardHandlers.clear();
-        
-        // Remove window resize listener
-        window.removeEventListener('resize', this.updateActiveIndicator);
-    }
+  return root;
 }
-
-// Export for use in other components
-window.TabsRenderer = TabsRenderer;

@@ -16,7 +16,7 @@ from .forms import (
 )
 
 from .data import (
-    Plot, List, Descriptions, Tooltip, Popover,
+    Plot, List, Descriptions, Tooltip, TreeViewer, Popover,
     Card, Carousel, Collapse, Image, Badge, Avatar, Tag, Timeline
 )
 
@@ -52,6 +52,7 @@ __all__ = [
     "List",
     "Descriptions",
     "Tooltip",
+    "TreeViewer",
     "Popover",
     "Card",
     "Carousel",

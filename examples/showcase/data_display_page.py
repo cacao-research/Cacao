@@ -59,6 +59,59 @@ class DataDisplayPage:
                             ]
                         }
                     },
+                    
+                    # Tree Viewer Test
+                    {
+                        "type": "div",
+                        "props": {
+                            "style": {
+                                "backgroundColor": "#F5F5F5",
+                                "borderRadius": "8px",
+                                "padding": "20px",
+                                "marginBottom": "20px"
+                            },
+                            "children": [
+                                {
+                                    "type": "h3",
+                                    "props": {
+                                        "content": "Tree Viewer",
+                                        "style": {"marginBottom": "15px"}
+                                    }
+                                },
+                                {
+                                    "type": "tree_viewer",
+                                    "props": {
+                                        "id": "myTree",
+                                        "data": {
+                                            "glossary": {
+                                                "title": "example glossary",
+                                                "GlossDiv": {
+                                                    "title": "S",
+                                                    "GlossList": {
+                                                        "GlossEntry": {
+                                                            "ID": "SGML",
+                                                            "SortAs": "SGML",
+                                                            "GlossTerm": "Standard Generalized Markup Language",
+                                                            "Acronym": "SGML",
+                                                            "Abbrev": "ISO 8879:1986",
+                                                            "GlossDef": {
+                                                                "para": "A meta-markup language, used to create markup languages such as DocBook.",
+                                                                "GlossSeeAlso": ["GML", "XML"]
+                                                            },
+                                                            "GlossSee": "markup"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "expand_all": False,
+                                        "theme": "light",
+                                        "on_node_click": "tree:nodeClick"
+                                    }
+                                }
+                            ]
+                        }
+                    },
                     # List
                     {
                         "type": "div",
@@ -225,7 +278,7 @@ class DataDisplayPage:
                                                         {
                                                             "type": "avatar",
                                                             "props": {
-                                                                "src": "https://picsum.photos/id/64/200/200",
+                                                                "src": "https://via.placeholder.com/40",
                                                                 "shape": "circle",
                                                                 "size": "large"
                                                             }
