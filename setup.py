@@ -31,6 +31,7 @@ setup(
             'core/static/js/*.js',
             'core/static/icons/*.svg',
             'cli/templates/**/*'
+            'ui/components/**/*'
         ]
     },
     include_package_data=True,
