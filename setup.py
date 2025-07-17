@@ -30,8 +30,10 @@ setup(
             'core/static/css/*.css',
             'core/static/js/*.js',
             'core/static/icons/*.svg',
-            'cli/templates/**/*'
-            'ui/components/**/*'
+            'cli/templates/**/*',
+            'ui/components/**/*.js',
+            'ui/components/**/*.css',
+            'ui/components/**/*.py'
         ]
     },
     include_package_data=True,
