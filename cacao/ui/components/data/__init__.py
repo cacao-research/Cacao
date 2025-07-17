@@ -10,6 +10,7 @@ from .plot.plot import Plot
 from .list.list import List
 from .descriptions.descriptions import Descriptions
 from .tooltip.tooltip import Tooltip
+from .tree_viewer.tree_viewer import TreeViewer
 from .popover.popover import Popover
 from .card.card import Card
 from .carousel.carousel import Carousel
@@ -27,6 +28,7 @@ __all__ = [
     'List',
     'Descriptions',
     'Tooltip',
+    'TreeViewer',
     'Popover',
     'Card',
     'Carousel',

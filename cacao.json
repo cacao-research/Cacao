@@ -13,7 +13,6 @@
         "include": ["components", "api"]
     },
     "theme": {
-        "css": "./cacao/core/static/css/themes/default.css",
         "js": "./cacao/core/static/js/cacao-core.js"
     },
     "pwa": {

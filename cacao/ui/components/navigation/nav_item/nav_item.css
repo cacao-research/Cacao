@@ -1,0 +1,221 @@
+/**
+ * Nav Item Component Styles
+ * Provides styling for individual navigation items
+ */
+
+.nav-item-container {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    color: #333;
+    text-decoration: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background-color: transparent;
+    white-space: nowrap;
+}
+
+.nav-item:hover {
+    color: #1890ff;
+    background-color: #f0f0f0;
+}
+
+.nav-item:focus {
+    outline: 2px solid #1890ff;
+    outline-offset: 2px;
+}
+
+.nav-item-icon {
+    margin-right: 8px;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Active state */
+.nav-item-active .nav-item {
+    color: #1890ff;
+    background-color: #e6f7ff;
+    font-weight: 500;
+    border-color: #1890ff;
+}
+
+.nav-item-active .nav-item:hover {
+    color: #40a9ff;
+    background-color: #bae7ff;
+}
+
+/* Disabled state */
+.nav-item-disabled .nav-item {
+    color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.nav-item-disabled .nav-item:hover {
+    color: #ccc;
+    background-color: transparent;
+}
+
+/* Hover state */
+.nav-item-hover .nav-item {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus state */
+.nav-item-focus .nav-item {
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Size variations */
+.nav-item-small .nav-item {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.nav-item-large .nav-item {
+    padding: 12px 24px;
+    font-size: 16px;
+}
+
+/* Theme variations */
+.nav-item-primary .nav-item {
+    background-color: #1890ff;
+    color: white;
+    border-color: #1890ff;
+}
+
+.nav-item-primary .nav-item:hover {
+    background-color: #40a9ff;
+    border-color: #40a9ff;
+}
+
+.nav-item-secondary .nav-item {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #d9d9d9;
+}
+
+.nav-item-secondary .nav-item:hover {
+    background-color: #e6e6e6;
+    border-color: #bfbfbf;
+}
+
+.nav-item-ghost .nav-item {
+    background-color: transparent;
+    border-color: #1890ff;
+    color: #1890ff;
+}
+
+.nav-item-ghost .nav-item:hover {
+    background-color: rgba(24, 144, 255, 0.1);
+}
+
+.nav-item-danger .nav-item {
+    background-color: #ff4d4f;
+    color: white;
+    border-color: #ff4d4f;
+}
+
+.nav-item-danger .nav-item:hover {
+    background-color: #ff7875;
+    border-color: #ff7875;
+}
+
+/* Dark theme */
+.nav-item-dark .nav-item {
+    color: rgba(255, 255, 255, 0.85);
+    background-color: transparent;
+}
+
+.nav-item-dark .nav-item:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-dark.nav-item-active .nav-item {
+    color: #1890ff;
+    background-color: rgba(24, 144, 255, 0.1);
+}
+
+/* Vertical alignment in navigation contexts */
+.nav-item-vertical {
+    display: block;
+    width: 100%;
+}
+
+.nav-item-vertical .nav-item {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+}
+
+/* Loading state */
+.nav-item-loading .nav-item {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.nav-item-loading .nav-item::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    border: 2px solid #1890ff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: nav-item-spin 1s linear infinite;
+}
+
+@keyframes nav-item-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .nav-item {
+        padding: 12px 16px;
+        font-size: 16px;
+    }
+    
+    .nav-item-small .nav-item {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .nav-item-large .nav-item {
+        padding: 16px 24px;
+        font-size: 18px;
+    }
+}
+
+/* Accessibility improvements */
+.nav-item:focus-visible {
+    outline: 2px solid #1890ff;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .nav-item {
+        border: 2px solid;
+    }
+    
+    .nav-item-disabled .nav-item {
+        border-style: dashed;
+    }
+}

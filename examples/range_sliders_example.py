@@ -31,53 +31,6 @@ def home() -> Dict[str, Any]:
         },
         "children": [
             {
-                "type": "style",
-                "props": {
-                    "content": """
-                        .range-slider {
-                            width: 100%;
-                            margin: 10px 0;
-                            -webkit-appearance: none;
-                            background: transparent;
-                        }
-                        .range-slider::-webkit-slider-thumb {
-                            -webkit-appearance: none;
-                            height: 24px;
-                            width: 24px;
-                            border-radius: 50%;
-                            background: #ffffff;
-                            cursor: pointer;
-                            margin-top: -10px;
-                            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                            border: 2px solid #D2691E;
-                            transition: all 0.2s ease;
-                        }
-                        .range-slider::-webkit-slider-thumb:hover {
-                            transform: scale(1.1);
-                            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-                        }
-                        .range-slider::-webkit-slider-runnable-track {
-                            width: 100%;
-                            height: 4px;
-                            background: rgba(255,255,255,0.3);
-                            border-radius: 2px;
-                        }
-                        .value-display {
-                            background: rgba(255,255,255,0.1);
-                            padding: 15px 30px;
-                            border-radius: 15px;
-                            margin-top: 30px;
-                            text-align: center;
-                            color: white;
-                            font-size: 24px;
-                            font-weight: bold;
-                            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                            transition: all 0.3s ease;
-                        }
-                    """
-                }
-            },
-            {
                 "type": "div",
                 "props": {
                     "style": {
