@@ -174,3 +174,4 @@ node_modules/
 RESEARCH/
 .roomodes
 *.pyc
+/test_results

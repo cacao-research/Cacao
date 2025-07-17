@@ -1,0 +1,124 @@
+services:
+  # Full test suite using built package
+  test-package:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - ./test_results:/app/test_results
+    command: python test_package.py
+    profiles:
+      - test
+      - all
+
+  # Development test environment with source code
+  test-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev-test
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+      - ./test_results:/app/test_results
+    command: python test_package.py
+    profiles:
+      - dev
+      - all
+
+  # Minimal production-like test
+  test-minimal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: minimal
+    environment:
+      - CACAO_TEST_MODE=true
+    volumes:
+      - ./test_results:/app/test_results
+    command: python test/test_package.py
+    profiles:
+      - minimal
+      - all
+
+  # Interactive testing environment
+  test-interactive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev-test
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+      - ./test_results:/app/test_results
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    profiles:
+      - interactive
+
+  # Python 3.8 compatibility test
+  test-py38:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      args:
+        - PYTHON_VERSION=3.8
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - ./test_results:/app/test_results
+    command: python test_package.py
+    profiles:
+      - compatibility
+      - all
+
+  # Python 3.10 compatibility test
+  test-py310:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      args:
+        - PYTHON_VERSION=3.10
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - ./test_results:/app/test_results
+    command: python test_package.py
+    profiles:
+      - compatibility
+      - all
+
+  # Python 3.11 compatibility test
+  test-py311:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      args:
+        - PYTHON_VERSION=3.11
+    environment:
+      - CACAO_TEST_MODE=true
+      - PYTHONPATH=/app
+    volumes:
+      - ./test_results:/app/test_results
+    command: python test_package.py
+    profiles:
+      - compatibility
+      - all
+
+volumes:
+  test_results:
+    driver: local
