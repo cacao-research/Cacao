@@ -5,5 +5,6 @@ include cacao.json
 recursive-include cacao/core/static *
 recursive-include cacao/cli/templates *
 recursive-include cacao/ui/components *.js *.css *.py
+recursive-include cacao/ui/themes *.py
 recursive-include docs *
 recursive-include examples *
