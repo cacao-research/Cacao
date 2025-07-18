@@ -68,7 +68,8 @@ class App:
     def brew(self, type: str = "web", host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
              title: str = "Cacao App", width: int = 800, height: int = 600,
              resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False,
-             theme: Dict[str, Any] = None, compile_components: bool = True):
+             theme: Dict[str, Any] = None, compile_components: bool = True,
+             pwa_config: Dict[str, Any] = None, icon: str = None):
         """
         Start the application in web or desktop mode.
         Like brewing a delicious cup of hot chocolate!
@@ -128,6 +129,19 @@ class App:
         main_file = frame.f_code.co_filename
         
         if type.lower() == "web":
+            # Add PWA support if pwa_config is provided
+            if pwa_config:
+                from .pwa import PWASupport
+                pwa_support = PWASupport(
+                    app_name=pwa_config.get("app_name", title),
+                    app_description=pwa_config.get("app_description", "A Cacao Progressive Web App"),
+                    theme_color=pwa_config.get("theme_color", "#6B4226"),
+                    background_color=pwa_config.get("background_color", "#F5F5F5"),
+                    icon_192=pwa_config.get("icon_192", "/static/icons/icon-192.png"),
+                    icon_512=pwa_config.get("icon_512", "/static/icons/icon-512.png")
+                )
+                self.extensions.append(pwa_support)
+            
             # Start as web application
             self.server = CacaoServer(
                 host=host,
@@ -149,7 +163,8 @@ class App:
                 http_port=http_port,
                 ws_port=ws_port,
                 main_file=main_file,
-                extensions=self.extensions
+                extensions=self.extensions,
+                icon=icon
             )
             app.launch()
         else:

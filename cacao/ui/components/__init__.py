@@ -17,7 +17,8 @@ from .forms import (
 
 from .data import (
     Plot, List, Descriptions, Tooltip, TreeViewer, Popover,
-    Card, Carousel, Collapse, Image, Badge, Avatar, Tag, Timeline
+    Card, Carousel, Collapse, Image, Badge, Avatar, Tag, Timeline,
+    Table
 )
 
 from .layout import Grid, Column
@@ -48,6 +49,7 @@ __all__ = [
     "Upload",
     
     # Data
+    "Table",
     "Plot",
     "List",
     "Descriptions",
