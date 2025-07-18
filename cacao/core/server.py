@@ -443,6 +443,10 @@ class CacaoServer(LoggingMixin):
                 if len(header_parts) == 2:
                     headers[header_parts[0].strip().lower()] = header_parts[1].strip()
 
+            # Handle favicon requests
+            if path == "/favicon.ico":
+                return await self._serve_favicon(writer)
+            
             # Handle PWA routes if enabled
             if self.enable_pwa:
                 if path == "/manifest.json":
@@ -553,6 +557,9 @@ class CacaoServer(LoggingMixin):
         
         # Try multiple static paths, similar to HTML template
         static_dirs = [
+            # First try the project's static directory
+            os.path.join(os.getcwd(), "static"),
+            # Then try the cacao package's static directory
             os.path.join(cacao_base_dir, "core", "static"),
             os.path.join(os.path.dirname(__file__), "static"),
             os.path.join(os.path.abspath(os.path.dirname(__file__)), "static")
@@ -981,6 +988,32 @@ class CacaoServer(LoggingMixin):
         )
         writer.write(response.encode("utf-8"))
         await writer.drain()
+    
+    async def _serve_favicon(self, writer: asyncio.StreamWriter) -> None:
+        """Serve favicon.ico - redirect to PWA icon or serve default."""
+        try:
+            # Try to serve the 192x192 PWA icon as favicon if PWA is enabled
+            if self.enable_pwa and self.pwa:
+                # Redirect to the PWA icon
+                response = (
+                    "HTTP/1.1 302 Found\r\n"
+                    f"Location: {self.pwa.icon_192}\r\n"
+                    "Content-Length: 0\r\n"
+                    "\r\n"
+                )
+                writer.write(response.encode("utf-8"))
+                await writer.drain()
+                return
+            
+            # Try to serve a favicon from static directory
+            favicon_path = "/static/favicon.ico"
+            return await self._serve_static_file(favicon_path, writer)
+            
+        except Exception as e:
+            # If all else fails, return a 404
+            self.log(f"Favicon error: {str(e)}", "warning", "⚠️")
+            writer.write(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            await writer.drain()
     
     async def _setup_ws_server(self):
         """Set up the WebSocket server."""

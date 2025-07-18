@@ -8,11 +8,13 @@ from .inputs_page import InputsPage
 from .data_display_page import DataDisplayPage
 from .navigation_page import NavigationPage
 from .feedback_page import FeedbackPage
+from .table_page import TablePage
 
 __all__ = [
     "TypographyPage",
     "InputsPage",
     "DataDisplayPage",
     "NavigationPage",
-    "FeedbackPage"
+    "FeedbackPage",
+    "TablePage"
 ]

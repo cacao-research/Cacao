@@ -33,6 +33,19 @@
     // Debug flag to show console logs
     window.CACAO_DEBUG = true;
     
+    // Register service worker for PWA support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('[PWA] Service Worker registered with scope:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('[PWA] Service Worker registration failed:', error);
+          });
+      });
+    }
+    
     // Function to sync hash state with the server
     async function syncHashState() {
         const page = window.location.hash.slice(1) || '';
