@@ -13,7 +13,8 @@ from examples.showcase import (
     InputsPage,
     DataDisplayPage,
     NavigationPage,
-    FeedbackPage
+    FeedbackPage,
+    TablePage
 )
 
 app = cacao.App()
@@ -24,6 +25,7 @@ inputs_page = InputsPage()
 data_display_page = DataDisplayPage()
 navigation_page = NavigationPage()
 feedback_page = FeedbackPage()
+table_page = TablePage()
 
 # Define navigation items
 nav_items = [
@@ -31,7 +33,8 @@ nav_items = [
     {"id": "inputs", "label": "Inputs", "icon": "I"},
     {"id": "data_display", "label": "Data Display", "icon": "D"},
     {"id": "navigation", "label": "Navigation", "icon": "N"},
-    {"id": "feedback", "label": "Feedback", "icon": "F"}
+    {"id": "feedback", "label": "Feedback", "icon": "F"},
+    {"id": "tables", "label": "Tables", "icon": "T"}
 ]
 
 # Define content components for each page
@@ -40,7 +43,8 @@ content_components = {
     "inputs": inputs_page,
     "data_display": data_display_page,
     "navigation": navigation_page,
-    "feedback": feedback_page
+    "feedback": feedback_page,
+    "tables": table_page
 }
 
 # Create the sidebar layout with app title and custom theme

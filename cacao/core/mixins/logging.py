@@ -6,8 +6,6 @@ from datetime import datetime
 import colorama
 import sys
 
-# Import the ASCII debug setting
-sys.path.append('c:\\Users\\Juan\\Documents\\GitHub\\Cacao\\cacao\\core')
 try:
     from app import ASCII_DEBUG_MODE
 except ImportError:

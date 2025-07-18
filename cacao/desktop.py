@@ -9,7 +9,7 @@ from .core.server import CacaoServer
 class CacaoDesktopApp:
     def __init__(self, title: str = "Cacao Desktop App", width: int = 800, height: int = 600,
                  resizable: bool = True, fullscreen: bool = False, http_port: int = 1634,
-                 ws_port: int = 1633, main_file: str = None, extensions=None):
+                 ws_port: int = 1633, main_file: str = None, extensions=None, icon: str = None):
         self.title = title
         self.width = width
         self.height = height
@@ -19,6 +19,7 @@ class CacaoDesktopApp:
         self.ws_port = ws_port
         self.main_file = main_file # Assign main_file
         self.extensions = extensions or []
+        self.icon = icon  # Custom icon path
         
     def start_server(self):
         """Start the Cacao server in a separate thread."""
@@ -74,12 +75,20 @@ class CacaoDesktopApp:
         # Create a window
         self.window = webview.create_window(
             title=self.title,
-            url=f"http://localhost:{self.http_port}",  # Use http_port here
+            url=f"http://localhost:{self.http_port}",
             width=self.width,
             height=self.height,
             resizable=self.resizable,
             fullscreen=self.fullscreen
         )
         
-        # Start the WebView event loop
-        webview.start()
+        # Start the WebView event loop with custom icon if provided
+        if self.icon:
+            if os.path.exists(self.icon):
+                print(f"* Using custom icon: {self.icon}")
+                webview.start(icon=self.icon)
+            else:
+                print(f"* Warning: Icon file not found: {self.icon}")
+                webview.start()
+        else:
+            webview.start()

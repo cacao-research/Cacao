@@ -3,9 +3,17 @@ Data components package for the Cacao framework.
 Contains all data display components migrated from the monolithic data.py file.
 """
 
+# Import the merged table component
+from .table.table import (
+    Table,
+    create_simple_table,
+    create_advanced_table,
+    create_simple_datatable,
+    create_server_side_datatable,
+    create_export_datatable
+)
 
-# Import migrated components from their new locations
-from .table.table import Table
+# Import other components from their locations
 from .plot.plot import Plot
 from .list.list import List
 from .descriptions.descriptions import Descriptions
@@ -23,7 +31,17 @@ from .timeline.timeline import Timeline
 
 # Export all components for backward compatibility
 __all__ = [
+    # Merged table component (both simple and advanced)
     'Table',
+    
+    # Table factory functions
+    'create_simple_table',
+    'create_advanced_table',
+    'create_simple_datatable',
+    'create_server_side_datatable',
+    'create_export_datatable',
+    
+    # Other data components
     'Plot',
     'List',
     'Descriptions',
