@@ -1,6 +1,6 @@
 /*
  * Auto-generated Cacao Components
- * Generated on: 2025-07-21 19:10:24
+ * Generated on: 2026-02-04 00:01:50
  * Components: 37
  *
  * This file extends window.CacaoCore.componentRenderers with compiled components.
@@ -3421,7 +3421,7 @@ if (typeof window !== 'undefined' && window.CacaoComponents) {
 // Auto-generated component: navbar
 (function(){
     try {
-        const navbarRenderer = /**
+        /**
  * Navbar Component JavaScript
  * Handles rendering and interaction for navbar elements
  */
@@ -3860,8 +3860,8 @@ window.NavbarRenderer = NavbarRenderer;
             window.CacaoCore.componentRenderers = {};
         }
 
-        // Register the renderer function
-        window.CacaoCore.componentRenderers['navbar'] = navbarRenderer;
+        // Register the class directly
+        window.CacaoCore.componentRenderers['navbar'] = NavbarRenderer;
     } catch (error) {
         console.error('[CacaoComponents] Error registering component: navbar', error);
     }

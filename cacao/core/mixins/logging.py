@@ -5,12 +5,26 @@ Logging mixin to record activity, such as state changes and user interactions.
 from datetime import datetime
 import colorama
 import sys
+import os
 
-try:
-    from app import ASCII_DEBUG_MODE
-except ImportError:
-    # Default to False if import fails
-    ASCII_DEBUG_MODE = False
+# Check if we should use ASCII mode (Windows or explicit setting)
+def _should_use_ascii():
+    """Determine if ASCII mode should be used."""
+    # Check environment variable
+    if os.environ.get("CACAO_ASCII_MODE", "").lower() in ("1", "true", "yes"):
+        return True
+    # Check if running on Windows with non-UTF8 console
+    if sys.platform == "win32":
+        try:
+            # Test if console can handle unicode
+            sys.stdout.write("\u2713")
+            sys.stdout.write("\b \b")  # Erase it
+            return False
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return True
+    return False
+
+ASCII_DEBUG_MODE = _should_use_ascii()
 
 # Initialize colorama for Windows support
 colorama.init()
@@ -76,4 +90,9 @@ class LoggingMixin:
                 display_emoji = emoji
                 
         formatted_message = f"{color}{timestamp} {display_emoji}  {message}{Colors.ENDC}"
-        print(formatted_message)
+        try:
+            print(formatted_message)
+        except UnicodeEncodeError:
+            # Fallback to ASCII-safe message
+            safe_message = formatted_message.encode('ascii', 'replace').decode('ascii')
+            print(safe_message)

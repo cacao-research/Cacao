@@ -36,7 +36,7 @@ class ComponentCompiler:
     def __init__(self,
                  components_dir: str = "cacao/ui/components",
                  output_path: str = "cacao/core/static/js/cacao-components.js",
-                 css_output_path: str = "cacao/core/static/css/cacao-components.css"):
+                 css_output_path: str = "cacao/core/static/css/cacao-legacy-components.css"):
         """
         Initialize the ComponentCompiler.
         
@@ -525,9 +525,30 @@ class ComponentCompiler:
             js_var_name = to_camel_case(name) if '-' in name else name
 
             import re
-            is_class = js_content.strip().startswith('class ')
+
+            # Check if JS content is a class (handle JSDoc comments before class)
+            # Strip leading comments (both /* */ and //) to find the actual code
+            stripped_content = js_content.strip()
+
+            # Remove leading block comments (/** ... */ or /* ... */)
+            while stripped_content.startswith('/*'):
+                end_comment = stripped_content.find('*/')
+                if end_comment != -1:
+                    stripped_content = stripped_content[end_comment + 2:].strip()
+                else:
+                    break
+
+            # Remove leading line comments (// ...)
+            while stripped_content.startswith('//'):
+                newline = stripped_content.find('\n')
+                if newline != -1:
+                    stripped_content = stripped_content[newline + 1:].strip()
+                else:
+                    break
+
+            is_class = stripped_content.startswith('class ')
             if is_class:
-                match = re.match(r'class\s+([A-Za-z0-9_]+)', js_content.strip())
+                match = re.match(r'class\s+([A-Za-z0-9_]+)', stripped_content)
                 class_name = match.group(1) if match else 'UnknownClass'
 
                 wrapper = f"""

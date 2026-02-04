@@ -353,23 +353,88 @@
             renderChildren(el, component.props.children);
         }
 
+        // Handle onClick events for standard elements
+        if (component.props && component.props.onClick) {
+            el.style.cursor = 'pointer';
+            el.onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    const onClick = component.props.onClick;
+
+                    // If onClick is a string like "event:value", parse it
+                    if (typeof onClick === 'string') {
+                        const [eventName, value] = onClick.split(':');
+                        if (eventName && value !== undefined) {
+                            debugLog(`Sending event: ${eventName} with value: ${value}`);
+
+                            // Show refresh overlay
+                            const overlay = document.querySelector('.refresh-overlay');
+                            if (overlay) overlay.classList.add('active');
+
+                            const response = await fetch(`/api/event?event=${encodeURIComponent(eventName)}&value=${encodeURIComponent(value)}&t=${Date.now()}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                                }
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Server returned ${response.status}`);
+                            }
+
+                            // Refresh the UI
+                            window.CacaoWS.requestServerRefresh();
+                        }
+                    }
+                    // If onClick is an object with action/state/value (like nav_item uses)
+                    else if (typeof onClick === 'object' && onClick.action) {
+                        const { action, state, value } = onClick;
+                        debugLog(`Sending action: ${action} state=${state} value=${value}`);
+
+                        const overlay = document.querySelector('.refresh-overlay');
+                        if (overlay) overlay.classList.add('active');
+
+                        const response = await fetch(`/api/action?action=${action}&component_type=${state || ''}&value=${value || ''}&t=${Date.now()}`, {
+                            method: 'GET',
+                            headers: {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}`);
+                        }
+
+                        window.CacaoWS.requestServerRefresh();
+                    }
+                } catch (err) {
+                    console.error('[CacaoCore] Error handling click event:', err);
+                    const overlay = document.querySelector('.refresh-overlay');
+                    if (overlay) overlay.classList.remove('active');
+                }
+            };
+        }
+
         return el;
     }
 
-    // Any HTML tags you want to handle automatically (including your missing ones: <code>, <ol>, etc.)
+    // Any HTML tags you want to handle automatically
     const STANDARD_TAGS = new Set([
-        "div", "span", "section", "main", "nav",
+        "div", "span", "section", "main", "nav", "aside", "article",
         "header", "footer", "pre", "code",
-        "p", "li", "ul", "ol",
+        "p", "li", "ul", "ol", "blockquote", "figure", "figcaption",
         "h1", "h2", "h3", "h4", "h5", "h6",
-        "form", "textarea", "input", "button", // Form elements
-        "thead", "tbody", "tr", "td", "th", // Table elements
-        "img", "a", "label", "option", // Other common elements
-        "svg", "path", "circle", "rect", "g", "text", // SVG elements
-        "i", "span", "br", "hr", "strong", "em", "u", "s", "sub", "sup", // Text formatting elements
+        "form", "textarea", "input", "button", "fieldset", "legend", // Form elements
+        "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption", "colgroup", "col", // Table elements
+        "img", "a", "label", "option", "select", // Other common elements
+        "svg", "path", "circle", "rect", "g", "text", "line", "polygon", "polyline", "ellipse", // SVG elements
+        "i", "b", "span", "br", "hr", "strong", "em", "u", "s", "sub", "sup", "small", "mark", "kbd", "samp", "var", "abbr", "cite", "dfn", "time", "address", // Text formatting elements
         "details", "summary", // Collapsible elements
-        "canvas", "video", "audio", // Media elements
-        "style", "link" // For CSS and other links
+        "canvas", "video", "audio", "source", "track", "picture", // Media elements
+        "style", "link", "script", "noscript", "template", "slot", // Meta/script elements
+        "iframe", "embed", "object", "param", // Embedded content
+        "dl", "dt", "dd", // Description lists
+        "meter", "progress", "output", "datalist" // Interactive elements
     ]);
 
     /**

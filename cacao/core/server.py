@@ -806,20 +806,26 @@ class CacaoServer(LoggingMixin):
             # Import the event handler dynamically
             from .decorators import handle_event # Assuming handle_event exists and works this way
 
-            # Prepare event argument (focus on 'value' for now)
-            event_arg = None
-            if value_str is not None:
-                 # Attempt to convert value based on typical usage (float for sliders)
-                 try:
-                     event_arg = float(value_str)
-                 except (ValueError, TypeError):
-                     self.log(f"Could not convert event value '{value_str}' to float for event '{event_name}'. Passing as string.", "warning", "⚠️")
-                     event_arg = value_str # Fallback to string if conversion fails
+            # Build event data dictionary from all query params
+            event_data = {}
+            for key, values in query_params.items():
+                if key not in ('event', 't'):  # Skip event name and cache buster
+                    # Use first value, try to convert to appropriate type
+                    val = values[0] if values else None
+                    if val is not None:
+                        try:
+                            event_data[key] = float(val)
+                        except (ValueError, TypeError):
+                            event_data[key] = val
 
-            # Call the event handler - Assumes handle_event(name, arg) signature
-            # This might need adjustment based on the actual implementation of handle_event
-            # and how it looks up and calls the decorated function.
-            result = handle_event(event_name, event_arg)
+            self.log(f"Event data: {event_data}", "info", "📦")
+
+            # Call the event handler with the data dictionary
+            result = handle_event(event_name, event_data)
+
+            # Handle async handlers
+            if asyncio.iscoroutine(result):
+                result = await result
 
             # Send success response
             response_data = {"status": "success"}

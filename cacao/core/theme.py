@@ -3,26 +3,84 @@ Theme module for the Cacao framework.
 Provides functionality for loading and serving theme CSS.
 """
 
-from typing import Dict, Any, Optional
+import os
+from pathlib import Path
+from typing import Dict, Any, Optional, List
 from ..ui.themes.theme_loader import load_theme, get_sidebar_theme
 from ..ui.themes.default_theme import DefaultTheme
+
+# Global storage for custom CSS
+_custom_css: List[str] = []
+_custom_css_files: List[str] = []
+
+
+def register_css(css: str) -> None:
+    """
+    Register custom CSS to be included in the theme.
+
+    Args:
+        css: CSS string to add
+    """
+    if css and css not in _custom_css:
+        _custom_css.append(css)
+
+
+def register_css_file(file_path: str) -> None:
+    """
+    Register a CSS file to be included in the theme.
+
+    Args:
+        file_path: Path to the CSS file (relative to cwd or absolute)
+    """
+    if file_path and file_path not in _custom_css_files:
+        _custom_css_files.append(file_path)
+
+
+def _load_css_files() -> str:
+    """Load all registered CSS files and return combined CSS."""
+    css_parts = []
+    for file_path in _custom_css_files:
+        # Try relative to cwd first, then absolute
+        paths_to_try = [
+            Path(os.getcwd()) / file_path,
+            Path(file_path)
+        ]
+        for path in paths_to_try:
+            if path.exists():
+                try:
+                    css_parts.append(f"/* Custom CSS: {path.name} */")
+                    css_parts.append(path.read_text(encoding='utf-8'))
+                    break
+                except Exception as e:
+                    print(f"[Theme] Error loading CSS file {path}: {e}")
+    return '\n'.join(css_parts)
+
 
 def get_theme_css() -> str:
     """
     Get the combined CSS from all active themes.
-    
+
     Returns:
         str: The combined CSS from all active themes.
     """
     # Load base theme CSS
     theme_assets = load_theme("default")
     css = theme_assets["css"] or DefaultTheme.CSS
-    
+
     # Add component-specific themes
     sidebar_theme = get_sidebar_theme()
     if hasattr(sidebar_theme, 'CSS'):
         css += f"\n/* Sidebar Theme */\n{sidebar_theme.CSS}"
-    
+
+    # Add custom CSS files
+    custom_file_css = _load_css_files()
+    if custom_file_css:
+        css += f"\n\n/* Custom CSS Files */\n{custom_file_css}"
+
+    # Add inline custom CSS
+    if _custom_css:
+        css += f"\n\n/* Custom CSS */\n" + '\n'.join(_custom_css)
+
     return css
 
 # Add a route decorator to handle theme CSS requests

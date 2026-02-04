@@ -69,11 +69,12 @@ class App:
              title: str = "Cacao App", width: int = 800, height: int = 600,
              resizable: bool = True, fullscreen: bool = False, ASCII_debug: bool = False,
              theme: Dict[str, Any] = None, compile_components: bool = True,
-             pwa_config: Dict[str, Any] = None, icon: str = None):
+             pwa_config: Dict[str, Any] = None, icon: str = None,
+             css: str = None, css_files: list = None):
         """
         Start the application in web or desktop mode.
         Like brewing a delicious cup of hot chocolate!
-        
+
         Args:
             type: Application type, either "web" or "desktop"
             host: Host address to bind the server to
@@ -87,11 +88,22 @@ class App:
             ASCII_debug: If True, disables emojis in logs for better compatibility
             theme: Dictionary containing theme properties to apply globally
             compile_components: If True, automatically compile component JS files on startup
+            css: Custom CSS string to include in the theme
+            css_files: List of CSS file paths to include in the theme
         """
         # Set the global ASCII debug mode
         global ASCII_DEBUG_MODE
         ASCII_DEBUG_MODE = ASCII_debug
-        
+
+        # Register custom CSS
+        if css or css_files:
+            from .theme import register_css, register_css_file
+            if css:
+                register_css(css)
+            if css_files:
+                for css_file in css_files:
+                    register_css_file(css_file)
+
         # Set the global theme if provided
         if theme:
             from .theme import set_theme
