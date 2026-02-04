@@ -1,6 +1,6 @@
 /*
  * Auto-generated Cacao Component Styles
- * Generated on: 2025-07-17 23:05:47
+ * Generated on: 2025-07-21 19:10:24
  * Components with CSS: 31
  *
  * This file contains compiled CSS from all modular components.
@@ -3288,6 +3288,334 @@
 .table-wrapper.success .table,
 .datatable-wrapper.success .table {
     color: #155724;
+}
+
+/* === Advanced Filter Panel === */
+.table-filter-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: #fff;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease-in-out;
+    z-index: 1050;
+    overflow-y: auto;
+    border-left: 1px solid #dee2e6;
+}
+
+.table-filter-panel.open {
+    right: 0;
+}
+
+.table-filter-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.table-filter-panel-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.filter-panel-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+.filter-panel-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.filter-panel-close:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.filter-panel-body {
+    padding: 20px;
+}
+
+.filter-group {
+    margin-bottom: 24px;
+}
+
+.filter-group-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.filter-field {
+    margin-bottom: 16px;
+}
+
+.filter-field-label {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.filter-field input,
+.filter-field select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-range {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filter-range input {
+    flex: 1;
+}
+
+.filter-range-separator {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.filter-panel-actions {
+    padding: 20px;
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+    display: flex;
+    gap: 12px;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.filter-btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.filter-btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.filter-btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+.filter-btn-secondary:hover {
+    background-color: #545b62;
+    border-color: #545b62;
+}
+
+.filter-btn-clear {
+    background-color: #fff;
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.filter-btn-clear:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+/* Filter toggle button */
+.table-filter-toggle {
+    position: relative;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.filter-toggle-btn {
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    background-color: #fff;
+    color: #495057;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-toggle-btn:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.filter-toggle-btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.filter-toggle-icon {
+    font-size: 16px;
+}
+
+.filter-active-indicator {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    display: none;
+}
+
+.filter-toggle-btn.has-filters .filter-active-indicator {
+    display: block;
+}
+
+/* Dark theme support for filter panel */
+.table-wrapper.theme-dark .table-filter-panel {
+    background: #343a40;
+    border-left-color: #495057;
+}
+
+.table-wrapper.theme-dark .filter-panel-header {
+    background: #495057;
+    border-bottom-color: #6c757d;
+}
+
+.table-wrapper.theme-dark .filter-panel-title {
+    color: #fff;
+}
+
+.table-wrapper.theme-dark .filter-panel-close {
+    color: #adb5bd;
+}
+
+.table-wrapper.theme-dark .filter-panel-close:hover {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.table-wrapper.theme-dark .filter-group-label {
+    color: #fff;
+}
+
+.table-wrapper.theme-dark .filter-field-label {
+    color: #adb5bd;
+}
+
+.table-wrapper.theme-dark .filter-field input,
+.table-wrapper.theme-dark .filter-field select {
+    background-color: #495057;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+.table-wrapper.theme-dark .filter-panel-actions {
+    background: #495057;
+    border-top-color: #6c757d;
+}
+
+/* Responsive design for filter panel */
+@media (max-width: 768px) {
+    .table-filter-panel {
+        width: 100vw;
+        right: -100vw;
+    }
+    
+    .filter-panel-actions {
+        flex-direction: column;
+    }
+    
+    .filter-range {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .filter-range-separator {
+        display: none;
+    }
+}
+
+/* Animation for filter panel */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(100%);
+    }
+}
+
+.table-filter-panel.animating-in {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+.table-filter-panel.animating-out {
+    animation: slideOutToRight 0.3s ease-in;
 }
 
 /* Component: tag (folder-based) */

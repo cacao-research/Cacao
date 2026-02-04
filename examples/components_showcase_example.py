@@ -8,14 +8,42 @@ organized into different categories using the SidebarLayout component.
 
 import cacao
 from cacao.ui.components.sidebar_layout import SidebarLayout
-from examples.showcase import (
-    TypographyPage,
-    InputsPage,
-    DataDisplayPage,
-    NavigationPage,
-    FeedbackPage,
-    TablePage
-)
+
+# Diagnostic logging to understand the import error
+import sys
+import os
+print(f"DEBUG: Current working directory: {os.getcwd()}")
+print(f"DEBUG: Script file path: {__file__}")
+print(f"DEBUG: Python path: {sys.path}")
+print(f"DEBUG: __name__: {__name__}")
+print(f"DEBUG: __package__: {__package__}")
+
+try:
+    from .showcase import (
+        TypographyPage,
+        InputsPage,
+        DataDisplayPage,
+        NavigationPage,
+        FeedbackPage,
+        TablePage
+    )
+    print("DEBUG: Relative import succeeded")
+except ImportError as e:
+    print(f"DEBUG: Relative import failed: {e}")
+    print("DEBUG: Attempting absolute import...")
+    try:
+        from examples.showcase import (
+            TypographyPage,
+            InputsPage,
+            DataDisplayPage,
+            NavigationPage,
+            FeedbackPage,
+            TablePage
+        )
+        print("DEBUG: Absolute import succeeded")
+    except ImportError as e2:
+        print(f"DEBUG: Absolute import also failed: {e2}")
+        raise
 
 app = cacao.App()
 

@@ -436,6 +436,46 @@ class ComponentCompiler:
                     
         return '\n'.join(css_parts).strip()
             
+    def _extract_arrow_function(self, js_content: str) -> Tuple[str, str]:
+        """
+        Extract a standalone arrow function from JavaScript content.
+        
+        Args:
+            js_content: JavaScript content that may contain a standalone arrow function
+            
+        Returns:
+            Tuple of (helper_code, arrow_function) where:
+            - helper_code: Everything before the arrow function (comments, helper functions, etc.)
+            - arrow_function: The extracted arrow function, or empty string if not found
+        """
+        import re
+        
+        # Look for a standalone arrow function pattern: (params) => {
+        # This regex finds arrow functions that start at the beginning of a line
+        arrow_pattern = r'^(\([^)]*\)\s*=>\s*\{)'
+        
+        lines = js_content.split('\n')
+        arrow_start_line = -1
+        
+        for i, line in enumerate(lines):
+            if re.match(arrow_pattern, line.strip()):
+                arrow_start_line = i
+                break
+        
+        if arrow_start_line == -1:
+            # No standalone arrow function found
+            return js_content, ""
+        
+        # Extract helper code (everything before the arrow function)
+        helper_lines = lines[:arrow_start_line]
+        helper_code = '\n'.join(helper_lines).strip()
+        
+        # Extract arrow function (from arrow_start_line to end)
+        arrow_lines = lines[arrow_start_line:]
+        arrow_function = '\n'.join(arrow_lines).strip()
+        
+        return helper_code, arrow_function
+
     def _wrap_component(self, component_info: Dict) -> str:
         """
         Wrap a component's JavaScript with registration logic.
@@ -513,11 +553,45 @@ class ComponentCompiler:
 }})();
 """
             else:
-                wrapper = f"""
+                # Check if this JS content contains a standalone arrow function
+                helper_code, arrow_function = self._extract_arrow_function(js_content)
+                
+                if arrow_function:
+                    # Handle standalone arrow function case (like table component)
+                    print(f"[ComponentCompiler] Detected standalone arrow function in component: {name}")
+                    wrapper = f"""
 // Auto-generated component: {name}
 (function(){{
     try {{
-        const {js_var_name}Renderer = {js_content};
+        // Helper functions and global definitions
+        {helper_code}
+        
+        // Main component renderer
+        const {js_var_name}Renderer = {arrow_function}
+
+        // Ensure the global registry exists
+        if (!window.CacaoCore) {{
+            console.warn('[CacaoComponents] CacaoCore not found - ensure cacao-core.js loads first');
+            window.CacaoCore = {{}};
+        }}
+        if (!window.CacaoCore.componentRenderers) {{
+            window.CacaoCore.componentRenderers = {{}};
+        }}
+
+        // Register the renderer function
+        window.CacaoCore.componentRenderers['{name}'] = {js_var_name}Renderer;
+    }} catch (error) {{
+        console.error('[CacaoComponents] Error registering component: {name}', error);
+    }}
+}})();
+"""
+                else:
+                    # Handle regular case (existing behavior)
+                    wrapper = f"""
+// Auto-generated component: {name}
+(function(){{
+    try {{
+        const {js_var_name}Renderer = {js_content}
 
         // Ensure the global registry exists
         if (!window.CacaoCore) {{

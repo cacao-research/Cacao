@@ -494,17 +494,50 @@ class CacaoServer(LoggingMixin):
             
             # Check for registered routes
             from .decorators import ROUTES
+            self.log(f"Checking registered routes for path: {path}, method: {method}", "info", "🔍")
+            self.log(f"Available routes: {list(ROUTES.keys())}", "info", "📋")
+            
             if path in ROUTES:
                 self.log(f"Found registered route for: {path}", "info", "🛤️")
                 try:
+                    # Parse POST data if this is a POST request
+                    post_data = {}
+                    if method == "POST":
+                        # Find the end of headers
+                        header_end = request_text.find('\r\n\r\n')
+                        if header_end != -1:
+                            body_text = request_text[header_end + 4:]
+                            if body_text:
+                                # Parse form data
+                                try:
+                                    post_data = parse_qs(body_text)
+                                    self.log(f"Parsed POST data: {post_data}", "info", "📝")
+                                except Exception as parse_err:
+                                    self.log(f"Error parsing POST data: {str(parse_err)}", "warning", "⚠️")
+                    
                     # Create a simple response object for theme handler
                     class SimpleResponse:
                         def __init__(self):
                             self.headers = {}
                     
                     response_obj = SimpleResponse()
-                    # Call the registered route handler
-                    result = ROUTES[path](None, response_obj)
+                    
+                    # Call the registered route handler with appropriate data
+                    # Most registered routes expect just the request data, not (None, response_obj)
+                    try:
+                        if method == "POST" and post_data:
+                            result = ROUTES[path](post_data)
+                        else:
+                            result = ROUTES[path](query_params)
+                    except TypeError as type_err:
+                        # Fallback: try the old signature for legacy routes (like theme CSS)
+                        if ("takes 1 positional argument but 2 were given" in str(type_err) or
+                            "missing 1 required positional argument" in str(type_err)):
+                            self.log(f"Using legacy route signature for {path}", "info", "🔄")
+                            result = ROUTES[path](None, response_obj)
+                        else:
+                            raise type_err
+                    
                     if isinstance(result, str):
                         # Return as text response
                         response_data = result.encode('utf-8')
@@ -518,8 +551,23 @@ class CacaoServer(LoggingMixin):
                         writer.write(response_headers + response_data)
                         await writer.drain()
                         return
+                    elif isinstance(result, dict):
+                        # Return as JSON response for API endpoints
+                        response_data = json.dumps(result).encode('utf-8')
+                        response_headers = (
+                            b"HTTP/1.1 200 OK\r\n"
+                            b"Content-Type: application/json\r\n"
+                            b"Content-Length: " + str(len(response_data)).encode() + b"\r\n"
+                            b"Cache-Control: no-cache\r\n"
+                            b"\r\n"
+                        )
+                        writer.write(response_headers + response_data)
+                        await writer.drain()
+                        return
                 except Exception as e:
                     self.log(f"Error in route handler for {path}: {str(e)}", "error", "❌")
+                    if self.verbose:
+                        traceback.print_exc()
                     writer.write(b"HTTP/1.1 500 Internal Server Error\r\n\r\n")
                     await writer.drain()
                     return

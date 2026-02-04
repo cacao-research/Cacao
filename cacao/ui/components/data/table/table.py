@@ -5,7 +5,16 @@ Combines simple table and advanced DataTables.js functionality
 
 from typing import Dict, Any, List, Optional, Union
 import warnings
+import uuid
 from ...base import Component
+
+# Optional pandas support
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
+    pd = None
 
 class Table(Component):
     """
@@ -17,6 +26,11 @@ class Table(Component):
     API Support:
     - Modern: columns, dataSource, data
     - Legacy: headers, rows (with deprecation warnings)
+    
+    Args:
+        show_length_menu (bool): Whether to show the length menu (entries per page selector)
+                                in advanced mode. Defaults to False to hide the menu by default.
+                                Only applies when advanced=True.
     """
     
     def __init__(
@@ -41,6 +55,7 @@ class Table(Component):
         # Advanced features (advanced mode only)
         page_length: int = 10,
         length_menu: List[int] = None,
+        show_length_menu: bool = False,
         searching: bool = True,
         ordering: bool = True,
         info: bool = True,
@@ -100,7 +115,11 @@ class Table(Component):
         
         # Store core props
         self.columns = columns or []
-        self.dataSource = dataSource or []
+        # Handle pandas DataFrame properly (can't use `or` with DataFrames)
+        if dataSource is None:
+            self.dataSource = []
+        else:
+            self.dataSource = dataSource
         self.advanced = advanced
         
         # Basic features
@@ -112,6 +131,7 @@ class Table(Component):
         if advanced:
             self.page_length = page_length
             self.length_menu = length_menu or [10, 25, 50, 100]
+            self.show_length_menu = show_length_menu
             self.searching = searching
             self.ordering = ordering
             self.info = info
@@ -233,7 +253,9 @@ class Table(Component):
             dom_parts.append("B")
         
         # Length menu and search
-        dom_parts.extend(["l", "f"])
+        if self.show_length_menu:
+            dom_parts.append("l")
+        dom_parts.append("f")
         
         # Table
         dom_parts.append("t")
@@ -266,11 +288,126 @@ class Table(Component):
         
         return " ".join(classes)
     
+    def _is_pandas_dataframe(self, data: Any) -> bool:
+        """Check if data is a pandas DataFrame."""
+        if not HAS_PANDAS:
+            return False
+        return isinstance(data, pd.DataFrame)
+    
+    def _generate_columns_from_dataframe(self, df) -> List[Dict[str, Any]]:
+        """Generate column definitions from pandas DataFrame."""
+        if not HAS_PANDAS or not isinstance(df, pd.DataFrame):
+            return []
+        
+        columns = []
+        for i, col_name in enumerate(df.columns):
+            columns.append({
+                "title": str(col_name),
+                "dataIndex": str(col_name),
+                "key": str(col_name),
+                "sortable": True,
+                "searchable": True
+            })
+        
+        return columns
+    
+    def _setup_pandas_server(self, dataframe) -> Dict[str, Any]:
+        """Set up TableDataServer for pandas DataFrame."""
+        try:
+            from .server import create_table_data_server
+            from cacao.core.server import CacaoServer
+            
+            # Generate unique table ID
+            table_id = f"table_{uuid.uuid4().hex[:8]}"
+            
+            # Generate columns if not provided
+            if not self.columns:
+                self.columns = self._generate_columns_from_dataframe(dataframe)
+            
+            # Create TableDataServer instance
+            server = create_table_data_server(dataframe, self.columns)
+            server.table_id = table_id  # Override with our generated ID
+            
+            # Get current server instance and register endpoint
+            current_server = CacaoServer._instance
+            if hasattr(self, 'log'):
+                self.log(f"DEBUG: Current server instance: {current_server}", "info", "🔍")
+            if current_server:
+                server.register_endpoint(current_server)
+            else:
+                if hasattr(self, 'log'):
+                    self.log(f"ERROR: No current server instance found - cannot register endpoint {server.endpoint}", "error", "❌")
+                # Directly register the route since server instance is not available
+                from cacao.core.decorators import register_route
+                
+                def handle_table_request(request_data):
+                    return server.handle_request(request_data)
+                
+                register_route(server.endpoint, handle_table_request)
+                if hasattr(self, 'log'):
+                    self.log(f"WORKAROUND: Directly registered route {server.endpoint}", "info", "🔧")
+            
+            return {
+                "table_id": table_id,
+                "endpoint": server.endpoint,
+                "server": server
+            }
+            
+        except ImportError as e:
+            if hasattr(self, 'log'):
+                self.log(f"Failed to import TableDataServer: {str(e)}", "error", "❌")
+            raise RuntimeError("TableDataServer not available. Make sure server.py is accessible.")
+        except Exception as e:
+            if hasattr(self, 'log'):
+                self.log(f"Failed to setup pandas server: {str(e)}", "error", "❌")
+            raise RuntimeError(f"Failed to setup pandas data server: {str(e)}")
+    
     def render(self) -> Dict[str, Any]:
         """Render the Table component"""
+        # Check if dataSource is a pandas DataFrame
+        pandas_server_info = None
+        if self._is_pandas_dataframe(self.dataSource):
+            # Generate columns if not provided (before server setup)
+            if not self.columns:
+                self.columns = self._generate_columns_from_dataframe(self.dataSource)
+            
+            # Auto-enable advanced mode for pandas DataFrames
+            if not self.advanced:
+                self.advanced = True
+                # Set default advanced mode values
+                self.page_length = getattr(self, 'page_length', 10)
+                self.length_menu = getattr(self, 'length_menu', None) or [10, 25, 50, 100]
+                self.show_length_menu = getattr(self, 'show_length_menu', False)
+                self.searching = getattr(self, 'searching', True)
+                self.ordering = getattr(self, 'ordering', True)
+                self.info = getattr(self, 'info', True)
+                self.responsive = getattr(self, 'responsive', True)
+                self.scroll_x = getattr(self, 'scroll_x', False)
+                self.scroll_y = getattr(self, 'scroll_y', None)
+                self.fixed_header = getattr(self, 'fixed_header', False)
+                self.theme = getattr(self, 'theme', "default")
+                self.striped = getattr(self, 'striped', True)
+                self.hover = getattr(self, 'hover', True)
+                self.compact = getattr(self, 'compact', False)
+                self.select = getattr(self, 'select', False)
+                self.select_style = getattr(self, 'select_style', "single")
+                self.buttons = getattr(self, 'buttons', [])
+                self.custom_options = getattr(self, 'custom_options', {})
+            
+            # Setup pandas server
+            pandas_server_info = self._setup_pandas_server(self.dataSource)
+            
+            # Auto-enable server-side processing
+            self.server_side = True
+            self.ajax_url = pandas_server_info["endpoint"]
+            
+            # Clear dataSource since we're using server-side processing
+            original_dataSource = self.dataSource
+            self.dataSource = []  # Empty for server-side mode
+        
         if self.advanced:
             # Advanced mode: use DataTables.js
-            return {
+            result = {
                 "type": "table",
                 "props": {
                     # Table structure
@@ -291,10 +428,21 @@ class Table(Component):
                     # Component metadata
                     "server_side": self.server_side,
                     "ajax_url": self.ajax_url,
+                    "show_length_menu": self.show_length_menu,
                     
                     **self.extra_props
                 }
             }
+            
+            # Add pandas server info if available
+            if pandas_server_info:
+                result["props"]["pandas_server"] = {
+                    "table_id": pandas_server_info["table_id"],
+                    "endpoint": pandas_server_info["endpoint"],
+                    "enabled": True
+                }
+            
+            return result
         else:
             # Simple mode: use native rendering
             return {
