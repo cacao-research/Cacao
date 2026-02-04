@@ -37,6 +37,43 @@ export {
   useIsConnected,
 } from './hooks'
 
+// Form binding hooks
+export {
+  useSignalInput,
+  useSignalSelect,
+  useSignalCheckbox,
+  useSignalSwitch,
+  useSignalForm,
+} from './useForm'
+
+// Advanced hooks
+export {
+  useComputed,
+  useLocalStorage,
+  useDebounce,
+  useDebouncedCallback,
+  useThrottle,
+  useSignalDebounced,
+  usePrevious,
+  useUpdateEffect,
+  useTimeout,
+  useInterval,
+} from './useAdvanced'
+
+// Error handling
+export { ErrorBoundary, ConnectionError } from './ErrorBoundary'
+
+// Loading states
+export {
+  Spinner,
+  DotsLoader,
+  Skeleton,
+  SkeletonText,
+  LoadingOverlay,
+  Loading,
+  EmptyState,
+} from './LoadingStates'
+
 // WebSocket client (for advanced use cases)
 export { WebSocketClient } from './websocket'
 
