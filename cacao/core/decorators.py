@@ -5,6 +5,7 @@ Provides syntactic sugar for registering routes and auto-documenting components.
 
 from typing import Callable, Dict, Any
 import functools
+import asyncio
 
 # Global registry for route handlers
 ROUTES: Dict[str, Callable] = {}
@@ -97,8 +98,39 @@ def register_event_handler(event_name: str, handler: Callable):
     EVENT_HANDLERS[event_name] = handler
 
 def handle_event(event_name: str, event_data=None):
-    """Process an event with the registered handler."""
-    if event_name in EVENT_HANDLERS:
-        handler = EVENT_HANDLERS[event_name]
-        return handler(event_data)
-    return None
+    """
+    Process an event with the registered handler.
+    Returns a coroutine if the handler is async, otherwise the result directly.
+    """
+    if event_name not in EVENT_HANDLERS:
+        return None
+
+    handler = EVENT_HANDLERS[event_name]
+    try:
+        result = handler(event_data)
+        # If handler returned a coroutine, return it for awaiting
+        if asyncio.iscoroutine(result):
+            return result
+        return result
+    except Exception as e:
+        print(f"Error in event handler '{event_name}': {e}")
+        return None
+
+
+async def handle_event_async(event_name: str, event_data=None):
+    """
+    Process an event with proper async support.
+    Always awaits async handlers and catches errors.
+    """
+    if event_name not in EVENT_HANDLERS:
+        return None
+
+    handler = EVENT_HANDLERS[event_name]
+    try:
+        if asyncio.iscoroutinefunction(handler):
+            return await handler(event_data)
+        else:
+            return handler(event_data)
+    except Exception as e:
+        print(f"Error in event handler '{event_name}': {e}")
+        return None

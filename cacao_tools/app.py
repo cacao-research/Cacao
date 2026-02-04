@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cacao import App
 from cacao.core.state import State
+from cacao.ui import div, span, h1, h3, p, aside, nav, main, icon
 
 # Import tool categories
 from cacao_tools.tools import crypto, converters, generators, encoders, text
@@ -27,21 +28,17 @@ TOOLS = {
     "hash-text": crypto.hash_text,
     "uuid-generator": crypto.uuid_generator,
     "password-generator": crypto.password_generator,
-
     # Converters
     "color-converter": converters.color_converter,
     "case-converter": converters.case_converter,
     "number-base": converters.number_base_converter,
-
     # Encoders/Decoders
     "base64": encoders.base64_tool,
     "url-encode": encoders.url_encode_tool,
     "jwt-decode": encoders.jwt_decode_tool,
-
     # Generators
     "lorem-ipsum": generators.lorem_ipsum,
     "qr-code": generators.qr_code,
-
     # Text
     "text-diff": text.text_diff,
     "regex-tester": text.regex_tester,
@@ -97,86 +94,39 @@ NAV_ITEMS = [
 ]
 
 
+# ============================================
+# UI Rendering
+# ============================================
+
 def render_sidebar():
     """Render the sidebar navigation."""
     nav_children = []
 
     for category in NAV_ITEMS:
         # Category header
-        nav_children.append({
-            "type": "div",
-            "props": {
-                "className": "nav-category",
-                "children": [
-                    {
-                        "type": "i",
-                        "props": {"className": category["icon"]}
-                    },
-                    {
-                        "type": "span",
-                        "props": {"content": category["category"]}
-                    }
-                ]
-            }
-        })
-
+        nav_children.append(
+            div(icon(category["icon"]), span(category["category"]), className="nav-category")
+        )
         # Tools in category
         for tool in category["tools"]:
             is_active = current_tool.value == tool["id"]
-            nav_children.append({
-                "type": "div",
-                "props": {
-                    "className": f"nav-item {'active' if is_active else ''}",
-                    "onClick": f"navigate:{tool['id']}",
-                    "children": [
-                        {
-                            "type": "span",
-                            "props": {
-                                "className": "nav-item-name",
-                                "content": tool["name"]
-                            }
-                        }
-                    ]
-                }
-            })
+            nav_children.append(
+                div(
+                    span(tool["name"], className="nav-item-name"),
+                    className=f"nav-item {'active' if is_active else ''}",
+                    onClick=f"navigate:{tool['id']}"
+                )
+            )
 
-    return {
-        "type": "aside",
-        "props": {
-            "className": "tools-sidebar",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "sidebar-header",
-                        "children": [
-                            {
-                                "type": "h1",
-                                "props": {
-                                    "content": "Cacao Tools",
-                                    "className": "logo"
-                                }
-                            },
-                            {
-                                "type": "p",
-                                "props": {
-                                    "content": "Developer Utilities",
-                                    "className": "tagline"
-                                }
-                            }
-                        ]
-                    }
-                },
-                {
-                    "type": "nav",
-                    "props": {
-                        "className": "tools-nav",
-                        "children": nav_children
-                    }
-                }
-            ]
-        }
-    }
+    return aside(
+        div(
+            h1("Cacao Tools", className="logo"),
+            p("Developer Utilities", className="tagline"),
+            className="sidebar-header"
+        ),
+        nav(*nav_children, className="tools-nav"),
+        className="tools-sidebar"
+    )
 
 
 def render_home():
@@ -185,191 +135,193 @@ def render_home():
 
     for category in NAV_ITEMS:
         for tool in category["tools"]:
-            tool_cards.append({
-                "type": "div",
-                "props": {
-                    "className": "tool-card",
-                    "onClick": f"navigate:{tool['id']}",
-                    "children": [
-                        {
-                            "type": "i",
-                            "props": {"className": f"{category['icon']} tool-card-icon"}
-                        },
-                        {
-                            "type": "h3",
-                            "props": {"content": tool["name"]}
-                        },
-                        {
-                            "type": "p",
-                            "props": {"content": tool["desc"]}
-                        }
-                    ]
-                }
-            })
+            tool_cards.append(
+                div(
+                    icon(f"{category['icon']} tool-card-icon"),
+                    h3(tool["name"]),
+                    p(tool["desc"]),
+                    className="tool-card",
+                    onClick=f"navigate:{tool['id']}"
+                )
+            )
 
-    return {
-        "type": "div",
-        "props": {
-            "className": "home-content",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "home-header",
-                        "children": [
-                            {
-                                "type": "h1",
-                                "props": {"content": "Welcome to Cacao Tools"}
-                            },
-                            {
-                                "type": "p",
-                                "props": {
-                                    "content": "A collection of handy utilities for developers. Select a tool from the sidebar or click on a card below."
-                                }
-                            }
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tools-grid",
-                        "children": tool_cards
-                    }
-                }
-            ]
-        }
-    }
+    return div(
+        div(
+            h1("Welcome to Cacao Tools"),
+            p("A collection of handy utilities for developers. Select a tool from the sidebar or click on a card below."),
+            className="home-header"
+        ),
+        div(*tool_cards, className="tools-grid"),
+        className="home-content"
+    )
 
 
 def render_content():
     """Render the main content area."""
     tool_id = current_tool.value
-
     if tool_id == "home" or tool_id not in TOOLS:
         return render_home()
-
-    # Get the tool's render function and call it
-    tool_render = TOOLS[tool_id]
-    return tool_render()
+    return TOOLS[tool_id]()
 
 
 @app.mix("/")
 def index():
     """Main application layout."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tools-app",
-            "children": [
-                render_sidebar(),
-                {
-                    "type": "main",
-                    "props": {
-                        "className": "tools-main",
-                        "children": [render_content()]
-                    }
-                }
-            ]
-        }
-    }
+    return div(
+        render_sidebar(),
+        main(render_content(), className="tools-main"),
+        className="tools-app"
+    )
 
 
 # ============================================
-# Event Handlers
+# Event Bindings (using new bind_input API)
 # ============================================
 
-@app.event("navigate")
-async def handle_navigate(data):
-    """Handle navigation between tools."""
-    tool_id = data.get("value", "home")
-    current_tool.set(tool_id)
+# Navigation
+app.bind_input("navigate", current_tool)
+
+# --- Crypto ---
+app.bind_input("hash:input", crypto.hash_input)
+app.bind_input("uuid:version", crypto.uuid_version)
+app.bind_input("pwd:length", crypto.pwd_length, cast=int)
+app.bind_toggle("pwd:upper", crypto.pwd_include_upper)
+app.bind_toggle("pwd:lower", crypto.pwd_include_lower)
+app.bind_toggle("pwd:digits", crypto.pwd_include_digits)
+app.bind_toggle("pwd:symbols", crypto.pwd_include_symbols)
+
+# --- Converters ---
+app.bind_input("color:input", converters.color_input)
+app.bind_input("color:picker", converters.color_input)
+app.bind_input("case:input", converters.case_input)
+app.bind_input("num:input", converters.num_input)
+app.bind_input("num:base", converters.num_base)
+
+# --- Encoders ---
+app.bind_input("b64:input", encoders.b64_input)
+app.bind_input("url:input", encoders.url_input)
+app.bind_input("jwt:input", encoders.jwt_input)
+
+# --- Generators ---
+app.bind_input("lorem:paragraphs", generators.lorem_paragraphs, cast=int)
+app.bind_input("qr:input", generators.qr_input)
+app.bind_input("qr:size", generators.qr_size, cast=int)
+
+# --- Text ---
+app.bind_input("diff:text1", text.diff_text1)
+app.bind_input("diff:text2", text.diff_text2)
+app.bind_input("regex:pattern", text.regex_pattern)
+app.bind_input("regex:text", text.regex_text)
+app.bind_input("wc:input", text.wc_input)
 
 
-# --- Crypto Events ---
-
-@app.event("hash:input")
-async def handle_hash_input(data):
-    """Handle hash input change."""
-    crypto.hash_input.set(data.get("value", ""))
-
+# ============================================
+# Custom Event Handlers (for logic that can't be auto-bound)
+# ============================================
 
 @app.event("hash:generate")
 async def handle_hash_generate(data):
-    """Generate hashes."""
-    text = crypto.hash_input.value
-    if text:
-        results = crypto.generate_hashes(text)
-        crypto.hash_results.set(results)
-
-
-@app.event("uuid:version")
-async def handle_uuid_version(data):
-    """Handle UUID version change."""
-    crypto.uuid_version.set(data.get("value", "4"))
+    """Generate hashes from input text."""
+    input_text = crypto.hash_input.value
+    if input_text:
+        crypto.hash_results.set(crypto.generate_hashes(input_text))
 
 
 @app.event("uuid:generate")
 async def handle_uuid_generate(data):
-    """Generate UUID."""
-    version = crypto.uuid_version.value
-    result = crypto.generate_uuid(version)
-    crypto.uuid_result.set(result)
-
-
-@app.event("pwd:length")
-async def handle_pwd_length(data):
-    """Handle password length change."""
-    crypto.pwd_length.set(int(data.get("value", 16)))
-
-
-@app.event("pwd:upper")
-async def handle_pwd_upper(data):
-    """Toggle uppercase."""
-    crypto.pwd_include_upper.set(data.get("checked", True))
-
-
-@app.event("pwd:lower")
-async def handle_pwd_lower(data):
-    """Toggle lowercase."""
-    crypto.pwd_include_lower.set(data.get("checked", True))
-
-
-@app.event("pwd:digits")
-async def handle_pwd_digits(data):
-    """Toggle digits."""
-    crypto.pwd_include_digits.set(data.get("checked", True))
-
-
-@app.event("pwd:symbols")
-async def handle_pwd_symbols(data):
-    """Toggle symbols."""
-    crypto.pwd_include_symbols.set(data.get("checked", True))
+    """Generate UUID based on selected version."""
+    crypto.uuid_result.set(crypto.generate_uuid(crypto.uuid_version.value))
 
 
 @app.event("pwd:generate")
 async def handle_pwd_generate(data):
-    """Generate password."""
-    result = crypto.generate_password(
+    """Generate password with current settings."""
+    crypto.pwd_result.set(crypto.generate_password(
         crypto.pwd_length.value,
         crypto.pwd_include_upper.value,
         crypto.pwd_include_lower.value,
         crypto.pwd_include_digits.value,
         crypto.pwd_include_symbols.value
-    )
-    crypto.pwd_result.set(result)
+    ))
 
 
-# --- Converter Events ---
+@app.event("b64:mode:encode")
+async def handle_b64_encode(data):
+    """Switch to encode mode and update output."""
+    encoders.b64_mode.set("encode")
+    encoders.b64_output.set(encoders.encode_base64(encoders.b64_input.value))
 
-@app.event("color:picker")
-@app.event("color:input")
-async def handle_color_input(data):
-    """Handle color input change."""
-    value = data.get("value", "")
-    converters.color_input.set(value)
 
-    # Try to parse and convert
+@app.event("b64:mode:decode")
+async def handle_b64_decode(data):
+    """Switch to decode mode and update output."""
+    encoders.b64_mode.set("decode")
+    encoders.b64_output.set(encoders.decode_base64(encoders.b64_input.value))
+
+
+@app.event("url:mode:encode")
+async def handle_url_encode(data):
+    """Switch to encode mode and update output."""
+    encoders.url_mode.set("encode")
+    encoders.url_output.set(encoders.encode_url(encoders.url_input.value))
+
+
+@app.event("url:mode:decode")
+async def handle_url_decode(data):
+    """Switch to decode mode and update output."""
+    encoders.url_mode.set("decode")
+    encoders.url_output.set(encoders.decode_url(encoders.url_input.value))
+
+
+@app.event("lorem:generate")
+async def handle_lorem_generate(data):
+    """Generate lorem ipsum text."""
+    generators.lorem_output.set(generators.generate_lorem(generators.lorem_paragraphs.value))
+
+
+@app.event("diff:compare")
+async def handle_diff_compare(data):
+    """Compare two texts."""
+    text.diff_result.set(text.simple_diff(text.diff_text1.value, text.diff_text2.value))
+
+
+@app.event("regex:flag:i")
+async def handle_regex_flag_i(data):
+    """Toggle case insensitive flag."""
+    flags = text.regex_flags.value.copy()
+    flags["i"] = data.get("checked", False)
+    text.regex_flags.set(flags)
+
+
+@app.event("regex:flag:m")
+async def handle_regex_flag_m(data):
+    """Toggle multiline flag."""
+    flags = text.regex_flags.value.copy()
+    flags["m"] = data.get("checked", False)
+    text.regex_flags.set(flags)
+
+
+@app.event("regex:flag:g")
+async def handle_regex_flag_g(data):
+    """Toggle global flag."""
+    flags = text.regex_flags.value.copy()
+    flags["g"] = data.get("checked", True)
+    text.regex_flags.set(flags)
+
+
+@app.event("copy")
+async def handle_copy(data):
+    """Handle copy to clipboard (client-side handles actual copy)."""
+    pass
+
+
+# ============================================
+# State Change Subscribers (for derived state updates)
+# ============================================
+
+@converters.color_input.subscribe
+def on_color_change(value):
+    """Update color conversions when input changes."""
     try:
         if value.startswith("#") and len(value) == 7:
             r, g, b = converters.hex_to_rgb(value)
@@ -383,112 +335,58 @@ async def handle_color_input(data):
         pass
 
 
-@app.event("case:input")
-async def handle_case_input(data):
-    """Handle case converter input."""
-    value = data.get("value", "")
-    converters.case_input.set(value)
-
+@converters.case_input.subscribe
+def on_case_change(value):
+    """Update case conversions when input changes."""
     if value:
-        results = converters.convert_all_cases(value)
-        converters.case_results.set(results)
+        converters.case_results.set(converters.convert_all_cases(value))
     else:
         converters.case_results.set({})
 
 
-@app.event("num:input")
-async def handle_num_input(data):
-    """Handle number input."""
-    converters.num_input.set(data.get("value", ""))
+@converters.num_input.subscribe
+def on_num_input_change(value):
+    """Update number conversions when input changes."""
     _update_number_conversion()
 
 
-@app.event("num:base")
-async def handle_num_base(data):
-    """Handle base change."""
-    converters.num_base.set(data.get("value", "10"))
+@converters.num_base.subscribe
+def on_num_base_change(value):
+    """Update number conversions when base changes."""
     _update_number_conversion()
 
 
 def _update_number_conversion():
     """Update number conversion results."""
     value = converters.num_input.value
-    base = int(converters.num_base.value)
     if value:
-        results = converters.convert_number_base(value, base)
-        converters.num_results.set(results)
+        base = int(converters.num_base.value)
+        converters.num_results.set(converters.convert_number_base(value, base))
     else:
         converters.num_results.set({})
 
 
-# --- Encoder Events ---
-
-@app.event("b64:mode:encode")
-async def handle_b64_mode_encode(data):
-    """Set Base64 mode to encode."""
-    encoders.b64_mode.set("encode")
-    _update_b64()
-
-
-@app.event("b64:mode:decode")
-async def handle_b64_mode_decode(data):
-    """Set Base64 mode to decode."""
-    encoders.b64_mode.set("decode")
-    _update_b64()
-
-
-@app.event("b64:input")
-async def handle_b64_input(data):
-    """Handle Base64 input change."""
-    encoders.b64_input.set(data.get("value", ""))
-    _update_b64()
-
-
-def _update_b64():
-    """Update Base64 output."""
-    input_val = encoders.b64_input.value
+@encoders.b64_input.subscribe
+def on_b64_input_change(value):
+    """Update base64 output when input changes."""
     if encoders.b64_mode.value == "encode":
-        encoders.b64_output.set(encoders.encode_base64(input_val))
+        encoders.b64_output.set(encoders.encode_base64(value))
     else:
-        encoders.b64_output.set(encoders.decode_base64(input_val))
+        encoders.b64_output.set(encoders.decode_base64(value))
 
 
-@app.event("url:mode:encode")
-async def handle_url_mode_encode(data):
-    """Set URL mode to encode."""
-    encoders.url_mode.set("encode")
-    _update_url()
-
-
-@app.event("url:mode:decode")
-async def handle_url_mode_decode(data):
-    """Set URL mode to decode."""
-    encoders.url_mode.set("decode")
-    _update_url()
-
-
-@app.event("url:input")
-async def handle_url_input(data):
-    """Handle URL input change."""
-    encoders.url_input.set(data.get("value", ""))
-    _update_url()
-
-
-def _update_url():
-    """Update URL output."""
-    input_val = encoders.url_input.value
+@encoders.url_input.subscribe
+def on_url_input_change(value):
+    """Update URL output when input changes."""
     if encoders.url_mode.value == "encode":
-        encoders.url_output.set(encoders.encode_url(input_val))
+        encoders.url_output.set(encoders.encode_url(value))
     else:
-        encoders.url_output.set(encoders.decode_url(input_val))
+        encoders.url_output.set(encoders.decode_url(value))
 
 
-@app.event("jwt:input")
-async def handle_jwt_input(data):
-    """Handle JWT input change."""
-    token = data.get("value", "")
-    encoders.jwt_input.set(token)
-
+@encoders.jwt_input.subscribe
+def on_jwt_input_change(token):
+    """Decode JWT when input changes."""
     if token:
         header, payload, valid = encoders.decode_jwt(token)
         encoders.jwt_header.set(header)
@@ -500,92 +398,27 @@ async def handle_jwt_input(data):
         encoders.jwt_valid.set(True)
 
 
-# --- Generator Events ---
-
-@app.event("lorem:paragraphs")
-async def handle_lorem_paragraphs(data):
-    """Handle lorem ipsum paragraph count change."""
-    generators.lorem_paragraphs.set(int(data.get("value", 3)))
+@text.wc_input.subscribe
+def on_wc_input_change(value):
+    """Update word count stats when input changes."""
+    text.wc_stats.set(text.count_text(value))
 
 
-@app.event("lorem:generate")
-async def handle_lorem_generate(data):
-    """Generate lorem ipsum text."""
-    result = generators.generate_lorem(generators.lorem_paragraphs.value)
-    generators.lorem_output.set(result)
-
-
-@app.event("qr:input")
-async def handle_qr_input(data):
-    """Handle QR code input change."""
-    generators.qr_input.set(data.get("value", ""))
-
-
-@app.event("qr:size")
-async def handle_qr_size(data):
-    """Handle QR code size change."""
-    generators.qr_size.set(int(data.get("value", 200)))
-
-
-# --- Text Events ---
-
-@app.event("diff:text1")
-async def handle_diff_text1(data):
-    """Handle diff text 1 change."""
-    text.diff_text1.set(data.get("value", ""))
-
-
-@app.event("diff:text2")
-async def handle_diff_text2(data):
-    """Handle diff text 2 change."""
-    text.diff_text2.set(data.get("value", ""))
-
-
-@app.event("diff:compare")
-async def handle_diff_compare(data):
-    """Compare texts."""
-    result = text.simple_diff(text.diff_text1.value, text.diff_text2.value)
-    text.diff_result.set(result)
-
-
-@app.event("regex:pattern")
-async def handle_regex_pattern(data):
-    """Handle regex pattern change."""
-    text.regex_pattern.set(data.get("value", ""))
+@text.regex_pattern.subscribe
+def on_regex_pattern_change(value):
+    """Update regex matches when pattern changes."""
     _update_regex()
 
 
-@app.event("regex:text")
-async def handle_regex_text(data):
-    """Handle regex test text change."""
-    text.regex_text.set(data.get("value", ""))
+@text.regex_text.subscribe
+def on_regex_text_change(value):
+    """Update regex matches when text changes."""
     _update_regex()
 
 
-@app.event("regex:flag:i")
-async def handle_regex_flag_i(data):
-    """Toggle case insensitive flag."""
-    flags = text.regex_flags.value.copy()
-    flags["i"] = data.get("checked", False)
-    text.regex_flags.set(flags)
-    _update_regex()
-
-
-@app.event("regex:flag:m")
-async def handle_regex_flag_m(data):
-    """Toggle multiline flag."""
-    flags = text.regex_flags.value.copy()
-    flags["m"] = data.get("checked", False)
-    text.regex_flags.set(flags)
-    _update_regex()
-
-
-@app.event("regex:flag:g")
-async def handle_regex_flag_g(data):
-    """Toggle global flag."""
-    flags = text.regex_flags.value.copy()
-    flags["g"] = data.get("checked", True)
-    text.regex_flags.set(flags)
+@text.regex_flags.subscribe
+def on_regex_flags_change(value):
+    """Update regex matches when flags change."""
     _update_regex()
 
 
@@ -593,36 +426,21 @@ def _update_regex():
     """Update regex matches."""
     pattern = text.regex_pattern.value
     test_text = text.regex_text.value
-    flags = text.regex_flags.value
-
     if pattern and test_text:
-        matches = text.test_regex(pattern, test_text, flags)
-        text.regex_matches.set(matches)
+        text.regex_matches.set(text.test_regex(pattern, test_text, text.regex_flags.value))
     else:
         text.regex_matches.set([])
 
 
-@app.event("wc:input")
-async def handle_wc_input(data):
-    """Handle word counter input change."""
-    value = data.get("value", "")
-    text.wc_input.set(value)
-    stats = text.count_text(value)
-    text.wc_stats.set(stats)
-
-
-@app.event("copy")
-async def handle_copy(data):
-    """Handle copy to clipboard (client-side will handle actual copy)."""
-    # This is handled client-side via JavaScript
-    pass
-
+# ============================================
+# Main
+# ============================================
 
 if __name__ == "__main__":
     app.brew(
         type="web",
         title="Cacao Tools",
-        ASCII_debug=True,  # Windows compatibility
+        ASCII_debug=True,
         css_files=["cacao_tools/static/tools.css"],
         theme={
             "colors": {

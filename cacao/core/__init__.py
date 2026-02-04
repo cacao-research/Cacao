@@ -14,7 +14,10 @@ from ..utilities.icons import icon_registry, process_icons_in_component
 from .theme import get_theme, set_theme, reset_theme, get_color, get_theme_css, serve_theme_css
 
 # Initialize state
-from .decorators import ROUTES, clear_routes, EVENT_HANDLERS, get_event_handlers, register_event_handler, handle_event
+from .decorators import (
+    ROUTES, clear_routes, EVENT_HANDLERS, get_event_handlers,
+    register_event_handler, handle_event, handle_event_async
+)
 
 def run(host: str = "localhost", port: int = 1634, verbose: bool = False,
         pwa_mode: bool = False, persist_sessions: bool = True,
@@ -128,6 +131,7 @@ __all__ = [
     "get_event_handlers",
     "register_event_handler",
     "handle_event",
+    "handle_event_async",
     "State",
     "StateChange",
     "Component",

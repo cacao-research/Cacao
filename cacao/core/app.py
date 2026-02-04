@@ -3,9 +3,10 @@ Application module for Cacao framework.
 Provides a simplified API for creating web applications.
 """
 
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, Type, Union
 from .server import CacaoServer
 from .decorators import ROUTES, mix, register_event_handler
+from .state import State
 
 # Add a module-level variable to store the ASCII debug setting
 ASCII_DEBUG_MODE = False
@@ -47,13 +48,13 @@ class App:
     def event(self, event_name: str) -> Callable:
         """
         Decorator for registering event handlers.
-        
+
         Args:
             event_name: Name of the event to handle
-            
+
         Returns:
             Callable: Decorator function
-            
+
         Usage:
             @app.event("button_click")
             def handle_click(event_data):
@@ -64,6 +65,66 @@ class App:
             register_event_handler(event_name, func)
             return func
         return decorator
+
+    def bind_input(
+        self,
+        event: str,
+        state: State,
+        key: str = "value",
+        cast: Optional[Type] = None,
+        default: Any = None
+    ) -> None:
+        """
+        Bind an input event directly to a State, eliminating boilerplate handlers.
+
+        Args:
+            event: Event name to listen for (e.g., "hash:input")
+            state: State instance to update when event fires
+            key: Key in event data to extract (default: "value")
+            cast: Optional type to cast the value to (e.g., int, float)
+            default: Default value if key is missing or cast fails
+
+        Usage:
+            # Instead of writing:
+            @app.event("hash:input")
+            async def handle_hash_input(data):
+                crypto.hash_input.set(data.get("value", ""))
+
+            # Just write:
+            app.bind_input("hash:input", crypto.hash_input)
+            app.bind_input("pwd:length", crypto.pwd_length, cast=int)
+            app.bind_input("pwd:upper", crypto.pwd_include_upper, key="checked")
+        """
+        async def handler(data: Dict[str, Any]) -> None:
+            # Get value from event data
+            if default is not None:
+                value = data.get(key, default)
+            else:
+                value = data.get(key, state.value)
+
+            # Cast if needed
+            if cast is not None:
+                try:
+                    value = cast(value)
+                except (ValueError, TypeError):
+                    return  # Invalid cast, ignore update
+
+            state.set(value)
+
+        register_event_handler(event, handler)
+
+    def bind_toggle(self, event: str, state: State) -> None:
+        """
+        Bind a toggle/checkbox event to a boolean State.
+
+        Args:
+            event: Event name to listen for
+            state: Boolean State to toggle
+
+        Usage:
+            app.bind_toggle("pwd:upper", crypto.pwd_include_upper)
+        """
+        self.bind_input(event, state, key="checked", cast=bool, default=False)
         
     def brew(self, type: str = "web", host: str = "localhost", http_port: int = 1634, ws_port: int = 1633,
              title: str = "Cacao App", width: int = 800, height: int = 600,

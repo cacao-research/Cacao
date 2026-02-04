@@ -5,6 +5,13 @@ import uuid
 import secrets
 import string
 from cacao.core.state import State
+from cacao.ui import (
+    div, h2, p, button, textarea, select, checkbox,
+    range_input, labeled, result_row, tool_container, input
+)
+
+# Constants
+SYMBOLS = "!@#$%^&*()_+-=[]{}|;:,.<>?"
 
 # State for hash tool
 hash_input = State("")
@@ -25,293 +32,81 @@ pwd_result = State("")
 
 def hash_text():
     """Hash text with multiple algorithms."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Hash Text"}},
-                            {"type": "p", "props": {"content": "Generate hashes using MD5, SHA1, SHA256, SHA512"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "textarea",
-                                "props": {
-                                    "placeholder": "Enter text to hash...",
-                                    "value": hash_input.value,
-                                    "onChange": "hash:input",
-                                    "className": "tool-input",
-                                    "rows": 4
-                                }
-                            },
-                            {
-                                "type": "button",
-                                "props": {
-                                    "content": "Generate Hashes",
-                                    "onClick": "hash:generate",
-                                    "className": "btn btn-primary"
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "hash-results",
-                                    "children": [
-                                        _hash_result_row("MD5", hash_results.value.get("md5", "")),
-                                        _hash_result_row("SHA1", hash_results.value.get("sha1", "")),
-                                        _hash_result_row("SHA256", hash_results.value.get("sha256", "")),
-                                        _hash_result_row("SHA512", hash_results.value.get("sha512", "")),
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
-
-
-def _hash_result_row(algo: str, value: str):
-    """Render a single hash result row."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "result-row",
-            "children": [
-                {"type": "label", "props": {"content": algo, "className": "result-label"}},
-                {
-                    "type": "input",
-                    "props": {
-                        "type": "text",
-                        "value": value,
-                        "readOnly": True,
-                        "className": "result-value"
-                    }
-                },
-                {
-                    "type": "button",
-                    "props": {
-                        "content": "Copy",
-                        "onClick": f"copy:{value}",
-                        "className": "btn btn-sm"
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Hash Text",
+        "Generate hashes using MD5, SHA1, SHA256, SHA512",
+        textarea(
+            value=hash_input.value,
+            onChange="hash:input",
+            placeholder="Enter text to hash...",
+            className="tool-input",
+            rows=4
+        ),
+        button("Generate Hashes", onClick="hash:generate", className="btn btn-primary"),
+        div(
+            result_row("MD5", hash_results.value.get("md5", "")),
+            result_row("SHA1", hash_results.value.get("sha1", "")),
+            result_row("SHA256", hash_results.value.get("sha256", "")),
+            result_row("SHA512", hash_results.value.get("sha512", "")),
+            className="hash-results"
+        )
+    )
 
 
 def uuid_generator():
     """Generate UUIDs."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "UUID Generator"}},
-                            {"type": "p", "props": {"content": "Generate universally unique identifiers"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "input-group",
-                                    "children": [
-                                        {"type": "label", "props": {"content": "Version:"}},
-                                        {
-                                            "type": "select",
-                                            "props": {
-                                                "value": uuid_version.value,
-                                                "onChange": "uuid:version",
-                                                "children": [
-                                                    {"type": "option", "props": {"value": "1", "content": "UUID v1 (timestamp)"}},
-                                                    {"type": "option", "props": {"value": "4", "content": "UUID v4 (random)"}},
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "button",
-                                "props": {
-                                    "content": "Generate UUID",
-                                    "onClick": "uuid:generate",
-                                    "className": "btn btn-primary"
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "result-box",
-                                    "children": [
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "text",
-                                                "value": uuid_result.value,
-                                                "readOnly": True,
-                                                "className": "result-value large"
-                                            }
-                                        },
-                                        {
-                                            "type": "button",
-                                            "props": {
-                                                "content": "Copy",
-                                                "onClick": f"copy:{uuid_result.value}",
-                                                "className": "btn btn-sm"
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "UUID Generator",
+        "Generate universally unique identifiers",
+        labeled(
+            "Version:",
+            select(
+                value=uuid_version.value,
+                onChange="uuid:version",
+                options=[("1", "UUID v1 (timestamp)"), ("4", "UUID v4 (random)")]
+            )
+        ),
+        button("Generate UUID", onClick="uuid:generate", className="btn btn-primary"),
+        div(
+            input(value=uuid_result.value, readOnly=True, className="result-value large"),
+            button("Copy", onClick=f"copy:{uuid_result.value}", className="btn btn-sm"),
+            className="result-box"
+        )
+    )
 
 
 def password_generator():
     """Generate secure passwords."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Password Generator"}},
-                            {"type": "p", "props": {"content": "Generate cryptographically secure passwords"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "input-group",
-                                    "children": [
-                                        {"type": "label", "props": {"content": f"Length: {pwd_length.value}"}},
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "range",
-                                                "min": 8,
-                                                "max": 64,
-                                                "value": pwd_length.value,
-                                                "onChange": "pwd:length"
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "checkbox-group",
-                                    "children": [
-                                        _checkbox("Uppercase (A-Z)", pwd_include_upper.value, "pwd:upper"),
-                                        _checkbox("Lowercase (a-z)", pwd_include_lower.value, "pwd:lower"),
-                                        _checkbox("Digits (0-9)", pwd_include_digits.value, "pwd:digits"),
-                                        _checkbox("Symbols (!@#$...)", pwd_include_symbols.value, "pwd:symbols"),
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "button",
-                                "props": {
-                                    "content": "Generate Password",
-                                    "onClick": "pwd:generate",
-                                    "className": "btn btn-primary"
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "result-box",
-                                    "children": [
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "text",
-                                                "value": pwd_result.value,
-                                                "readOnly": True,
-                                                "className": "result-value large mono"
-                                            }
-                                        },
-                                        {
-                                            "type": "button",
-                                            "props": {
-                                                "content": "Copy",
-                                                "onClick": f"copy:{pwd_result.value}",
-                                                "className": "btn btn-sm"
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Password Generator",
+        "Generate cryptographically secure passwords",
+        labeled(
+            f"Length: {pwd_length.value}",
+            range_input(
+                value=pwd_length.value,
+                onChange="pwd:length",
+                min=8,
+                max=64
+            )
+        ),
+        div(
+            checkbox(pwd_include_upper.value, "pwd:upper", "Uppercase (A-Z)"),
+            checkbox(pwd_include_lower.value, "pwd:lower", "Lowercase (a-z)"),
+            checkbox(pwd_include_digits.value, "pwd:digits", "Digits (0-9)"),
+            checkbox(pwd_include_symbols.value, "pwd:symbols", "Symbols (!@#$...)"),
+            className="checkbox-group"
+        ),
+        button("Generate Password", onClick="pwd:generate", className="btn btn-primary"),
+        div(
+            input(value=pwd_result.value, readOnly=True, className="result-value large mono"),
+            button("Copy", onClick=f"copy:{pwd_result.value}", className="btn btn-sm"),
+            className="result-box"
+        )
+    )
 
 
-def _checkbox(label: str, checked: bool, action: str):
-    """Render a checkbox."""
-    return {
-        "type": "label",
-        "props": {
-            "className": "checkbox-label",
-            "children": [
-                {
-                    "type": "input",
-                    "props": {
-                        "type": "checkbox",
-                        "checked": checked,
-                        "onChange": action
-                    }
-                },
-                {"type": "span", "props": {"content": label}}
-            ]
-        }
-    }
+# Utility functions
 
-
-# Event handlers would be registered in app.py
 def generate_hashes(text: str) -> dict:
     """Generate all hash types for given text."""
     encoded = text.encode('utf-8')
@@ -340,7 +135,7 @@ def generate_password(length: int, upper: bool, lower: bool, digits: bool, symbo
     if digits:
         chars += string.digits
     if symbols:
-        chars += "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        chars += SYMBOLS
 
     if not chars:
         chars = string.ascii_letters + string.digits

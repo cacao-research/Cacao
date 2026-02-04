@@ -2,6 +2,10 @@
 
 import re
 from cacao.core.state import State
+from cacao.ui import (
+    div, h4, p, span, button, textarea, label, input, checkbox,
+    tool_container, dual_pane, stat_card
+)
 
 # Text diff state
 diff_text1 = State("")
@@ -21,93 +25,30 @@ wc_stats = State({"chars": 0, "chars_no_space": 0, "words": 0, "lines": 0, "sent
 
 def text_diff():
     """Text comparison/diff tool."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Text Diff"}},
-                            {"type": "p", "props": {"content": "Compare two texts and see the differences"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "dual-pane",
-                                    "children": [
-                                        {
-                                            "type": "div",
-                                            "props": {
-                                                "className": "pane",
-                                                "children": [
-                                                    {"type": "label", "props": {"content": "Original Text"}},
-                                                    {
-                                                        "type": "textarea",
-                                                        "props": {
-                                                            "placeholder": "Enter original text...",
-                                                            "value": diff_text1.value,
-                                                            "onChange": "diff:text1",
-                                                            "className": "tool-input mono",
-                                                            "rows": 10
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "type": "div",
-                                            "props": {
-                                                "className": "pane",
-                                                "children": [
-                                                    {"type": "label", "props": {"content": "Modified Text"}},
-                                                    {
-                                                        "type": "textarea",
-                                                        "props": {
-                                                            "placeholder": "Enter modified text...",
-                                                            "value": diff_text2.value,
-                                                            "onChange": "diff:text2",
-                                                            "className": "tool-input mono",
-                                                            "rows": 10
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "button",
-                                "props": {
-                                    "content": "Compare",
-                                    "onClick": "diff:compare",
-                                    "className": "btn btn-primary"
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "diff-output",
-                                    "children": _render_diff_result()
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Text Diff",
+        "Compare two texts and see the differences",
+        dual_pane(
+            "Original Text",
+            textarea(
+                value=diff_text1.value,
+                onChange="diff:text1",
+                placeholder="Enter original text...",
+                className="tool-input mono",
+                rows=10
+            ),
+            "Modified Text",
+            textarea(
+                value=diff_text2.value,
+                onChange="diff:text2",
+                placeholder="Enter modified text...",
+                className="tool-input mono",
+                rows=10
+            )
+        ),
+        button("Compare", onClick="diff:compare", className="btn btn-primary"),
+        div(*_render_diff_result(), className="diff-output")
+    )
 
 
 def _render_diff_result():
@@ -117,130 +58,19 @@ def _render_diff_result():
 
     children = []
     for item in diff_result.value:
-        line_class = "diff-line"
         if item["type"] == "add":
-            line_class += " diff-add"
+            line_class = "diff-line diff-add"
             prefix = "+ "
         elif item["type"] == "remove":
-            line_class += " diff-remove"
+            line_class = "diff-line diff-remove"
             prefix = "- "
         else:
+            line_class = "diff-line"
             prefix = "  "
 
-        children.append({
-            "type": "div",
-            "props": {
-                "className": line_class,
-                "content": prefix + item["text"]
-            }
-        })
+        children.append(div(prefix + item["text"], className=line_class))
 
     return children
-
-
-def regex_tester():
-    """Regular expression tester."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Regex Tester"}},
-                            {"type": "p", "props": {"content": "Test regular expressions against sample text"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "regex-input-group",
-                                    "children": [
-                                        {
-                                            "type": "div",
-                                            "props": {
-                                                "className": "regex-pattern",
-                                                "children": [
-                                                    {"type": "span", "props": {"content": "/", "className": "regex-delimiter"}},
-                                                    {
-                                                        "type": "input",
-                                                        "props": {
-                                                            "type": "text",
-                                                            "placeholder": "Enter regex pattern...",
-                                                            "value": regex_pattern.value,
-                                                            "onChange": "regex:pattern",
-                                                            "className": "regex-input mono"
-                                                        }
-                                                    },
-                                                    {"type": "span", "props": {"content": "/", "className": "regex-delimiter"}},
-                                                    {"type": "span", "props": {"content": _get_flags_string(), "className": "regex-flags"}}
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "regex-flags-group",
-                                    "children": [
-                                        _flag_checkbox("i", "Case insensitive", regex_flags.value.get("i", False)),
-                                        _flag_checkbox("m", "Multiline", regex_flags.value.get("m", False)),
-                                        _flag_checkbox("g", "Global", regex_flags.value.get("g", True)),
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "test-text-section",
-                                    "children": [
-                                        {"type": "label", "props": {"content": "Test String"}},
-                                        {
-                                            "type": "textarea",
-                                            "props": {
-                                                "placeholder": "Enter text to test against...",
-                                                "value": regex_text.value,
-                                                "onChange": "regex:text",
-                                                "className": "tool-input mono",
-                                                "rows": 6
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "match-results",
-                                    "children": [
-                                        {"type": "h4", "props": {"content": f"Matches ({len(regex_matches.value)})"}},
-                                        {
-                                            "type": "div",
-                                            "props": {
-                                                "className": "matches-list",
-                                                "children": _render_matches()
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
 
 
 def _get_flags_string() -> str:
@@ -255,7 +85,7 @@ def _get_flags_string() -> str:
     return flags
 
 
-def _flag_checkbox(flag: str, label: str, checked: bool):
+def _flag_checkbox(flag: str, label_text: str, checked: bool):
     """Render a regex flag checkbox."""
     return {
         "type": "label",
@@ -270,7 +100,7 @@ def _flag_checkbox(flag: str, label: str, checked: bool):
                         "onChange": f"regex:flag:{flag}"
                     }
                 },
-                {"type": "span", "props": {"content": f"{flag} - {label}"}}
+                span(f"{flag} - {label_text}")
             ]
         }
     }
@@ -279,102 +109,96 @@ def _flag_checkbox(flag: str, label: str, checked: bool):
 def _render_matches():
     """Render regex matches."""
     if not regex_matches.value:
-        return [{"type": "p", "props": {"content": "No matches found", "className": "no-matches"}}]
+        return [p("No matches found", className="no-matches")]
 
     return [
-        {
-            "type": "div",
-            "props": {
-                "className": "match-item",
-                "children": [
-                    {"type": "span", "props": {"content": f"Match {i+1}:", "className": "match-index"}},
-                    {"type": "span", "props": {"content": match, "className": "match-text mono"}}
-                ]
-            }
-        }
+        div(
+            span(f"Match {i+1}:", className="match-index"),
+            span(match, className="match-text mono"),
+            className="match-item"
+        )
         for i, match in enumerate(regex_matches.value)
     ]
+
+
+def regex_tester():
+    """Regular expression tester."""
+    return tool_container(
+        "Regex Tester",
+        "Test regular expressions against sample text",
+        div(
+            div(
+                span("/", className="regex-delimiter"),
+                input(
+                    value=regex_pattern.value,
+                    onChange="regex:pattern",
+                    placeholder="Enter regex pattern...",
+                    className="regex-input mono"
+                ),
+                span("/", className="regex-delimiter"),
+                span(_get_flags_string(), className="regex-flags"),
+                className="regex-pattern"
+            ),
+            className="regex-input-group"
+        ),
+        div(
+            _flag_checkbox("i", "Case insensitive", regex_flags.value.get("i", False)),
+            _flag_checkbox("m", "Multiline", regex_flags.value.get("m", False)),
+            _flag_checkbox("g", "Global", regex_flags.value.get("g", True)),
+            className="regex-flags-group"
+        ),
+        div(
+            label("Test String"),
+            textarea(
+                value=regex_text.value,
+                onChange="regex:text",
+                placeholder="Enter text to test against...",
+                className="tool-input mono",
+                rows=6
+            ),
+            className="test-text-section"
+        ),
+        div(
+            h4(f"Matches ({len(regex_matches.value)})"),
+            div(*_render_matches(), className="matches-list"),
+            className="match-results"
+        )
+    )
 
 
 def word_counter():
     """Word/character counter tool."""
     stats = wc_stats.value
 
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Word Counter"}},
-                            {"type": "p", "props": {"content": "Count words, characters, lines, and sentences"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "textarea",
-                                "props": {
-                                    "placeholder": "Enter or paste your text here...",
-                                    "value": wc_input.value,
-                                    "onChange": "wc:input",
-                                    "className": "tool-input",
-                                    "rows": 10
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "stats-grid",
-                                    "children": [
-                                        _stat_card("Words", stats.get("words", 0), "fa-solid fa-font"),
-                                        _stat_card("Characters", stats.get("chars", 0), "fa-solid fa-text-width"),
-                                        _stat_card("No Spaces", stats.get("chars_no_space", 0), "fa-solid fa-minus"),
-                                        _stat_card("Lines", stats.get("lines", 0), "fa-solid fa-list"),
-                                        _stat_card("Sentences", stats.get("sentences", 0), "fa-solid fa-paragraph"),
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
-
-
-def _stat_card(label: str, value: int, icon: str):
-    """Render a stat card."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "stat-card",
-            "children": [
-                {"type": "i", "props": {"className": icon}},
-                {"type": "div", "props": {"className": "stat-value", "content": str(value)}},
-                {"type": "div", "props": {"className": "stat-label", "content": label}}
-            ]
-        }
-    }
+    return tool_container(
+        "Word Counter",
+        "Count words, characters, lines, and sentences",
+        textarea(
+            value=wc_input.value,
+            onChange="wc:input",
+            placeholder="Enter or paste your text here...",
+            className="tool-input",
+            rows=10
+        ),
+        div(
+            stat_card("Words", stats.get("words", 0), "fa-solid fa-font"),
+            stat_card("Characters", stats.get("chars", 0), "fa-solid fa-text-width"),
+            stat_card("No Spaces", stats.get("chars_no_space", 0), "fa-solid fa-minus"),
+            stat_card("Lines", stats.get("lines", 0), "fa-solid fa-list"),
+            stat_card("Sentences", stats.get("sentences", 0), "fa-solid fa-paragraph"),
+            className="stats-grid"
+        )
+    )
 
 
 # Utility functions
+
 def simple_diff(text1: str, text2: str) -> list:
     """Simple line-by-line diff."""
     lines1 = text1.splitlines()
     lines2 = text2.splitlines()
 
     result = []
-
-    # Simple comparison - could be improved with proper diff algorithm
     max_len = max(len(lines1), len(lines2))
 
     for i in range(max_len):

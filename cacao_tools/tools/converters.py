@@ -2,6 +2,10 @@
 
 import re
 from cacao.core.state import State
+from cacao.ui import (
+    div, h2, p, textarea, select, input,
+    result_row, tool_container, labeled
+)
 
 # Color converter state
 color_input = State("#8B4513")
@@ -19,300 +23,99 @@ num_results = State({})
 
 def color_converter():
     """Convert between color formats."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Color Converter"}},
-                            {"type": "p", "props": {"content": "Convert between HEX, RGB, and HSL color formats"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "color-input-group",
-                                    "children": [
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "color",
-                                                "value": color_input.value if color_input.value.startswith("#") else "#000000",
-                                                "onChange": "color:picker",
-                                                "className": "color-picker"
-                                            }
-                                        },
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "text",
-                                                "value": color_input.value,
-                                                "onChange": "color:input",
-                                                "placeholder": "#8B4513 or rgb(139,69,19)",
-                                                "className": "tool-input"
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "color-preview",
-                                    "style": {"backgroundColor": color_results.value.get("hex", "#000")}
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "color-results",
-                                    "children": [
-                                        _color_result_row("HEX", color_results.value.get("hex", "")),
-                                        _color_result_row("RGB", color_results.value.get("rgb", "")),
-                                        _color_result_row("HSL", color_results.value.get("hsl", "")),
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
+    hex_val = color_input.value if color_input.value.startswith("#") else "#000000"
 
-
-def _color_result_row(label: str, value: str):
-    """Render a color result row."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "result-row",
-            "children": [
-                {"type": "label", "props": {"content": label, "className": "result-label"}},
-                {
-                    "type": "input",
-                    "props": {
-                        "type": "text",
-                        "value": value,
-                        "readOnly": True,
-                        "className": "result-value"
-                    }
-                },
-                {
-                    "type": "button",
-                    "props": {
-                        "content": "Copy",
-                        "onClick": f"copy:{value}",
-                        "className": "btn btn-sm"
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Color Converter",
+        "Convert between HEX, RGB, and HSL color formats",
+        div(
+            input(type="color", value=hex_val, onChange="color:picker", className="color-picker"),
+            input(
+                value=color_input.value,
+                onChange="color:input",
+                placeholder="#8B4513 or rgb(139,69,19)",
+                className="tool-input"
+            ),
+            className="color-input-group"
+        ),
+        div(className="color-preview", style={"backgroundColor": color_results.value.get("hex", "#000")}),
+        div(
+            result_row("HEX", color_results.value.get("hex", "")),
+            result_row("RGB", color_results.value.get("rgb", "")),
+            result_row("HSL", color_results.value.get("hsl", "")),
+            className="color-results"
+        )
+    )
 
 
 def case_converter():
     """Convert text between different cases."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Case Converter"}},
-                            {"type": "p", "props": {"content": "Convert text between camelCase, snake_case, kebab-case, and more"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "textarea",
-                                "props": {
-                                    "placeholder": "Enter text to convert (e.g., 'hello world' or 'helloWorld')",
-                                    "value": case_input.value,
-                                    "onChange": "case:input",
-                                    "className": "tool-input",
-                                    "rows": 2
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "case-results",
-                                    "children": [
-                                        _case_result_row("camelCase", case_results.value.get("camel", "")),
-                                        _case_result_row("PascalCase", case_results.value.get("pascal", "")),
-                                        _case_result_row("snake_case", case_results.value.get("snake", "")),
-                                        _case_result_row("CONSTANT_CASE", case_results.value.get("constant", "")),
-                                        _case_result_row("kebab-case", case_results.value.get("kebab", "")),
-                                        _case_result_row("Title Case", case_results.value.get("title", "")),
-                                        _case_result_row("UPPERCASE", case_results.value.get("upper", "")),
-                                        _case_result_row("lowercase", case_results.value.get("lower", "")),
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Case Converter",
+        "Convert text between camelCase, snake_case, kebab-case, and more",
+        textarea(
+            value=case_input.value,
+            onChange="case:input",
+            placeholder="Enter text to convert (e.g., 'hello world' or 'helloWorld')",
+            className="tool-input",
+            rows=2
+        ),
+        div(
+            result_row("camelCase", case_results.value.get("camel", "")),
+            result_row("PascalCase", case_results.value.get("pascal", "")),
+            result_row("snake_case", case_results.value.get("snake", "")),
+            result_row("CONSTANT_CASE", case_results.value.get("constant", "")),
+            result_row("kebab-case", case_results.value.get("kebab", "")),
+            result_row("Title Case", case_results.value.get("title", "")),
+            result_row("UPPERCASE", case_results.value.get("upper", "")),
+            result_row("lowercase", case_results.value.get("lower", "")),
+            className="case-results"
+        )
+    )
 
 
-def _case_result_row(label: str, value: str):
-    """Render a case result row."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "result-row",
-            "children": [
-                {"type": "label", "props": {"content": label, "className": "result-label"}},
-                {
-                    "type": "input",
-                    "props": {
-                        "type": "text",
-                        "value": value,
-                        "readOnly": True,
-                        "className": "result-value"
-                    }
-                },
-                {
-                    "type": "button",
-                    "props": {
-                        "content": "Copy",
-                        "onClick": f"copy:{value}",
-                        "className": "btn btn-sm"
-                    }
-                }
-            ]
-        }
-    }
+def _num_result_row(label: str, value: str, prefix: str):
+    """Render a number result row with prefix."""
+    display = f"{prefix}{value}" if value else ""
+    return result_row(label, display)
 
 
 def number_base_converter():
     """Convert numbers between different bases."""
-    return {
-        "type": "div",
-        "props": {
-            "className": "tool-container",
-            "children": [
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-header",
-                        "children": [
-                            {"type": "h2", "props": {"content": "Number Base Converter"}},
-                            {"type": "p", "props": {"content": "Convert between binary, octal, decimal, and hexadecimal"}}
-                        ]
-                    }
-                },
-                {
-                    "type": "div",
-                    "props": {
-                        "className": "tool-body",
-                        "children": [
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "input-group",
-                                    "children": [
-                                        {
-                                            "type": "input",
-                                            "props": {
-                                                "type": "text",
-                                                "placeholder": "Enter a number",
-                                                "value": num_input.value,
-                                                "onChange": "num:input",
-                                                "className": "tool-input"
-                                            }
-                                        },
-                                        {
-                                            "type": "select",
-                                            "props": {
-                                                "value": num_base.value,
-                                                "onChange": "num:base",
-                                                "children": [
-                                                    {"type": "option", "props": {"value": "2", "content": "Binary (base 2)"}},
-                                                    {"type": "option", "props": {"value": "8", "content": "Octal (base 8)"}},
-                                                    {"type": "option", "props": {"value": "10", "content": "Decimal (base 10)"}},
-                                                    {"type": "option", "props": {"value": "16", "content": "Hex (base 16)"}},
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "type": "div",
-                                "props": {
-                                    "className": "num-results",
-                                    "children": [
-                                        _num_result_row("Binary", num_results.value.get("bin", ""), "0b"),
-                                        _num_result_row("Octal", num_results.value.get("oct", ""), "0o"),
-                                        _num_result_row("Decimal", num_results.value.get("dec", ""), ""),
-                                        _num_result_row("Hexadecimal", num_results.value.get("hex", ""), "0x"),
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
-
-
-def _num_result_row(label: str, value: str, prefix: str):
-    """Render a number result row."""
-    display_value = f"{prefix}{value}" if value else ""
-    return {
-        "type": "div",
-        "props": {
-            "className": "result-row",
-            "children": [
-                {"type": "label", "props": {"content": label, "className": "result-label"}},
-                {
-                    "type": "input",
-                    "props": {
-                        "type": "text",
-                        "value": display_value,
-                        "readOnly": True,
-                        "className": "result-value mono"
-                    }
-                },
-                {
-                    "type": "button",
-                    "props": {
-                        "content": "Copy",
-                        "onClick": f"copy:{display_value}",
-                        "className": "btn btn-sm"
-                    }
-                }
-            ]
-        }
-    }
+    return tool_container(
+        "Number Base Converter",
+        "Convert between binary, octal, decimal, and hexadecimal",
+        div(
+            input(
+                value=num_input.value,
+                onChange="num:input",
+                placeholder="Enter a number",
+                className="tool-input"
+            ),
+            select(
+                value=num_base.value,
+                onChange="num:base",
+                options=[
+                    ("2", "Binary (base 2)"),
+                    ("8", "Octal (base 8)"),
+                    ("10", "Decimal (base 10)"),
+                    ("16", "Hex (base 16)")
+                ]
+            ),
+            className="input-group"
+        ),
+        div(
+            _num_result_row("Binary", num_results.value.get("bin", ""), "0b"),
+            _num_result_row("Octal", num_results.value.get("oct", ""), "0o"),
+            _num_result_row("Decimal", num_results.value.get("dec", ""), ""),
+            _num_result_row("Hexadecimal", num_results.value.get("hex", ""), "0x"),
+            className="num-results"
+        )
+    )
 
 
 # Utility functions
+
 def hex_to_rgb(hex_color: str) -> tuple:
     """Convert hex to RGB tuple."""
     hex_color = hex_color.lstrip('#')
