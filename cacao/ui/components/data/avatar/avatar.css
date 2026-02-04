@@ -1,16 +1,17 @@
 /* Avatar Component - Cacao UI Framework */
+/* Uses design tokens from tokens.css */
 
 .avatar {
     display: inline-block;
     position: relative;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: #f8f9fa;
-    border: 1px solid #e8e8e8;
+    width: var(--cacao-size-sm);
+    height: var(--cacao-size-sm);
+    border-radius: var(--cacao-radius-full);
+    background-color: var(--cacao-gray-100);
+    border: 1px solid var(--cacao-border);
     overflow: hidden;
     vertical-align: middle;
-    transition: all 0.3s ease;
+    transition: all var(--cacao-transition);
 }
 
 .avatar img {
@@ -26,67 +27,67 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    font-size: 16px;
-    color: #8B4513;
-    background-color: rgba(139, 69, 19, 0.1);
+    font-size: var(--cacao-text-base);
+    color: var(--cacao-primary);
+    background-color: var(--cacao-primary-bg);
 }
 
 /* Shape Variants */
 .avatar.circle {
-    border-radius: 50%;
+    border-radius: var(--cacao-radius-full);
 }
 
 .avatar.square {
-    border-radius: 4px;
+    border-radius: var(--cacao-radius-sm);
 }
 
 /* Size Variants */
 .avatar.small {
-    width: 24px;
-    height: 24px;
+    width: var(--cacao-size-xs);
+    height: var(--cacao-size-xs);
 }
 
 .avatar.small .avatar-icon {
-    font-size: 12px;
+    font-size: var(--cacao-text-xs);
 }
 
 .avatar.medium {
-    width: 32px;
-    height: 32px;
+    width: var(--cacao-size-sm);
+    height: var(--cacao-size-sm);
 }
 
 .avatar.medium .avatar-icon {
-    font-size: 16px;
+    font-size: var(--cacao-text-base);
 }
 
 .avatar.large {
-    width: 48px;
-    height: 48px;
+    width: var(--cacao-size-lg);
+    height: var(--cacao-size-lg);
 }
 
 .avatar.large .avatar-icon {
-    font-size: 24px;
+    font-size: var(--cacao-text-2xl);
 }
 
 .avatar.xlarge {
-    width: 64px;
-    height: 64px;
+    width: var(--cacao-size-xl);
+    height: var(--cacao-size-xl);
 }
 
 .avatar.xlarge .avatar-icon {
-    font-size: 32px;
+    font-size: var(--cacao-text-3xl);
 }
 
 /* Hover Effects */
 .avatar:hover {
-    border-color: #8B4513;
+    border-color: var(--cacao-primary);
     transform: scale(1.05);
 }
 
 /* Focus States for Accessibility */
 .avatar:focus {
-    outline: 2px solid #8B4513;
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--cacao-focus-ring);
 }
 
 /* Avatar Group Support */
@@ -96,8 +97,8 @@
 }
 
 .avatar-group .avatar {
-    margin-right: -8px;
-    border: 2px solid #fff;
+    margin-right: calc(var(--cacao-space-2) * -1);
+    border: 2px solid var(--cacao-white);
     position: relative;
     z-index: 1;
 }
@@ -113,12 +114,12 @@
 /* Responsive Design */
 @media (max-width: 768px) {
     .avatar.large {
-        width: 40px;
-        height: 40px;
+        width: var(--cacao-size-md);
+        height: var(--cacao-size-md);
     }
-    
+
     .avatar.xlarge {
-        width: 48px;
-        height: 48px;
+        width: var(--cacao-size-lg);
+        height: var(--cacao-size-lg);
     }
 }

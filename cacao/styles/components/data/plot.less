@@ -1,0 +1,321 @@
+// ===================
+// Plot Component
+// ===================
+
+.plot {
+  position: relative;
+  background-color: @cacao-surface;
+  border: 1px solid @cacao-border;
+  border-radius: @radius-sm;
+  padding: @space-4;
+  margin: @space-4 0;
+  overflow: hidden;
+
+  &:focus {
+    .focus-ring();
+  }
+}
+
+.plot-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  .flex-center();
+}
+
+.plot-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: @radius-sm;
+}
+
+// Title
+.plot-title {
+  font-size: @text-base;
+  font-weight: @font-semibold;
+  color: @cacao-text;
+  margin-bottom: @space-4;
+  text-align: center;
+}
+
+// Legend
+.plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: @space-4;
+  margin-top: @space-4;
+  padding-top: @space-4;
+  border-top: 1px solid @cacao-border;
+}
+
+.plot-legend-item {
+  display: flex;
+  align-items: center;
+  gap: @space-2;
+  font-size: @text-xs;
+  color: @cacao-text-secondary;
+}
+
+.plot-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+// Placeholder
+.plot-placeholder {
+  .flex-center();
+  flex-direction: column;
+  height: 400px;
+  color: @cacao-text-secondary;
+  font-size: @text-sm;
+  text-align: center;
+}
+
+.plot-placeholder-icon {
+  font-size: 48px;
+  margin-bottom: @space-4;
+  opacity: 0.5;
+}
+
+// Loading State
+.plot.loading {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+  }
+
+  &::after {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 4px solid @cacao-border;
+    border-top: 4px solid @cacao-primary;
+    border-radius: @radius-full;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11;
+  }
+}
+
+// Error State
+.plot.error {
+  border-color: @cacao-error-light;
+  background-color: @cacao-error-bg;
+}
+
+.plot-error {
+  .flex-center();
+  flex-direction: column;
+  height: 400px;
+  color: @cacao-error;
+  font-size: @text-sm;
+  text-align: center;
+}
+
+.plot-error-icon {
+  font-size: 48px;
+  margin-bottom: @space-4;
+  opacity: 0.7;
+}
+
+// Toolbar
+.plot-toolbar {
+  .flex-between();
+  justify-content: flex-end;
+  gap: @space-2;
+  margin-bottom: @space-4;
+  padding-bottom: @space-4;
+  border-bottom: 1px solid @cacao-border;
+}
+
+.plot-toolbar-button {
+  padding: @space-1 @space-2;
+  font-size: @text-xs;
+  background-color: @cacao-bg-secondary;
+  border: 1px solid @cacao-border;
+  border-radius: @radius-sm;
+  cursor: pointer;
+  .transition-fast();
+
+  &:hover {
+    background-color: @cacao-gray-200;
+    border-color: @cacao-primary;
+  }
+
+  &:focus {
+    .focus-ring();
+  }
+
+  &.active {
+    background-color: @cacao-primary;
+    color: @cacao-text-inverse;
+    border-color: @cacao-primary;
+  }
+}
+
+// Tooltip
+.plot-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: @cacao-white;
+  padding: @space-2 @space-3;
+  border-radius: @radius-sm;
+  font-size: @text-xs;
+  white-space: nowrap;
+  z-index: @z-tooltip;
+  pointer-events: none;
+  opacity: 0;
+  .transition-fast(opacity);
+
+  &.visible { opacity: 1; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+// Sizes
+.plot.small {
+  padding: @space-3;
+
+  .plot-container { height: 250px; }
+  .plot-title {
+    font-size: @text-sm;
+    margin-bottom: @space-3;
+  }
+}
+
+.plot.large {
+  padding: @space-6;
+
+  .plot-container { height: 500px; }
+  .plot-title {
+    font-size: @text-lg;
+    margin-bottom: @space-6;
+  }
+}
+
+// Responsive
+.plot.responsive {
+  width: 100%;
+  height: auto;
+
+  .plot-container {
+    aspect-ratio: 16/9;
+    height: auto;
+  }
+}
+
+// Fullscreen
+.plot.fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: @z-modal;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: @space-6;
+  background-color: @cacao-surface;
+
+  .plot-container {
+    height: calc(100vh - 48px);
+  }
+}
+
+// Chart Types
+.plot.line-chart { border-left: 3px solid @cacao-info; }
+.plot.bar-chart { border-left: 3px solid @cacao-success; }
+.plot.pie-chart { border-left: 3px solid @cacao-warning; }
+.plot.scatter-chart { border-left: 3px solid #722ed1; }
+.plot.area-chart { border-left: 3px solid #f759ab; }
+
+// Zoom
+.plot.zoomable {
+  cursor: crosshair;
+
+  &.zooming { cursor: move; }
+}
+
+.plot-zoom-overlay {
+  position: absolute;
+  background-color: @cacao-primary-bg;
+  border: 1px solid @cacao-primary;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .plot {
+    padding: @space-3;
+    margin: @space-3 0;
+  }
+
+  .plot-container { height: 300px; }
+  .plot-title {
+    font-size: @text-sm;
+    margin-bottom: @space-3;
+  }
+
+  .plot-legend {
+    gap: @space-2;
+    margin-top: @space-3;
+    padding-top: @space-3;
+  }
+
+  .plot-legend-item { font-size: 11px; }
+
+  .plot-toolbar {
+    flex-wrap: wrap;
+    gap: @space-1;
+  }
+
+  .plot.large .plot-container { height: 350px; }
+  .plot.small .plot-container { height: 200px; }
+}
+
+// Accessibility
+@media (prefers-contrast: high) {
+  .plot { border: 2px solid @cacao-black; }
+  .plot-toolbar-button { border: 2px solid @cacao-black; }
+  .plot-legend { border-top: 2px solid @cacao-black; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plot.loading::after { animation: none; }
+  .plot-tooltip { transition: none; }
+  .plot-toolbar-button { transition: none; }
+}
+
+// Print
+@media print {
+  .plot {
+    break-inside: avoid;
+    border: 1px solid @cacao-black;
+  }
+
+  .plot-toolbar { display: none; }
+
+  .plot.fullscreen {
+    position: static;
+    padding: @space-4;
+    background-color: @cacao-surface;
+  }
+}

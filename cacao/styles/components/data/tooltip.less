@@ -1,0 +1,118 @@
+// ===================
+// Tooltip Component
+// ===================
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-content {
+  position: absolute;
+  background-color: @cacao-gray-800;
+  color: @cacao-text-inverse;
+  padding: @space-2 @space-3;
+  border-radius: @radius-sm;
+  font-size: @text-xs;
+  white-space: nowrap;
+  z-index: @z-tooltip;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  .transition-fast();
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// Arrow
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+}
+
+// Positioning
+.tooltip-content.top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: @space-2;
+
+  .tooltip-arrow {
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-top-color: @cacao-gray-800;
+  }
+}
+
+.tooltip-content.bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: @space-2;
+
+  .tooltip-arrow {
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-bottom-color: @cacao-gray-800;
+  }
+}
+
+.tooltip-content.left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: @space-2;
+
+  .tooltip-arrow {
+    left: 100%;
+    top: 50%;
+    margin-top: -5px;
+    border-left-color: @cacao-gray-800;
+  }
+}
+
+.tooltip-content.right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: @space-2;
+
+  .tooltip-arrow {
+    right: 100%;
+    top: 50%;
+    margin-top: -5px;
+    border-right-color: @cacao-gray-800;
+  }
+}
+
+// Light Variant
+.tooltip.light .tooltip-content {
+  background-color: @cacao-surface;
+  color: @cacao-text;
+  border: 1px solid @cacao-border;
+  box-shadow: @shadow-md;
+
+  &.top .tooltip-arrow { border-top-color: @cacao-surface; }
+  &.bottom .tooltip-arrow { border-bottom-color: @cacao-surface; }
+  &.left .tooltip-arrow { border-left-color: @cacao-surface; }
+  &.right .tooltip-arrow { border-right-color: @cacao-surface; }
+}
+
+// Multiline
+.tooltip-content.multiline {
+  white-space: normal;
+  max-width: 250px;
+  text-align: center;
+}
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-content { transition: none; }
+}

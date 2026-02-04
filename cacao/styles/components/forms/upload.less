@@ -1,0 +1,243 @@
+// ===================
+// Upload Component
+// ===================
+
+.upload {
+  position: relative;
+  width: 100%;
+}
+
+.upload-dragger {
+  padding: @space-8 @space-4;
+  background-color: @cacao-bg-secondary;
+  border: 2px dashed @cacao-border;
+  border-radius: @radius-lg;
+  text-align: center;
+  cursor: pointer;
+  .transition();
+
+  &:hover {
+    border-color: @cacao-primary;
+    background-color: @cacao-primary-bg;
+  }
+
+  &.drag-over {
+    border-color: @cacao-primary;
+    background-color: @cacao-primary-bg;
+  }
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: @cacao-primary;
+  margin-bottom: @space-3;
+  opacity: 0.7;
+}
+
+.upload-text {
+  font-size: @text-sm;
+  color: @cacao-text;
+  margin-bottom: @space-1;
+
+  .upload-link {
+    color: @cacao-primary;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.upload-hint {
+  font-size: @text-xs;
+  color: @cacao-text-tertiary;
+}
+
+// Input
+.upload-input {
+  .visually-hidden();
+}
+
+// Button Style
+.upload.button-style {
+  .upload-dragger {
+    display: inline-flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-2 @space-4;
+    background-color: @cacao-surface;
+    border: 1px solid @cacao-border;
+
+    &:hover {
+      background-color: @cacao-bg-secondary;
+    }
+  }
+
+  .upload-icon {
+    font-size: @text-base;
+    margin-bottom: 0;
+  }
+}
+
+// File List
+.upload-list {
+  margin-top: @space-3;
+}
+
+.upload-list-item {
+  display: flex;
+  align-items: center;
+  padding: @space-2 @space-3;
+  background-color: @cacao-bg-secondary;
+  border-radius: @radius-sm;
+  margin-bottom: @space-2;
+  .transition-fast();
+
+  &:hover {
+    background-color: @cacao-gray-200;
+  }
+
+  &.error {
+    background-color: @cacao-error-bg;
+    border: 1px solid @cacao-error-light;
+  }
+}
+
+.upload-list-item-icon {
+  width: 24px;
+  height: 24px;
+  .flex-center();
+  margin-right: @space-2;
+  color: @cacao-primary;
+}
+
+.upload-list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.upload-list-item-name {
+  font-size: @text-sm;
+  color: @cacao-text;
+  .truncate();
+}
+
+.upload-list-item-size {
+  font-size: @text-xs;
+  color: @cacao-text-tertiary;
+}
+
+.upload-list-item-actions {
+  display: flex;
+  gap: @space-1;
+  margin-left: @space-2;
+}
+
+.upload-list-item-action {
+  width: 24px;
+  height: 24px;
+  .flex-center();
+  background: none;
+  border: none;
+  border-radius: @radius-sm;
+  cursor: pointer;
+  color: @cacao-text-tertiary;
+  .transition-fast();
+
+  &:hover {
+    background-color: @cacao-gray-200;
+    color: @cacao-text;
+  }
+
+  &.delete:hover { color: @cacao-error; }
+}
+
+// Progress
+.upload-progress {
+  height: 4px;
+  background-color: @cacao-gray-200;
+  border-radius: @radius-full;
+  margin-top: @space-1;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background-color: @cacao-primary;
+  border-radius: @radius-full;
+  .transition();
+
+  &.success { background-color: @cacao-success; }
+  &.error { background-color: @cacao-error; }
+}
+
+// Picture Card Style
+.upload.picture-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: @space-3;
+
+  .upload-dragger {
+    width: 100px;
+    height: 100px;
+    padding: @space-2;
+  }
+
+  .upload-icon {
+    font-size: @text-2xl;
+    margin-bottom: @space-1;
+  }
+
+  .upload-text { font-size: @text-xs; }
+}
+
+.upload-picture-card-item {
+  width: 100px;
+  height: 100px;
+  border-radius: @radius-md;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid @cacao-border;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .upload-picture-card-actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    .flex-center();
+    gap: @space-2;
+    opacity: 0;
+    .transition-fast();
+  }
+
+  &:hover .upload-picture-card-actions { opacity: 1; }
+}
+
+// Disabled
+.upload.disabled {
+  .upload-dragger {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      border-color: @cacao-border;
+      background-color: @cacao-bg-secondary;
+    }
+  }
+}
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .upload-dragger,
+  .upload-list-item,
+  .upload-progress-bar {
+    transition: none;
+  }
+}

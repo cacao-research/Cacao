@@ -1,4 +1,5 @@
 /* Improved Base CSS for Cacao Framework */
+/* Uses design tokens from tokens.css */
 
 /* Reset and Box-Sizing */
 *,
@@ -11,82 +12,82 @@
 
 /* Global Styles */
 body {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.6;
-  background-color: #ffd9bf;
-  color: #333;
+  font-family: var(--cacao-font-family);
+  line-height: var(--cacao-leading-normal);
+  background-color: var(--cacao-bg);
+  color: var(--cacao-text);
 }
 
 /* Navbar Styles */
 .sidebar {
-  background-color: #333;
-  color: #fff;
+  background-color: var(--cacao-gray-800);
+  color: var(--cacao-text-inverse);
 }
 
 .sidebar .brand {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: var(--cacao-text-xl);
+  font-weight: var(--cacao-font-bold);
 }
 
 .sidebar a {
-  color: #fff;
+  color: var(--cacao-text-inverse);
   text-decoration: none;
 }
 
 /* Hero Section */
 .hero {
   background: url('/static/images/hero.jpg') center/cover no-repeat;
-  padding: 4rem 1rem;
+  padding: var(--cacao-space-16) var(--cacao-space-4);
   text-align: center;
-  color: #fff;
+  color: var(--cacao-text-inverse);
 }
 
 .hero h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: var(--cacao-text-4xl);
+  margin-bottom: var(--cacao-space-4);
 }
 
 .hero p {
-  font-size: 1.5rem;
+  font-size: var(--cacao-text-xl);
 }
 
 /* Section Styles */
 .section {
-  padding: 2rem 1rem;
-  background-color: #fff;
-  margin: 2rem auto;
+  padding: var(--cacao-space-8) var(--cacao-space-4);
+  background-color: var(--cacao-surface);
+  margin: var(--cacao-space-8) auto;
   max-width: 1200px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: var(--cacao-radius-lg);
+  box-shadow: var(--cacao-shadow);
 }
 
 .section .text {
-  font-size: 1rem;
-  margin-bottom: 1rem;
+  font-size: var(--cacao-text-base);
+  margin-bottom: var(--cacao-space-4);
 }
 
 .section .button {
-  background-color: #2ecc71;
-  color: #fff;
+  background-color: var(--cacao-success);
+  color: var(--cacao-text-inverse);
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+  padding: var(--cacao-space-3) var(--cacao-space-6);
+  border-radius: var(--cacao-radius-sm);
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: var(--cacao-font-bold);
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color var(--cacao-transition);
 }
 
 .section .button:hover {
-  background-color: #27ae60;
+  background-color: var(--cacao-success-light);
 }
 
 /* Footer Styles */
 .footer {
-  background-color: #333;
-  color: #fff;
+  background-color: var(--cacao-gray-800);
+  color: var(--cacao-text-inverse);
   text-align: center;
-  padding: 1rem;
+  padding: var(--cacao-space-4);
 }
 
 /* Refresh Overlay */
@@ -96,15 +97,15 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(139, 69, 19, 0.9); /* More opaque brown */
+  background-color: rgba(139, 69, 19, 0.9);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
-  z-index: 9999;
+  transition: opacity var(--cacao-transition-slow);
+  z-index: var(--cacao-z-toast);
 }
 
 .refresh-overlay.active {
@@ -113,19 +114,19 @@ body {
 }
 
 .refresh-overlay .spinner {
-  width: 80px; /* Larger spinner */
+  width: 80px;
   height: 80px;
-  border: 8px solid #fff; /* Thicker border */
+  border: 8px solid var(--cacao-white);
   border-top-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--cacao-radius-full);
   animation: spin 1s linear infinite;
-  margin-bottom: 20px; /* Add space below spinner */
+  margin-bottom: var(--cacao-space-5);
 }
 
 .refresh-overlay .message {
-  color: white;
-  font-size: 24px;
-  font-weight: bold;
+  color: var(--cacao-white);
+  font-size: var(--cacao-text-2xl);
+  font-weight: var(--cacao-font-bold);
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
@@ -137,22 +138,28 @@ body {
 /* Manual refresh button */
 .manual-refresh {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #8B4513;
-  color: white;
+  bottom: var(--cacao-space-5);
+  right: var(--cacao-space-5);
+  background-color: var(--cacao-primary);
+  color: var(--cacao-white);
   border: none;
-  border-radius: 5px;
-  padding: 7px;
-  font-size: 15px;
+  border-radius: var(--cacao-radius-md);
+  padding: var(--cacao-space-2);
+  font-size: var(--cacao-text-sm);
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--cacao-shadow-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--cacao-z-fixed);
+  transition: background-color var(--cacao-transition);
 }
 
 .manual-refresh:hover {
-  background-color: #A0522D;
+  background-color: var(--cacao-primary-light);
+}
+
+.manual-refresh:focus {
+  outline: none;
+  box-shadow: var(--cacao-focus-ring);
 }

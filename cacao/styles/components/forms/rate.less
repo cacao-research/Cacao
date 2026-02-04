@@ -1,0 +1,88 @@
+// ===================
+// Rate Component
+// ===================
+
+.rate {
+  display: inline-flex;
+  align-items: center;
+  gap: @space-1;
+}
+
+.rate-item {
+  font-size: @text-2xl;
+  color: @cacao-gray-300;
+  cursor: pointer;
+  .transition-fast();
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &.active {
+    color: @cacao-warning;
+  }
+
+  &.half {
+    position: relative;
+
+    &::before {
+      content: attr(data-icon);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50%;
+      overflow: hidden;
+      color: @cacao-warning;
+    }
+  }
+
+  &:focus {
+    .focus-ring();
+  }
+}
+
+// Sizes
+.rate.small .rate-item { font-size: @text-lg; }
+.rate.large .rate-item { font-size: @text-3xl; }
+
+// Read Only
+.rate.readonly .rate-item {
+  cursor: default;
+
+  &:hover { transform: none; }
+}
+
+// Disabled
+.rate.disabled {
+  opacity: 0.5;
+
+  .rate-item {
+    cursor: not-allowed;
+
+    &:hover { transform: none; }
+  }
+}
+
+// With Text
+.rate-text {
+  margin-left: @space-2;
+  font-size: @text-sm;
+  color: @cacao-text-secondary;
+}
+
+// Custom Character
+.rate.character .rate-item {
+  font-size: @text-base;
+  min-width: 20px;
+  text-align: center;
+}
+
+// Colors
+.rate.primary .rate-item.active { color: @cacao-primary; }
+.rate.success .rate-item.active { color: @cacao-success; }
+.rate.error .rate-item.active { color: @cacao-error; }
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .rate-item { transition: none; }
+}

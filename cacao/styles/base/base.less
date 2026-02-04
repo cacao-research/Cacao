@@ -1,0 +1,145 @@
+// ===================
+// Base Styles
+// ===================
+
+body {
+  font-family: @font-family;
+  line-height: @leading-normal;
+  background-color: @cacao-bg;
+  color: @cacao-text;
+}
+
+// Sidebar
+.sidebar {
+  background-color: @cacao-gray-800;
+  color: @cacao-text-inverse;
+
+  .brand {
+    font-size: @text-xl;
+    font-weight: @font-bold;
+  }
+
+  a {
+    color: @cacao-text-inverse;
+    text-decoration: none;
+  }
+}
+
+// Hero Section
+.hero {
+  background: url('/static/images/hero.jpg') center/cover no-repeat;
+  padding: @space-16 @space-4;
+  text-align: center;
+  color: @cacao-text-inverse;
+
+  h1 {
+    font-size: @text-4xl;
+    margin-bottom: @space-4;
+  }
+
+  p {
+    font-size: @text-xl;
+  }
+}
+
+// Section
+.section {
+  padding: @space-8 @space-4;
+  background-color: @cacao-surface;
+  margin: @space-8 auto;
+  max-width: 1200px;
+  border-radius: @radius-lg;
+  box-shadow: @shadow;
+
+  .text {
+    font-size: @text-base;
+    margin-bottom: @space-4;
+  }
+
+  .button {
+    .button-base();
+    background-color: @cacao-success;
+    color: @cacao-text-inverse;
+
+    &:hover:not(:disabled) {
+      background-color: @cacao-success-light;
+    }
+  }
+}
+
+// Footer
+.footer {
+  background-color: @cacao-gray-800;
+  color: @cacao-text-inverse;
+  text-align: center;
+  padding: @space-4;
+}
+
+// Refresh Overlay
+.refresh-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(139, 69, 19, 0.9);
+  .flex-center();
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  .transition-slow(opacity);
+  z-index: @z-toast;
+
+  &.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .spinner {
+    width: 80px;
+    height: 80px;
+    border: 8px solid @cacao-white;
+    border-top-color: transparent;
+    border-radius: @radius-full;
+    animation: spin 1s linear infinite;
+    margin-bottom: @space-5;
+  }
+
+  .message {
+    color: @cacao-white;
+    font-size: @text-2xl;
+    font-weight: @font-bold;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Manual Refresh Button
+.manual-refresh {
+  position: fixed;
+  bottom: @space-5;
+  right: @space-5;
+  background-color: @cacao-primary;
+  color: @cacao-white;
+  border: none;
+  border-radius: @radius-md;
+  padding: @space-2;
+  font-size: @text-sm;
+  cursor: pointer;
+  box-shadow: @shadow-md;
+  .flex-center();
+  z-index: @z-fixed;
+  .transition();
+
+  &:hover {
+    background-color: @cacao-primary-light;
+  }
+
+  &:focus {
+    .focus-ring();
+  }
+}

@@ -1,0 +1,152 @@
+// ===================
+// Range Sliders Component
+// ===================
+
+// Note: Extends base slider styles from slider.less
+
+// Range-specific styles
+.range-slider {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background-color: @cacao-gray-200;
+  border-radius: @radius-full;
+  cursor: pointer;
+
+  .slider-track {
+    left: 0;
+    right: 0;
+  }
+}
+
+.range-slider-wrapper {
+  position: relative;
+  width: 100%;
+  padding: @space-4 0;
+}
+
+// Double Handle Range
+.range-slider.double {
+  .slider-handle {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    background-color: @cacao-surface;
+    border: 2px solid @cacao-primary;
+    border-radius: @radius-full;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    box-shadow: @shadow-sm;
+    z-index: 2;
+    .transition-fast();
+
+    &:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      z-index: 3;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    &:focus {
+      .focus-ring();
+      z-index: 3;
+    }
+  }
+
+  .slider-handle-min { left: 20%; }
+  .slider-handle-max { left: 80%; }
+}
+
+// Input Fields
+.range-slider-inputs {
+  display: flex;
+  align-items: center;
+  gap: @space-3;
+  margin-top: @space-3;
+}
+
+.range-slider-input {
+  flex: 1;
+  max-width: 100px;
+
+  label {
+    display: block;
+    font-size: @text-xs;
+    color: @cacao-text-tertiary;
+    margin-bottom: @space-1;
+  }
+
+  input {
+    .input-base();
+    text-align: center;
+    font-family: @font-mono;
+  }
+}
+
+.range-slider-separator {
+  color: @cacao-text-tertiary;
+  margin-top: @space-4;
+}
+
+// Histogram Display
+.range-slider-histogram {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  margin-bottom: @space-2;
+}
+
+.range-slider-bar {
+  flex: 1;
+  background-color: @cacao-gray-200;
+  min-height: 2px;
+  border-radius: 1px 1px 0 0;
+  .transition-fast();
+
+  &.in-range {
+    background-color: @cacao-primary-bg;
+  }
+}
+
+// Step Indicators
+.range-slider-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-top: @space-2;
+}
+
+.range-slider-step {
+  width: 2px;
+  height: 8px;
+  background-color: @cacao-gray-300;
+
+  &.major {
+    height: 12px;
+    background-color: @cacao-gray-400;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .range-slider-inputs {
+    flex-direction: column;
+    gap: @space-2;
+  }
+
+  .range-slider-input {
+    max-width: none;
+    width: 100%;
+  }
+
+  .range-slider-separator {
+    margin-top: 0;
+  }
+}
