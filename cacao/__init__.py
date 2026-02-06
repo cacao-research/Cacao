@@ -1,8 +1,8 @@
 """
-Cacao v2 - Reactive web framework for Python.
+Cacao - Reactive web framework for Python.
 
 Simple API (recommended):
-    import cacao_v2 as c
+    import cacao as c
 
     c.config(title="My App")
     c.title("Hello World")
@@ -10,7 +10,7 @@ Simple API (recommended):
         c.metric("Users", 100)
 
 Full API (for advanced usage):
-    from cacao_v2.server.ui import App, row, metric
+    from cacao.server.ui import App, row, metric
 
     app = App(title="My App")
     with app.page("/"):
@@ -19,9 +19,6 @@ Full API (for advanced usage):
     app.run()
 """
 
-<<<<<<< Updated upstream
-__version__ = "1.0.50.dev1"
-=======
 # Import everything from the simple module for easy access
 from .simple import (
     # Config
@@ -89,7 +86,6 @@ from .simple import (
     is_simple_mode,
     reset,
 )
->>>>>>> Stashed changes
 
 # Also expose the full server module for advanced usage
 from . import server
@@ -159,4 +155,4 @@ __all__ = [
     "Session",
 ]
 
-__version__ = "2.0.0-dev"
+__version__ = "2.0.0"

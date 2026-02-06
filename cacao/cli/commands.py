@@ -79,9 +79,9 @@ def find_app_instance(module: Any) -> Any:
     Find the Cacao App instance in a module.
 
     Looks for (in order):
-    1. Simple mode global app (from `import cacao_v2 as c`)
+    1. Simple mode global app (from `import cacao as c`)
     2. A variable named 'app'
-    3. Any instance of cacao_v2.server.ui.App
+    3. Any instance of cacao.server.ui.App
 
     Args:
         module: The loaded module
@@ -92,11 +92,11 @@ def find_app_instance(module: Any) -> Any:
     Raises:
         RuntimeError: If no App instance is found
     """
-    # First, check for simple mode (global app from cacao_v2 module)
+    # First, check for simple mode (global app from cacao module)
     try:
-        import cacao_v2
-        if cacao_v2.is_simple_mode():
-            return cacao_v2.get_app()
+        import cacao
+        if cacao.is_simple_mode():
+            return cacao.get_app()
     except (ImportError, AttributeError):
         pass
 
@@ -107,7 +107,7 @@ def find_app_instance(module: Any) -> Any:
             return app
 
     # Third, search for any App instance
-    from cacao_v2.server.ui import App
+    from cacao.server.ui import App
 
     for name in dir(module):
         obj = getattr(module, name)
@@ -117,7 +117,7 @@ def find_app_instance(module: Any) -> Any:
     raise RuntimeError(
         "No Cacao App instance found in module. "
         "Make sure to create an App instance, e.g.:\n\n"
-        "  from cacao_v2.server.ui import App\n"
+        "  from cacao.server.ui import App\n"
         "  app = App(title='My App')\n"
     )
 
@@ -149,7 +149,7 @@ def run_with_reload(app_path: Path, host: str, port: int, verbose: bool) -> None
 
         # Run the internal runner
         return subprocess.Popen(
-            [sys.executable, "-m", "cacao_v2.cli.runner"],
+            [sys.executable, "-m", "cacao.cli.runner"],
             env=env,
             cwd=str(app_dir),
         )
@@ -223,7 +223,7 @@ def run_command(args: list[str]) -> None:
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
-    parser.add_argument("--port", "-p", type=int, default=8000, help="Port to listen on (default: 8000)")
+    parser.add_argument("--port", "-p", type=int, default=1604, help="Port to listen on (default: 1604)")
     parser.add_argument("--no-reload", action="store_true", help="Disable hot reload")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
 
@@ -345,7 +345,7 @@ def _get_template(template_name: str) -> str:
         "minimal": '''"""
 Minimal Cacao v2 application.
 """
-from cacao_v2.server.ui import App, title, text
+from cacao.server.ui import App, title, text
 
 app = App(title="My Cacao App")
 
@@ -359,7 +359,7 @@ if __name__ == "__main__":
         "counter": '''"""
 Counter application demonstrating Cacao v2 signals.
 """
-from cacao_v2.server.ui import App, row, card, metric, button, title
+from cacao.server.ui import App, row, card, metric, button, title
 
 app = App(title="Counter")
 
@@ -392,9 +392,9 @@ if __name__ == "__main__":
         "dashboard": '''"""
 Dashboard template with metrics and charts.
 """
-from cacao_v2.server.ui import App, row, col, card, metric, title, text, sidebar, select
-from cacao_v2.server.chart import line, bar, pie
-from cacao_v2.server.data import sample_sales_data
+from cacao.server.ui import App, row, col, card, metric, title, text, sidebar, select
+from cacao.server.chart import line, bar, pie
+from cacao.server.data import sample_sales_data
 
 app = App(title="Sales Dashboard", theme="dark")
 

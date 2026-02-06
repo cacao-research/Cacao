@@ -180,12 +180,38 @@ def _get_all_signal_values(session: Session) -> dict[str, Any]:
     return result
 
 
+# Default ports
+DEFAULT_PORT = 1604
+MAX_PORT_ATTEMPTS = 20
+
+
+def _is_port_available(host: str, port: int) -> bool:
+    """Check if a port is available."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host if host != "0.0.0.0" else "127.0.0.1", port))
+            return True
+        except OSError:
+            return False
+
+
+def _find_available_port(host: str, start_port: int) -> int:
+    """Find an available port starting from start_port."""
+    for offset in range(MAX_PORT_ATTEMPTS):
+        port = start_port + offset
+        if _is_port_available(host, port):
+            return port
+    raise RuntimeError(f"Could not find available port in range {start_port}-{start_port + MAX_PORT_ATTEMPTS}")
+
+
 def run_server(
     app: "App",
     *,
     host: str = "0.0.0.0",
-    port: int = 8000,
+    port: int | None = None,
     reload: bool = False,
+    auto_port: bool = True,
 ) -> None:
     """
     Run the Cacao server.
@@ -193,10 +219,21 @@ def run_server(
     Args:
         app: The Cacao App instance
         host: Host to bind to
-        port: Port to listen on
+        port: Port to listen on (default: 1604)
         reload: Enable auto-reload (requires uvicorn[standard])
+        auto_port: If True, find next available port if default is in use
     """
     import uvicorn
+
+    if port is None:
+        port = DEFAULT_PORT
+
+    # Find available port if needed
+    if auto_port and not _is_port_available(host, port):
+        original_port = port
+        port = _find_available_port(host, port)
+        if port != original_port:
+            print(f"[Cacao] Port {original_port} in use, using {port}")
 
     starlette_app = create_server(app)
 

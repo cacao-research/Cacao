@@ -32,11 +32,11 @@ def load_app_module(app_path: Path) -> Any:
 
 def find_app_instance(module: Any) -> Any:
     """Find the Cacao App instance in a module."""
-    # First, check for simple mode (global app from cacao_v2 module)
+    # First, check for simple mode (global app from cacao module)
     try:
-        import cacao_v2
-        if cacao_v2.is_simple_mode():
-            return cacao_v2.get_app()
+        import cacao
+        if cacao.is_simple_mode():
+            return cacao.get_app()
     except (ImportError, AttributeError):
         pass
 
@@ -47,7 +47,7 @@ def find_app_instance(module: Any) -> Any:
             return app
 
     # Third, search for any App instance
-    from cacao_v2.server.ui import App
+    from cacao.server.ui import App
 
     for name in dir(module):
         obj = getattr(module, name)
@@ -65,7 +65,7 @@ def main() -> None:
         sys.exit(1)
 
     host = os.environ.get("CACAO_HOST", "127.0.0.1")
-    port = int(os.environ.get("CACAO_PORT", "8000"))
+    port = int(os.environ.get("CACAO_PORT", "1604"))
     verbose = os.environ.get("CACAO_VERBOSE", "0") == "1"
 
     app_path = Path(app_file)
