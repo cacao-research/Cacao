@@ -19,6 +19,9 @@ Full API (for advanced usage):
     app.run()
 """
 
+<<<<<<< Updated upstream
+__version__ = "1.0.50.dev1"
+=======
 # Import everything from the simple module for easy access
 from .simple import (
     # Config
@@ -155,4 +158,4 @@ __all__ = [
     "Session",
 ]
 
-__version__ = "2.0.0"
+__version__ = "2.0.0-dev"
