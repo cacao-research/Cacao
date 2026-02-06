@@ -23,7 +23,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=find_packages(include=['cacao', 'cacao.*']),
+    packages=find_packages(include=['cacao', 'cacao.*', 'cacao_v2', 'cacao_v2.*']),
     package_data={
         'cacao': [
             'core/static/*.html',
@@ -45,7 +45,17 @@ setup(
         "colorama",
         "pywebview>=4.0.2",
         "pandas",
+        # cacao_v2 dependencies
+        "uvicorn>=0.20.0",
+        "starlette>=0.27.0",
     ],
+    extras_require={
+        "docs": [
+            "mkdocs>=1.5.0",
+            "mkdocs-material>=9.0.0",
+            "mkdocstrings[python]>=0.24.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "cacao=cacao.cli:run_cli",

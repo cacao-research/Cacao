@@ -1,0 +1,155 @@
+"""
+Dashboard application with sidebar navigation.
+"""
+import cacao
+from typing import Dict, Any
+
+app = cacao.App()
+
+
+def card(title: str, value: str, description: str) -> Dict[str, Any]:
+    """Create a dashboard card component."""
+    return {
+        "type": "div",
+        "props": {
+            "style": {
+                "background": "white",
+                "borderRadius": "12px",
+                "padding": "24px",
+                "boxShadow": "0 2px 8px rgba(0,0,0,0.1)"
+            },
+            "children": [
+                {
+                    "type": "text",
+                    "props": {
+                        "content": title,
+                        "style": {
+                            "fontSize": "14px",
+                            "color": "#666",
+                            "marginBottom": "8px"
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "props": {
+                        "content": value,
+                        "style": {
+                            "fontSize": "32px",
+                            "fontWeight": "bold",
+                            "color": "#2c1810",
+                            "marginBottom": "4px"
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "props": {
+                        "content": description,
+                        "style": {
+                            "fontSize": "12px",
+                            "color": "#999"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+
+@app.mix("/")
+def home() -> Dict[str, Any]:
+    """Dashboard home page."""
+    return {
+        "type": "div",
+        "props": {
+            "style": {
+                "display": "flex",
+                "minHeight": "100vh",
+                "fontFamily": "'Segoe UI', sans-serif"
+            }
+        },
+        "children": [
+            # Sidebar
+            {
+                "type": "div",
+                "props": {
+                    "style": {
+                        "width": "250px",
+                        "background": "#2c1810",
+                        "padding": "24px",
+                        "color": "white"
+                    },
+                    "children": [
+                        {
+                            "type": "h2",
+                            "props": {
+                                "content": "Dashboard",
+                                "style": {
+                                    "fontSize": "24px",
+                                    "marginBottom": "32px",
+                                    "color": "#f0be9b"
+                                }
+                            }
+                        },
+                        {
+                            "type": "div",
+                            "props": {
+                                "style": {"display": "flex", "flexDirection": "column", "gap": "8px"},
+                                "children": [
+                                    {"type": "text", "props": {"content": "Overview", "style": {"padding": "12px", "borderRadius": "8px", "background": "rgba(255,255,255,0.1)"}}},
+                                    {"type": "text", "props": {"content": "Analytics", "style": {"padding": "12px", "borderRadius": "8px", "cursor": "pointer"}}},
+                                    {"type": "text", "props": {"content": "Reports", "style": {"padding": "12px", "borderRadius": "8px", "cursor": "pointer"}}},
+                                    {"type": "text", "props": {"content": "Settings", "style": {"padding": "12px", "borderRadius": "8px", "cursor": "pointer"}}}
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            # Main content
+            {
+                "type": "div",
+                "props": {
+                    "style": {
+                        "flex": "1",
+                        "background": "#f5f5f5",
+                        "padding": "32px"
+                    },
+                    "children": [
+                        {
+                            "type": "h1",
+                            "props": {
+                                "content": "Overview",
+                                "style": {
+                                    "fontSize": "28px",
+                                    "color": "#2c1810",
+                                    "marginBottom": "24px"
+                                }
+                            }
+                        },
+                        {
+                            "type": "div",
+                            "props": {
+                                "style": {
+                                    "display": "grid",
+                                    "gridTemplateColumns": "repeat(auto-fit, minmax(250px, 1fr))",
+                                    "gap": "24px"
+                                },
+                                "children": [
+                                    card("Total Users", "1,234", "+12% from last month"),
+                                    card("Revenue", "$45,678", "+8% from last month"),
+                                    card("Active Sessions", "342", "Currently online"),
+                                    card("Conversion Rate", "3.2%", "+0.4% from last week")
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+
+if __name__ == "__main__":
+    app.brew()
