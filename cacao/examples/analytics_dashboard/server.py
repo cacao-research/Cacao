@@ -40,14 +40,14 @@ import random
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from cacao_v2.server.ui import (
+from cacao.server.ui import (
     App, row, col, grid, card, sidebar, tabs, tab,
     title, text, divider, spacer,
     metric, table, progress, badge, alert,
     button, input_field, select, checkbox, switch, slider
 )
-from cacao_v2.server.chart import line, bar, pie, donut, scatter, area, gauge, heatmap
-from cacao_v2.server.data import DataFrame, sample_sales_data, sample_users_data
+from cacao.server.chart import line, bar, pie, donut, scatter, area, gauge, heatmap
+from cacao.server.data import DataFrame, sample_sales_data, sample_users_data
 
 # =============================================================================
 # VALIDATION: This is the EXACT target API from the strategic goal
@@ -59,11 +59,11 @@ from cacao_v2.server.data import DataFrame, sample_sales_data, sample_users_data
 #     from cacao.data import load_csv
 #
 # Our actual API:
-#     from cacao_v2.server.ui import App, row, card, metric
-#     from cacao_v2.server.chart import line, pie
-#     from cacao_v2.server.data import load_csv
+#     from cacao.server.ui import App, row, card, metric
+#     from cacao.server.chart import line, pie
+#     from cacao.server.data import load_csv
 #
-# The only difference is the import path (cacao_v2.server vs cacao).
+# The only difference is the import path (cacao.server vs cacao).
 # This can be aliased in __init__.py for the final release.
 # =============================================================================
 

@@ -1,5 +1,5 @@
 # Sales Dashboard with charts and data
-import cacao_v2 as c
+import cacao as c
 
 c.config(title="Sales Dashboard", theme="dark")
 

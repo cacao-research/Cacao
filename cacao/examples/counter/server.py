@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from cacao_v2 import App, Signal
+from cacao import App, Signal
 
 # Create app
 app = App(debug=True)

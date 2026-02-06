@@ -18,8 +18,8 @@ from typing import Any
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from cacao_v2 import App, Signal
-from cacao_v2.server.signal import Computed
+from cacao import App, Signal
+from cacao.server.signal import Computed
 
 # Create app
 app = App(debug=True)

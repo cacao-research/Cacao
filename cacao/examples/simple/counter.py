@@ -1,5 +1,5 @@
 # Interactive counter with signals
-import cacao_v2 as c
+import cacao as c
 
 c.config(title="Counter")
 

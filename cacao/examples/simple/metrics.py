@@ -1,5 +1,5 @@
 # KPI Dashboard in 10 lines
-import cacao_v2 as c
+import cacao as c
 
 c.config(title="KPI Dashboard", theme="dark")
 

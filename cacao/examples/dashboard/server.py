@@ -14,12 +14,12 @@ from pathlib import Path
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from cacao_v2.server.ui import (
+from cacao.server.ui import (
     App, row, col, card, sidebar, tabs, tab,
     title, text, metric, table, button, select, badge, alert, progress
 )
-from cacao_v2.server.chart import line, bar, pie
-from cacao_v2.server.data import sample_sales_data, sample_users_data
+from cacao.server.chart import line, bar, pie
+from cacao.server.data import sample_sales_data, sample_users_data
 
 # Create app
 app = App(title="Sales Dashboard", theme="dark", debug=True)
