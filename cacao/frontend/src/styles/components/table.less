@@ -1,0 +1,28 @@
+// Table component
+
+.table-container { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: @font-size-base;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+th {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: @font-size-xs;
+  letter-spacing: 0.04em;
+  background: var(--bg-tertiary);
+}
+
+tbody tr:hover {
+  background: var(--bg-card-hover);
+}
