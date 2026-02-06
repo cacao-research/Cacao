@@ -175,3 +175,12 @@ RESEARCH/
 .roomodes
 *.pyc
 /test_results
+nul
+CACAO_MASTER_PLAN.md
+
+# Frontend build output
+cacao/frontend/dist/
+cacao/frontend/node_modules/
+
+# Old v2 folder (to be deleted)
+cacao_v2/

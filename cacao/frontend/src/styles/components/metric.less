@@ -1,0 +1,71 @@
+// Metric component
+
+.metric {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: @radius-lg;
+  padding: 1.25rem 1.5rem;
+  min-width: 180px;
+  flex: 1;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+  }
+
+  &:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-card-hover);
+  }
+}
+
+.metric-label {
+  font-size: @font-size-sm;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.metric-trend {
+  font-size: 0.8rem;
+  margin-top: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: @radius-sm;
+  font-weight: 500;
+
+  &.up {
+    color: var(--success);
+    background: var(--success-bg);
+  }
+
+  &.down {
+    color: var(--danger);
+    background: var(--danger-bg);
+  }
+}
+
+@media (max-width: 768px) {
+  .metric { min-width: unset; }
+  .metric-value { font-size: 1.5rem; }
+}
