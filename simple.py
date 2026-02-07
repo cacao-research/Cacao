@@ -3,7 +3,7 @@ Simplified Cacao API.
 
 This module provides a Streamlit-like API where you can write:
 
-    import cacao_v2 as c
+    import cacao as c
 
     c.title("Hello World")
     with c.row():
@@ -12,7 +12,7 @@ This module provides a Streamlit-like API where you can write:
 
 No App(), no page(), no boilerplate. Just write components.
 
-For more control, use the full API from cacao_v2.server.ui.
+For more control, use the full API from cacao.server.ui.
 """
 
 from __future__ import annotations
@@ -133,7 +133,7 @@ def config(
     Call this before any components to set app-level options.
 
     Example:
-        import cacao_v2 as c
+        import cacao as c
 
         c.config(title="My Dashboard", theme="dark", port=3000)
 
@@ -259,7 +259,7 @@ def page(path: str = "/"):
     For simple single-page apps, you don't need this - components go to "/" automatically.
 
     Example:
-        import cacao_v2 as c
+        import cacao as c
 
         with c.page("/"):
             c.title("Home")
@@ -803,7 +803,7 @@ def run(
     But you can call it explicitly for more control.
 
     Example:
-        import cacao_v2 as c
+        import cacao as c
 
         c.title("Hello")
         c.run(port=3000)

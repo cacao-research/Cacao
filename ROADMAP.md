@@ -238,7 +238,7 @@ const updateName = useEvent('name:input')
 ## File Organization
 
 ```
-cacao_v2/
+cacao/
 ├── server/                    # Python package
 │   ├── signal.py              # ✓ Signal, Computed
 │   ├── session.py             # ✓ Session management

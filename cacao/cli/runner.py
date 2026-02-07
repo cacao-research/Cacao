@@ -65,7 +65,7 @@ def main() -> None:
         sys.exit(1)
 
     host = os.environ.get("CACAO_HOST", "127.0.0.1")
-    port = int(os.environ.get("CACAO_PORT", "1604"))
+    port = int(os.environ.get("CACAO_PORT", "8000"))
     verbose = os.environ.get("CACAO_VERBOSE", "0") == "1"
 
     app_path = Path(app_file)

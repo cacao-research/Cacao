@@ -1,5 +1,5 @@
 """
-Cacao - Reactive web framework for Python.
+Cacao v2 - Reactive web framework for Python.
 
 Simple API (recommended):
     import cacao as c

@@ -1,5 +1,5 @@
 """
-CLI commands for Cacao.
+CLI commands for Cacao v2.
 
 Provides the main CLI interface for running Cacao applications with hot reload.
 """
@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import os
-import random
 import subprocess
 import sys
 import time
@@ -25,26 +24,6 @@ RED = "\033[91m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
-BROWN = "\033[38;5;130m"
-
-# Fun facts about cacao and chocolate history
-CACAO_FACTS = [
-    "The word 'chocolate' was first recorded in English in 1604 — that's why port 1604 is our default!",
-    "Cacao was domesticated over 5,000 years ago in present-day Ecuador.",
-    "The Maya used cacao beans as currency by 400 BC.",
-    "In 1545, 30 cacao beans could buy a rabbit, 100 beans a turkey hen.",
-    "Carl Linnaeus named cacao 'Theobroma' — Greek for 'food of the gods' (1753).",
-    "The Aztecs believed cacao was a gift from the god Quetzalcoatl.",
-    "The first chocolate bar was invented in 1847 by Fry's in England.",
-    "Milk chocolate was invented in 1875 by Swiss chocolatier Daniel Peter.",
-    "Conching, which makes chocolate smooth, was invented by Rodolphe Lindt in 1879.",
-    "Spanish conquistadors first encountered chocolate in the court of Moctezuma II in 1520.",
-    "The Maya created foam on chocolate by pouring it from a height between vessels.",
-    "Cacao was so valuable that counterfeit beans were made from wax and avocado pits.",
-    "Chocolate arrived in England around 1657 — the same time as tea and coffee.",
-    "The Portuguese introduced cacao to Africa in 1824, starting from São Tomé.",
-    "Before 1828, all chocolate was drinking chocolate — there were no chocolate bars.",
-]
 
 # ASCII art logo
 LOGO = f"""{PURPLE}
@@ -52,21 +31,16 @@ LOGO = f"""{PURPLE}
   / ____/___ _________ _____
  / /   / __ `/ ___/ __ `/ __ \\
 / /___/ /_/ / /__/ /_/ / /_/ /
-\\____/\\__,_/\\___/\\__,_/\\____/{RESET}
+\\____/\\__,_/\\___/\\__,_/\\____/  {DIM}v2{RESET}
 """
 
 
 def print_banner(host: str, port: int, reload: bool, app_file: str) -> None:
-    """Print the startup banner with a random cacao fact."""
+    """Print the startup banner."""
     print(LOGO)
     print(f"  {BOLD}App:{RESET}        {app_file}")
     print(f"  {BOLD}URL:{RESET}        {CYAN}http://{host}:{port}{RESET}")
     print(f"  {BOLD}Hot reload:{RESET} {GREEN}enabled{RESET}" if reload else f"  {BOLD}Hot reload:{RESET} {DIM}disabled{RESET}")
-    print()
-
-    # Random fun fact
-    fact = random.choice(CACAO_FACTS)
-    print(f"  {BROWN}☕ {fact}{RESET}")
     print()
     print(f"  {DIM}Press Ctrl+C to stop{RESET}")
     print()
@@ -249,7 +223,7 @@ def run_command(args: list[str]) -> None:
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
-    parser.add_argument("--port", "-p", type=int, default=1604, help="Port to listen on (default: 1604)")
+    parser.add_argument("--port", "-p", type=int, default=8000, help="Port to listen on (default: 8000)")
     parser.add_argument("--no-reload", action="store_true", help="Disable hot reload")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
 
@@ -461,11 +435,7 @@ if __name__ == "__main__":
 
 def version_command(args: list[str]) -> None:
     """Show version information."""
-    try:
-        from cacao import __version__
-        print(f"Cacao {__version__}")
-    except ImportError:
-        print("Cacao CLI")
+    print(f"Cacao v2 CLI")
     print(f"Python: {sys.version}")
 
 
@@ -481,12 +451,10 @@ def help_command(args: list[str]) -> None:
     print(f"  {CYAN}help{RESET}             Show this help message")
     print()
     print("Examples:")
-    print(f"  cacao run app.py               Run app (default port: 1604)")
-    print(f"  cacao run app.py --port 8080   Run on custom port")
-    print(f"  cacao run app.py --no-reload   Run without hot reload")
-    print(f"  cacao create my-dashboard      Create a new project")
-    print()
-    print(f"  {DIM}Default port 1604: the year 'chocolate' first appeared in English!{RESET}")
+    print(f"  cacao run app.py              Run app with hot reload")
+    print(f"  cacao run app.py --port 3000  Run on port 3000")
+    print(f"  cacao run app.py --no-reload  Run without hot reload")
+    print(f"  cacao create my-dashboard     Create a new project")
     print()
 
 

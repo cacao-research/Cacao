@@ -10,7 +10,7 @@ A simple counter demonstrating Cacao v2's core features:
 ### 1. Start the Python Server
 
 ```bash
-cd cacao_v2/examples/counter
+cd cacao/examples/counter
 python server.py
 ```
 
@@ -21,7 +21,7 @@ The server will start at `http://localhost:8000` with WebSocket at `ws://localho
 In a separate terminal:
 
 ```bash
-cd cacao_v2/client
+cd cacao/client
 
 # Install dependencies (first time only)
 npm install
@@ -42,7 +42,7 @@ Open multiple browser tabs to `http://localhost:3000`. Each tab has its own coun
 ### Server (Python)
 
 ```python
-from cacao_v2 import App, Signal
+from cacao import App, Signal
 
 app = App()
 count = Signal(0, name="count")

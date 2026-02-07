@@ -1,7 +1,0 @@
-# Cacao v2 Server Dependencies
-
-# ASGI server
-uvicorn[standard]>=0.24.0
-
-# Web framework
-starlette>=0.32.0
