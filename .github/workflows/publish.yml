@@ -124,6 +124,7 @@ jobs:
           cd cacao/frontend
           npm install
           npm run build
+          ls -la dist/
 
       - name: Set version in files
         run: |
@@ -131,8 +132,10 @@ jobs:
           sed -i "s|^__version__ = .*|__version__ = \"${{ steps.bump_version.outputs.new_version }}\"|" cacao/__init__.py
           grep '^version' pyproject.toml
 
-      - name: Build
-        run: python -m build
+      - name: Build wheel and sdist
+        run: |
+          python -m build --wheel
+          python -m build --sdist
 
       - name: Publish to PyPI
         env:
