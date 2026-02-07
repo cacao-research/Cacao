@@ -22,7 +22,7 @@ graph TD
 Cacao includes a powerful hot reload system that automatically refreshes your UI when you make changes to your code:
 
 1. Start the development server
-2. Open your browser to http://localhost:1634
+2. Open your browser to http://localhost:1502
 3. Edit your UI code in `main.py`
 4. Watch as your changes appear instantly with a smooth brown overlay animation
 ```

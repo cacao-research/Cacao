@@ -184,7 +184,7 @@ def run_server(
     app: "App",
     *,
     host: str = "0.0.0.0",
-    port: int = 8000,
+    port: int = 1502,  # 1502: Columbus encounters cacao beans in Honduras
     reload: bool = False,
 ) -> None:
     """

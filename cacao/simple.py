@@ -73,7 +73,7 @@ _global_config: dict[str, Any] = {
     "title": "Cacao App",
     "theme": "dark",
     "host": "127.0.0.1",
-    "port": 8000,
+    "port": 1502,  # 1502: Columbus encounters cacao in Honduras
 }
 
 # Whether we're in "simple mode" (implicit app)
@@ -143,7 +143,7 @@ def config(
         title: Application title (shown in browser tab)
         theme: Color theme - "light", "dark", or "auto"
         host: Host to bind server to (default: 127.0.0.1)
-        port: Port for server (default: 8000)
+        port: Port for server (default: 1502 - historic chocolate year)
         debug: Enable debug mode with verbose logging
     """
     global _global_config, _global_app
@@ -810,14 +810,14 @@ def run(
 
     Args:
         host: Host to bind to (default: from config or 127.0.0.1)
-        port: Port to listen on (default: from config or 8000)
+        port: Port to listen on (default: from config or 1502)
         reload: Enable hot reload
     """
     app = _get_app()
 
     # Use config values as defaults
     final_host = host or _global_config.get("host", "127.0.0.1")
-    final_port = port or _global_config.get("port", 8000)
+    final_port = port or _global_config.get("port", 1502)
 
     app.run(host=final_host, port=final_port, reload=reload)
 
@@ -849,7 +849,7 @@ def reset() -> None:
         "title": "Cacao App",
         "theme": "dark",
         "host": "127.0.0.1",
-        "port": 8000,
+        "port": 1502,  # 1502: Columbus encounters cacao in Honduras
     }
 
 
