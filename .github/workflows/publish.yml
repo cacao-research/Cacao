@@ -1,41 +1,124 @@
-name: Publish to PyPI
+name: Publish to PyPI and GitHub Release
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'  # Triggered by tags like v2.0.0 (no suffix)
+    branches:
+      - main
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
 
-      - name: Get version from tag
-        id: version
+      - name: Ignore bot
+        if: github.actor == 'github-actions[bot]'
         run: |
-          # Extract version from tag (remove 'v' prefix)
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Commit made by GitHub Actions. Exiting."
+          exit 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Bump Version and Push Tag
+        id: bump_version
+        uses: mathieudutour/github-tag-action@v6.0
         with:
-          python-version: '3.x'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: main
+          default_bump: patch
+          tag_prefix: 'v'
 
-      - name: Update version in code
+      - name: Update VERSION file
         run: |
-          sed -i "s|^__version__ = .*|__version__ = \"${{ steps.version.outputs.version }}\"|" cacao/__init__.py
-          sed -i 's|^version = ".*"|version = "${{ steps.version.outputs.version }}"|' pyproject.toml
+          echo "${{ steps.bump_version.outputs.new_version }}" > VERSION
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f VERSION
+          git commit -m "🔖 Version v${{ steps.bump_version.outputs.new_version }} [skip ci]" || true
+          git push origin main || true
 
-      - name: Install build tools
+      - name: Fetch Latest Pull Request Info
+        id: fetch_pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              base: 'main',
+              head: 'dev',
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 1
+            });
+
+            if (prs.data.length > 0) {
+              const pr = prs.data[0];
+              const releaseInfo = {
+                title: pr.title,
+                body: (pr.body || 'No description provided').replace(/\r\n/g, '\n'),
+                number: pr.number,
+                url: pr.html_url,
+                author: pr.user.login
+              };
+              console.log('Latest PR Info:', releaseInfo);
+              return releaseInfo;
+            } else {
+              console.log('No recent PRs from dev to main found');
+              return null;
+            }
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          release_name: v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## Changes
+            ${{ steps.fetch_pr.outputs.result != 'null' && fromJSON(steps.fetch_pr.outputs.result).body || 'Version update' }}
+
+            ## Details
+            - Version: v${{ steps.bump_version.outputs.new_version }}
+            ${{ steps.fetch_pr.outputs.result != 'null' && format('- PR: #{0} by @{1}', fromJSON(steps.fetch_pr.outputs.result).number, fromJSON(steps.fetch_pr.outputs.result).author) || '' }}
+            ${{ steps.fetch_pr.outputs.result != 'null' && format('- PR URL: {0}', fromJSON(steps.fetch_pr.outputs.result).url) || '' }}
+          draft: false
+          prerelease: false
+
+      - name: Fetch all tags
+        run: |
+          git fetch --all --tags --prune
+          git tag --list
+          git describe --tags --long || true
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with: { python-version: '3.x' }
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install build deps
         run: |
           python -m pip install --upgrade pip
           pip install build twine
+
+      - name: Set version in files
+        run: |
+          sed -i 's|^version = ".*"|version = "${{ steps.bump_version.outputs.new_version }}"|' pyproject.toml
+          sed -i "s|^__version__ = .*|__version__ = \"${{ steps.bump_version.outputs.new_version }}\"|" cacao/__init__.py
+          grep '^version' pyproject.toml
 
       - name: Build
         run: python -m build
@@ -45,8 +128,3 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: python -m twine upload dist/* --non-interactive
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
