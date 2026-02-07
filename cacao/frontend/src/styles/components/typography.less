@@ -1,0 +1,31 @@
+// Typography - Titles, text, spacer, divider
+
+.title {
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.title-1 { font-size: @font-size-4xl; font-weight: 700; letter-spacing: -0.02em; }
+.title-2 { font-size: @font-size-2xl; font-weight: 600; }
+.title-3 { font-size: @font-size-xl; font-weight: 600; color: var(--text-secondary); }
+.title-4 { font-size: @font-size-lg; font-weight: 600; color: var(--text-secondary); }
+
+.text { color: var(--text-secondary); line-height: 1.6; }
+.text-muted { color: var(--text-muted); }
+.text-sm { font-size: @font-size-base; }
+.text-lg { font-size: @font-size-xl; }
+
+.spacer { height: 1rem; }
+.spacer-2 { height: 0.5rem; }
+.spacer-4 { height: 1rem; }
+.spacer-8 { height: 2rem; }
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 1rem 0;
+}
+
+@media (max-width: 768px) {
+  .title-1 { font-size: @font-size-3xl; }
+}

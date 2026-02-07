@@ -1,4 +1,4 @@
-# Cacao v2
+# Cacao
 
 A clean-slate rewrite of Cacao with a clear separation of concerns:
 - **Python Server**: Manages state (Signals) and handles events
@@ -10,14 +10,14 @@ A clean-slate rewrite of Cacao with a clear separation of concerns:
 ### 1. Install Python Dependencies
 
 ```bash
-pip install -r cacao_v2/requirements.txt
+pip install -r cacao/requirements.txt
 ```
 
 ### 2. Create a Simple Server
 
 ```python
 # app.py
-from cacao_v2 import App, Signal
+from cacao import App, Signal
 
 app = App()
 count = Signal(0, name="count")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 ### 3. Set Up the React Client
 
 ```bash
-cd cacao_v2/client
+cd cacao/client
 npm install
 npm run dev
 ```
@@ -70,7 +70,7 @@ export default function App() {
 Signals are reactive state containers with session scoping:
 
 ```python
-from cacao_v2 import Signal
+from cacao import Signal
 
 # Create a signal with a default value
 name = Signal("", name="name")
@@ -168,7 +168,7 @@ const sessionId = useSessionId()
 ## File Structure
 
 ```
-cacao_v2/
+cacao/
 ├── server/                 # Python package
 │   ├── __init__.py
 │   ├── app.py              # App class, decorators
@@ -197,4 +197,4 @@ cacao_v2/
 
 ## Examples
 
-See `cacao_v2/examples/counter/` for a working example.
+See `cacao/examples/counter/` for a working example.
