@@ -1,127 +1,164 @@
+![image](https://github.com/user-attachments/assets/830a00ca-7948-42ff-9196-adb58357c536)
+
 # Cacao
 
-A clean-slate rewrite of Cacao with a clear separation of concerns:
-- **Python Server**: Manages state (Signals) and handles events
-- **React Client**: Renders the UI and dispatches events
-- **WebSocket**: JSON state sync between server and client
+[![PyPI Version](https://img.shields.io/pypi/v/cacao)](https://pypi.org/project/cacao/)
+[![Downloads](https://static.pepy.tech/badge/cacao)](https://pepy.tech/project/cacao)
+[![Python Versions](https://img.shields.io/pypi/pyversions/cacao)](https://pypi.org/project/cacao/)
+[![License](https://img.shields.io/pypi/l/cacao)](https://github.com/jhd3197/Cacao/blob/main/LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/jhd3197/Cacao/publish.yml?branch=main)](https://github.com/jhd3197/Cacao/actions)
+[![GitHub Stars](https://img.shields.io/github/stars/jhd3197/Cacao?style=social)](https://github.com/jhd3197/Cacao)
+
+---
+
+**High-performance reactive web framework for Python.** Build dashboards, internal tools, and data apps with a simple API — 10x faster than Streamlit with true WebSocket reactivity.
+
+> **v2.0** - Complete rewrite with signal-based reactivity, session-scoped state, and a Streamlit-like API that doesn't re-run your entire script.
 
 ## Quick Start
 
-### 1. Install Python Dependencies
-
 ```bash
-pip install -r cacao/requirements.txt
+pip install cacao
 ```
 
-### 2. Create a Simple Server
+### Hello World (4 lines)
 
 ```python
-# app.py
-from cacao import App, Signal
+import cacao as c
 
-app = App()
-count = Signal(0, name="count")
+c.title("Hello, Cacao!")
+c.text("Welcome to the simplest Python web framework")
+```
 
-@app.on("increment")
+### Interactive Counter
+
+```python
+import cacao as c
+
+c.config(title="Counter")
+
+count = c.signal(0, name="count")
+
+@c.on("increment")
 async def increment(session, event):
     count.set(session, count.get(session) + 1)
 
-if __name__ == "__main__":
-    app.run(port=8000)
+@c.on("decrement")
+async def decrement(session, event):
+    count.set(session, count.get(session) - 1)
+
+c.title("Counter")
+
+with c.card():
+    c.metric("Count", count)
+    with c.row():
+        c.button("-", on_click="decrement", variant="secondary")
+        c.button("+", on_click="increment")
 ```
 
-### 3. Set Up the React Client
+### Dashboard with Charts
 
+```python
+import cacao as c
+
+c.config(title="Sales Dashboard", theme="dark")
+
+sales = c.sample_sales_data()
+
+c.title("Sales Dashboard")
+
+with c.row():
+    c.metric("Revenue", "$45,231", trend="+20.1%", trend_direction="up")
+    c.metric("Orders", "1,247", trend="+12.5%", trend_direction="up")
+    c.metric("Customers", "842", trend="+5.3%", trend_direction="up")
+
+with c.row():
+    with c.col(span=8):
+        with c.card("Revenue Trend"):
+            c.line(sales, x="date", y="revenue", area=True)
+    with c.col(span=4):
+        with c.card("By Category"):
+            c.pie(sales[:5], values="revenue", names="category", donut=True)
+
+with c.card("Recent Transactions"):
+    c.table(sales[:10], columns=["date", "category", "revenue", "orders"])
+```
+
+Run with:
 ```bash
-cd cacao/client
-npm install
-npm run dev
+cacao run dashboard.py
 ```
 
-### 4. Use Signals in React
+## Why Cacao?
 
-```tsx
-import { CacaoProvider, useSignal, useEvent } from './cacao'
-
-function Counter() {
-  const count = useSignal('count', 0)
-  const increment = useEvent('increment')
-
-  return (
-    <button onClick={() => increment()}>
-      Count: {count}
-    </button>
-  )
-}
-
-export default function App() {
-  return (
-    <CacaoProvider url="ws://localhost:8000/ws">
-      <Counter />
-    </CacaoProvider>
-  )
-}
-```
+| Feature | Cacao | Streamlit |
+|---------|-------|-----------|
+| **Reactivity** | Signal-based (only changed values update) | Full script re-run on every interaction |
+| **State** | Session-scoped by design | `st.session_state` bolt-on |
+| **Updates** | WebSocket streaming (instant) | HTTP polling (laggy) |
+| **Multi-user** | Isolated sessions built-in | Shared state issues |
+| **API** | Context managers + decorators | Magic globals |
 
 ## Core Concepts
 
-### Signals (Server-Side State)
-
-Signals are reactive state containers with session scoping:
+### Signals (Reactive State)
 
 ```python
-from cacao import Signal
-
-# Create a signal with a default value
-name = Signal("", name="name")
+count = c.signal(0, name="count")
 
 # Get value for a session
-current_name = name.get(session)
+current = count.get(session)
 
-# Set value (automatically syncs to client)
-name.set(session, "John")
-
-# Update using a function
-name.update(session, lambda n: n.upper())
+# Set value (auto-syncs to client)
+count.set(session, current + 1)
 ```
 
-### Events (Client-to-Server)
-
-Events are the mechanism for client actions:
+### Event Handlers
 
 ```python
-@app.on("submit")
+@c.on("submit")
 async def handle_submit(session, event):
-    # event is a dict with the data from the client
     print(event.get("value"))
 ```
 
-### Auto-Binding (Form Helpers)
-
-Bind events directly to signals for form inputs:
+### Layout Components
 
 ```python
-name = Signal("", name="name")
-app.bind("name:input", name)  # Auto-updates signal on input
+with c.row():           # Horizontal layout
+    with c.col(span=8): # 8/12 width column
+        c.text("Main content")
+    with c.col(span=4): # 4/12 width column
+        c.text("Sidebar")
 
-# Client just sends: { type: "event", name: "name:input", data: { value: "..." } }
+with c.card("Title"):   # Card container
+    c.metric("Value", 100)
+
+with c.tabs():          # Tabbed content
+    with c.tab("tab1", "First"):
+        c.text("Tab 1 content")
+    with c.tab("tab2", "Second"):
+        c.text("Tab 2 content")
 ```
 
-### React Hooks
+### Form Components
 
-```tsx
-// Subscribe to a signal
-const count = useSignal<number>('count', 0)
+```python
+c.button("Click me", on_click="submit")
+c.input("Name", signal=name_signal)
+c.select("Category", ["A", "B", "C"])
+c.checkbox("Agree", signal=agree_signal)
+c.slider("Volume", min=0, max=100)
+```
 
-// Create an event dispatcher
-const submit = useEvent('submit')
-submit({ value: 'hello' })
+### Charts
 
-// Check connection status
-const status = useConnectionStatus()  // 'connecting' | 'connected' | 'disconnected' | 'reconnecting'
-
-// Get session ID
-const sessionId = useSessionId()
+```python
+c.line(data, x="date", y="value")
+c.bar(data, x="category", y="count")
+c.pie(data, values="amount", names="label")
+c.area(data, x="date", y="value")
+c.scatter(data, x="x", y="y")
+c.gauge(value=75, max_value=100)
 ```
 
 ## Architecture
@@ -146,55 +183,50 @@ const sessionId = useSessionId()
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## WebSocket Protocol
-
-### Server → Client
-
-```json
-// Initial state
-{ "type": "init", "state": { "count": 0 }, "sessionId": "abc123" }
-
-// State update
-{ "type": "update", "changes": { "count": 1 } }
-```
-
-### Client → Server
-
-```json
-// Event dispatch
-{ "type": "event", "name": "increment", "data": {} }
-```
-
-## File Structure
+## Project Structure
 
 ```
 cacao/
-├── server/                 # Python package
-│   ├── __init__.py
-│   ├── app.py              # App class, decorators
-│   ├── signal.py           # Signal, Computed
-│   ├── session.py          # Session management
-│   ├── events.py           # Event handling
-│   └── server.py           # WebSocket server
-│
-├── client/                 # React + Vite
-│   ├── package.json
-│   ├── src/
-│   │   ├── cacao/          # Cacao client library
-│   │   │   ├── index.ts
-│   │   │   ├── hooks.ts
-│   │   │   ├── store.ts
-│   │   │   ├── websocket.ts
-│   │   │   └── types.ts
-│   │   └── App.tsx
-│   └── ...
-│
-├── examples/
-│   └── counter/            # Counter example
-│
-└── requirements.txt
+├── __init__.py          # Simple API exports
+├── simple.py            # Streamlit-like API
+├── server/              # Core server
+│   ├── app.py           # App class
+│   ├── signal.py        # Signal, Computed
+│   ├── session.py       # Session management
+│   ├── events.py        # Event handling
+│   ├── server.py        # WebSocket server
+│   ├── ui.py            # UI components
+│   ├── chart.py         # Chart components
+│   └── data.py          # Data utilities
+├── cli/                 # CLI commands
+└── examples/            # Example apps
+```
+
+## CLI
+
+```bash
+# Run an app with hot reload
+cacao run app.py
+
+# Run on custom port
+cacao run app.py --port 3000
+
+# Create a new project
+cacao create my-dashboard
 ```
 
 ## Examples
 
-See `cacao/examples/counter/` for a working example.
+See the `examples/` directory:
+- `examples/simple/hello.py` - Minimal app
+- `examples/simple/counter.py` - Interactive counter
+- `examples/simple/metrics.py` - KPI dashboard
+- `examples/simple/dashboard.py` - Full dashboard with charts
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines for details.
+
+## License
+
+MIT
