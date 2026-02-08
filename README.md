@@ -213,7 +213,42 @@ cacao run app.py --port 3000
 
 # Create a new project
 cacao create my-dashboard
+
+# Build a static site (no server required)
+cacao build app.py
+
+# Build for GitHub Pages subdirectory
+cacao build app.py --base-path /my-repo
 ```
+
+## Static Builds
+
+Cacao can generate static sites that run entirely in the browser — no Python server required. Perfect for GitHub Pages, Netlify, or any static hosting.
+
+```bash
+cacao build app.py
+```
+
+This creates a `dist/` folder with:
+- `index.html` - Your app
+- `cacao.js` - Runtime with built-in handlers
+- `cacao.css` - Styles
+
+**Built-in handlers** for common operations work automatically:
+- Encoders: Base64, URL, HTML entities, JWT decode
+- Generators: UUID, passwords, Lorem Ipsum
+- Converters: JSON/YAML, case conversion, number bases
+- Text: Statistics, regex testing
+- Crypto: Hash generation, HMAC
+
+Deploy to GitHub Pages:
+```yaml
+# .github/workflows/deploy.yml
+- run: pip install cacao
+- run: cacao build app.py --base-path /${{ github.event.repository.name }}
+```
+
+See [cacao-tools](https://github.com/cacao-research/cacao-tools) for a full static site example.
 
 ## Examples
 
