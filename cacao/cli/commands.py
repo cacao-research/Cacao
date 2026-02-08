@@ -667,7 +667,10 @@ def build_command(args: list[str]) -> None:
     signals_json = json.dumps(export_data.get("signals", {}))
 
     # Build the HTML
+    # Use relative paths when no base_path is specified (for file:// and local preview)
+    # Use absolute paths when base_path is set (for GitHub Pages subdirectories)
     base_path = parsed_args.base_path.rstrip("/")
+    asset_prefix = base_path if base_path else "."
 
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
@@ -675,7 +678,7 @@ def build_command(args: list[str]) -> None:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <link rel="stylesheet" href="{base_path}/cacao.css">
+    <link rel="stylesheet" href="{asset_prefix}/cacao.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -693,7 +696,7 @@ def build_command(args: list[str]) -> None:
     window.__CACAO_INITIAL_SIGNALS__ = {signals_json};
     </script>
 
-    <script src="{base_path}/cacao.js"></script>
+    <script src="{asset_prefix}/cacao.js"></script>
 
     <script>
     // Initialize static mode and mount (handlers are built into cacao.js)
