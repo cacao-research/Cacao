@@ -575,6 +575,158 @@ if __name__ == "__main__":
     return templates.get(template_name, templates["minimal"])
 
 
+def build_command(args: list[str]) -> None:
+    """
+    Build a static version of a Cacao application.
+
+    Usage: cacao build app.py [options]
+
+    Generates a static site that can be hosted on GitHub Pages, Netlify, etc.
+    No server required - runs entirely in the browser with JavaScript handlers.
+    """
+    import json
+    import shutil
+
+    parser = argparse.ArgumentParser(
+        prog="cacao build",
+        description="Build a static Cacao application"
+    )
+    parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
+    parser.add_argument("-o", "--output", default="dist", help="Output directory (default: dist)")
+    parser.add_argument("--base-path", default="", help="Base path for deployment (e.g., /my-repo for GitHub Pages)")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    parsed_args = parser.parse_args(args)
+
+    app_path = Path(parsed_args.app_file)
+    output_dir = Path(parsed_args.output)
+
+    # Validate app file
+    if not app_path.exists():
+        print(f"{RED}Error: File '{parsed_args.app_file}' not found{RESET}")
+        sys.exit(1)
+
+    if not app_path.suffix == ".py":
+        print(f"{RED}Error: '{parsed_args.app_file}' is not a Python file{RESET}")
+        sys.exit(1)
+
+    print(f"{CYAN}Building static site...{RESET}")
+
+    # Load the app module
+    app_dir = app_path.parent.resolve()
+    original_cwd = os.getcwd()
+    os.chdir(app_dir)
+
+    try:
+        # Import and execute the app to build component tree
+        if parsed_args.verbose:
+            print(f"  Loading {app_path.name}...")
+
+        module = load_app_module(app_path)
+
+        # Get the export data using cacao.export_static()
+        import cacao
+        export_data = cacao.export_static()
+
+        if parsed_args.verbose:
+            print(f"  Found {len(export_data.get('pages', {}))} page(s)")
+            print(f"  Found {len(export_data.get('signals', {}))} signal(s)")
+
+    finally:
+        os.chdir(original_cwd)
+
+    # Create output directory
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True)
+
+    # Copy Cacao frontend assets
+    frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+
+    if not frontend_dist.exists():
+        print(f"{RED}Error: Frontend not built. Run 'npm run build' in cacao/frontend first.{RESET}")
+        sys.exit(1)
+
+    # Copy CSS and JS
+    shutil.copy(frontend_dist / "cacao.css", output_dir / "cacao.css")
+    shutil.copy(frontend_dist / "cacao.js", output_dir / "cacao.js")
+
+    if parsed_args.verbose:
+        print(f"  Copied cacao.css and cacao.js (includes built-in handlers)")
+
+    # Generate index.html
+    metadata = export_data.get("metadata", {})
+    title = metadata.get("title", "Cacao App")
+    theme = metadata.get("theme", "dark")
+
+    # Serialize pages data
+    pages_json = json.dumps({
+        "pages": export_data.get("pages", {}),
+        "metadata": metadata,
+    })
+    signals_json = json.dumps(export_data.get("signals", {}))
+
+    # Build the HTML
+    base_path = parsed_args.base_path.rstrip("/")
+
+    html_content = f'''<!DOCTYPE html>
+<html lang="en" data-theme="{theme}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <link rel="stylesheet" href="{base_path}/cacao.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="root"><div class="loading">Loading...</div></div>
+
+    <script>
+    // Static mode configuration
+    window.__CACAO_STATIC__ = true;
+    window.__CACAO_DEFER_MOUNT__ = true;
+    window.__CACAO_BASE_PATH__ = "{base_path}";
+    window.__CACAO_PAGES__ = {pages_json};
+    window.__CACAO_INITIAL_SIGNALS__ = {signals_json};
+    </script>
+
+    <script src="{base_path}/cacao.js"></script>
+
+    <script>
+    // Initialize static mode and mount (handlers are built into cacao.js)
+    (function() {{
+        Cacao.initStatic({{
+            pages: window.__CACAO_PAGES__,
+            signals: window.__CACAO_INITIAL_SIGNALS__,
+            handlers: {{}}
+        }});
+        Cacao.mount();
+    }})();
+    </script>
+</body>
+</html>'''
+
+    # Write index.html
+    (output_dir / "index.html").write_text(html_content, encoding="utf-8")
+
+    # Create 404.html for SPA routing on GitHub Pages
+    (output_dir / "404.html").write_text(html_content, encoding="utf-8")
+
+    print(f"{GREEN}Build complete!{RESET}")
+    print(f"\nOutput: {output_dir.resolve()}")
+    print(f"  - index.html")
+    print(f"  - 404.html (for SPA routing)")
+    print(f"  - cacao.css")
+    print(f"  - cacao.js (includes built-in handlers)")
+    print()
+    print(f"To preview locally:")
+    print(f"  {CYAN}python -m http.server -d {output_dir}{RESET}")
+    print()
+
+
 def version_command(args: list[str]) -> None:
     """Show version information."""
     print(f"Cacao v2 CLI")
@@ -588,6 +740,7 @@ def help_command(args: list[str]) -> None:
     print()
     print("Commands:")
     print(f"  {CYAN}run{RESET} <app.py>     Run a Cacao application with hot reload")
+    print(f"  {CYAN}build{RESET} <app.py>   Build a static site (for GitHub Pages, etc.)")
     print(f"  {CYAN}create{RESET} [name]    Create a new Cacao project")
     print(f"  {CYAN}version{RESET}          Show version information")
     print(f"  {CYAN}help{RESET}             Show this help message")
@@ -598,6 +751,10 @@ def help_command(args: list[str]) -> None:
     print(f"  cacao run app.py --no-reload  Run without hot reload")
     print(f"  cacao create my-dashboard     Create a new project")
     print()
+    print(f"  {BOLD}Static builds:{RESET}")
+    print(f"  cacao build app.py                     Build static site to dist/")
+    print(f"  cacao build app.py --base-path /repo   Set base path for GitHub Pages")
+    print()
     print(f"{DIM}Ports are historic chocolate years (1502-1936). If in use, auto-increments to next year.{RESET}")
     print()
 
@@ -605,6 +762,7 @@ def help_command(args: list[str]) -> None:
 # Command registry
 COMMANDS: dict[str, Callable[[list[str]], None]] = {
     "run": run_command,
+    "build": build_command,
     "create": create_command,
     "version": version_command,
     "help": help_command,

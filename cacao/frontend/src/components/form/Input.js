@@ -1,18 +1,18 @@
 /**
- * Select dropdown with event handling
+ * Input - Text input field component with event handling
  */
 
 const { createElement: h, useState, useEffect } = React;
 import { cacaoWs } from '../core/websocket.js';
 
-export function Select({ props }) {
+export function Input({ props }) {
   const {
     label,
-    options = [],
-    placeholder = 'Select...',
+    placeholder = '',
+    type = 'text',
+    disabled = false,
     signal,
     on_change,
-    disabled = false,
   } = props;
 
   const [value, setValue] = useState('');
@@ -28,6 +28,7 @@ export function Select({ props }) {
           setValue(signals[signalName]);
         }
       });
+      // Get initial value
       const initial = cacaoWs.getSignal(signalName);
       if (initial !== undefined) {
         setValue(initial);
@@ -40,26 +41,23 @@ export function Select({ props }) {
     const newValue = e.target.value;
     setValue(newValue);
 
+    // Emit change event
     const eventName = on_change?.__event__ || on_change;
     if (eventName) {
       cacaoWs.sendEvent(eventName, { value: newValue });
     }
   };
 
-  return h('div', { className: 'select-container' }, [
-    label && h('label', { className: 'select-label', key: 'label' }, label),
-    h('select', {
-      className: 'select',
+  return h('div', { className: 'c-input-wrapper' }, [
+    label && h('label', { className: 'c-input-label', key: 'label' }, label),
+    h('input', {
+      type,
+      className: 'c-input',
+      placeholder,
+      disabled,
       value,
       onChange: handleChange,
-      disabled,
-      key: 'select'
-    }, [
-      h('option', { value: '', disabled: true, key: 'placeholder' }, placeholder),
-      ...options.map((o, i) => h('option', {
-        key: i,
-        value: o.value || o.label || o
-      }, o.label || o))
-    ])
+      key: 'input'
+    })
   ]);
 }

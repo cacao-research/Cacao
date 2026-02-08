@@ -32,6 +32,13 @@ from .server.ui import (
     sidebar as _sidebar,
     tabs as _tabs,
     tab as _tab,
+    # Admin layout components
+    app_shell as _app_shell,
+    nav_sidebar as _nav_sidebar,
+    nav_group as _nav_group,
+    nav_item as _nav_item,
+    shell_content as _shell_content,
+    nav_panel as _nav_panel,
     # Typography (leaf components)
     title as _title,
     text as _text,
@@ -48,6 +55,7 @@ from .server.ui import (
     # Form components
     button as _button,
     input_field as _input_field,
+    textarea as _textarea,
     select as _select,
     checkbox as _checkbox,
     switch as _switch,
@@ -390,6 +398,101 @@ def tab(key: str, label: str, icon: str | None = None, **props: Any):
 
 
 # =============================================================================
+# Admin Layout Components
+# =============================================================================
+
+@contextmanager
+def app_shell(
+    brand: str | None = None,
+    logo: str | None = None,
+    default: str | None = None,
+    **props: Any,
+):
+    """
+    Admin-style application shell with sidebar navigation.
+
+    Example:
+        with c.app_shell(brand="My App", default="dashboard"):
+            with c.nav_sidebar():
+                with c.nav_group("Tools"):
+                    c.nav_item("Dashboard", key="dashboard")
+            with c.shell_content():
+                with c.nav_panel("dashboard"):
+                    c.title("Dashboard")
+    """
+    _ensure_context()
+    with _app_shell(brand=brand, logo=logo, default=default, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def nav_sidebar(**props: Any):
+    """Navigation sidebar for app_shell."""
+    _ensure_context()
+    with _nav_sidebar(**props) as comp:
+        yield comp
+
+
+@contextmanager
+def nav_group(
+    label: str,
+    icon: str | None = None,
+    default_open: bool = True,
+    **props: Any,
+):
+    """
+    Collapsible navigation group.
+
+    Example:
+        with c.nav_group("Encoders", icon="code"):
+            c.nav_item("Base64", key="base64")
+    """
+    _ensure_context()
+    with _nav_group(label=label, icon=icon, default_open=default_open, **props) as comp:
+        yield comp
+
+
+def nav_item(
+    label: str,
+    key: str,
+    icon: str | None = None,
+    badge: str | None = None,
+    **props: Any,
+):
+    """
+    Navigation item.
+
+    Example:
+        c.nav_item("Base64 Encoder", key="base64", icon="code")
+    """
+    _ensure_context()
+    return _nav_item(label=label, key=key, icon=icon, badge=badge, **props)
+
+
+@contextmanager
+def shell_content(**props: Any):
+    """Main content area of app_shell."""
+    _ensure_context()
+    with _shell_content(**props) as comp:
+        yield comp
+
+
+@contextmanager
+def nav_panel(key: str, **props: Any):
+    """
+    Content panel that shows when the nav_item with matching key is active.
+
+    Example:
+        with c.shell_content():
+            with c.nav_panel("dashboard"):
+                c.title("Dashboard")
+    """
+    _ensure_context()
+    with _nav_panel(key=key, **props) as comp:
+        yield comp
+
+
+# =============================================================================
 # Typography Components
 # =============================================================================
 
@@ -589,6 +692,27 @@ def input(
 # Aliases
 input_field = input
 field = input
+
+
+def textarea(
+    label: str | None = None,
+    signal: Signal[str] | None = None,
+    placeholder: str = "",
+    rows: int = 4,
+    disabled: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Multi-line text input.
+
+    Example:
+        c.textarea("Description", placeholder="Enter details...", rows=6)
+    """
+    _ensure_context()
+    return _textarea(
+        label=label, signal=signal, placeholder=placeholder,
+        rows=rows, disabled=disabled, **props
+    )
 
 
 def select(
@@ -853,6 +977,50 @@ def reset() -> None:
     }
 
 
+def export_static() -> dict:
+    """
+    Export the app configuration for static builds.
+
+    Returns a dictionary containing:
+    - pages: Component tree for all pages
+    - metadata: App metadata (title, theme)
+    - signals: Default signal values
+
+    Example:
+        import cacao as c
+        import json
+
+        c.config(title="My App")
+        c.title("Hello")
+
+        data = c.export_static()
+        print(json.dumps(data, indent=2))
+    """
+    app = _get_app()
+
+    # Get pages
+    pages = app.get_all_pages() if hasattr(app, "get_all_pages") else {"/": []}
+
+    # Get metadata
+    metadata = {
+        "title": getattr(app, "title", _global_config["title"]),
+        "theme": getattr(app, "theme", _global_config["theme"]),
+    }
+
+    # Get signal defaults
+    from .server.signal import Signal
+    signals = {}
+    for name, signal in Signal.get_all_signals().items():
+        if hasattr(signal, "_default"):
+            signals[name] = signal._default
+
+    return {
+        "pages": pages,
+        "metadata": metadata,
+        "signals": signals,
+    }
+
+
 # =============================================================================
 # Exports
 # =============================================================================
@@ -878,6 +1046,13 @@ __all__ = [
     "sidebar",
     "tabs",
     "tab",
+    # Admin Layout
+    "app_shell",
+    "nav_sidebar",
+    "nav_group",
+    "nav_item",
+    "shell_content",
+    "nav_panel",
     # Typography
     "title",
     "text",
@@ -897,6 +1072,7 @@ __all__ = [
     "input",
     "input_field",
     "field",
+    "textarea",
     "select",
     "checkbox",
     "switch",
@@ -922,4 +1098,5 @@ __all__ = [
     "get_app",
     "is_simple_mode",
     "reset",
+    "export_static",
 ]

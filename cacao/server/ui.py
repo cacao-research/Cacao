@@ -258,6 +258,134 @@ def tab(key: str, label: str, icon: str | None = None, **props: Any):
 
 
 # =============================================================================
+# Admin Layout Components
+# =============================================================================
+
+@contextmanager
+def app_shell(
+    brand: str | None = None,
+    logo: str | None = None,
+    default: str | None = None,
+    **props: Any,
+):
+    """
+    Admin-style application shell with sidebar navigation.
+
+    Example:
+        with app_shell(brand="My App", default="dashboard"):
+            with nav_sidebar():
+                with nav_group("Tools", icon="wrench"):
+                    nav_item("Dashboard", key="dashboard", icon="home")
+                    nav_item("Settings", key="settings", icon="cog")
+            with shell_content():
+                with nav_panel("dashboard"):
+                    title("Dashboard")
+    """
+    component = Component(
+        type="AppShell",
+        props={"brand": brand, "logo": logo, "default": default, **props}
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def nav_sidebar(**props: Any):
+    """
+    Navigation sidebar for app_shell.
+
+    Contains nav_group and nav_item components.
+    """
+    component = Component(
+        type="NavSidebar",
+        props=props
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def nav_group(
+    label: str,
+    icon: str | None = None,
+    default_open: bool = True,
+    **props: Any,
+):
+    """
+    Collapsible navigation group.
+
+    Contains nav_item components.
+
+    Example:
+        with nav_group("Encoders", icon="code"):
+            nav_item("Base64", key="base64")
+            nav_item("URL", key="url")
+    """
+    component = Component(
+        type="NavGroup",
+        props={"label": label, "icon": icon, "defaultOpen": default_open, **props}
+    )
+    with _container_context(component):
+        yield component
+
+
+def nav_item(
+    label: str,
+    key: str,
+    icon: str | None = None,
+    badge: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Navigation item (link/button).
+
+    Example:
+        nav_item("Base64 Encoder", key="base64", icon="code")
+    """
+    return _add_to_current_container(Component(
+        type="NavItem",
+        props={"label": label, "itemKey": key, "icon": icon, "badge": badge, **props}
+    ))
+
+
+@contextmanager
+def shell_content(**props: Any):
+    """
+    Main content area of app_shell.
+
+    This is where the active tool/page content is rendered.
+    """
+    component = Component(
+        type="ShellContent",
+        props=props
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def nav_panel(key: str, **props: Any):
+    """
+    Content panel that shows when the nav_item with matching key is active.
+
+    Use inside shell_content to define content for each navigation item.
+
+    Example:
+        with shell_content():
+            with nav_panel("dashboard"):
+                title("Dashboard")
+            with nav_panel("settings"):
+                title("Settings")
+    """
+    component = Component(
+        type="NavPanel",
+        props={"panelKey": key, **props}
+    )
+    with _container_context(component):
+        yield component
+
+
+# =============================================================================
 # Typography Components
 # =============================================================================
 
@@ -512,6 +640,34 @@ def input_field(
             "signal": signal,
             "placeholder": placeholder,
             "type": type,
+            "disabled": disabled,
+            **props
+        }
+    ))
+
+
+def textarea(
+    label: str | None = None,
+    signal: Signal[str] | None = None,
+    placeholder: str = "",
+    rows: int = 4,
+    disabled: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Multi-line text input.
+
+    Example:
+        content = app.signal("", name="content")
+        textarea("Description", signal=content, rows=6)
+    """
+    return _add_to_current_container(Component(
+        type="Textarea",
+        props={
+            "label": label,
+            "signal": signal,
+            "placeholder": placeholder,
+            "rows": rows,
             "disabled": disabled,
             **props
         }
@@ -776,6 +932,13 @@ __all__ = [
     "sidebar",
     "tabs",
     "tab",
+    # Admin Layout
+    "app_shell",
+    "nav_sidebar",
+    "nav_group",
+    "nav_item",
+    "shell_content",
+    "nav_panel",
     # Typography
     "title",
     "text",

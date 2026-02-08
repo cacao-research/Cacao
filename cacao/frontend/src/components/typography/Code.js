@@ -1,12 +1,12 @@
 /**
- * Text component with signal support
+ * Code - Syntax highlighted code block component with signal support
  */
 
 const { createElement: h, useState, useEffect } = React;
 import { cacaoWs } from '../core/websocket.js';
 
-export function Text({ props }) {
-  const { content, color, size, weight } = props;
+export function Code({ props }) {
+  const { content, language = 'text' } = props;
 
   // Check if content is a signal reference
   const signalName = content?.__signal__;
@@ -31,14 +31,7 @@ export function Text({ props }) {
     }
   }, [signalName]);
 
-  const classNames = [
-    'text',
-    color === 'muted' && 'text-muted',
-    size === 'sm' && 'text-sm',
-    size === 'lg' && 'text-lg',
-  ].filter(Boolean).join(' ');
-
-  const style = weight ? { fontWeight: weight } : undefined;
-
-  return h('p', { className: classNames, style }, displayContent);
+  return h('pre', { className: `c-code language-${language}` },
+    h('code', null, displayContent)
+  );
 }

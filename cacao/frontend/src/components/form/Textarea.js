@@ -1,26 +1,24 @@
 /**
- * Select dropdown with event handling
+ * Textarea - Multi-line text input with event handling
  */
 
 const { createElement: h, useState, useEffect } = React;
 import { cacaoWs } from '../core/websocket.js';
 
-export function Select({ props }) {
+export function Textarea({ props }) {
   const {
     label,
-    options = [],
-    placeholder = 'Select...',
+    placeholder = '',
+    rows = 4,
+    disabled = false,
     signal,
     on_change,
-    disabled = false,
   } = props;
 
   const [value, setValue] = useState('');
 
-  // Get signal name if provided
   const signalName = signal?.__signal__;
 
-  // Subscribe to signal updates
   useEffect(() => {
     if (signalName) {
       const unsubscribe = cacaoWs.subscribe((signals) => {
@@ -46,20 +44,16 @@ export function Select({ props }) {
     }
   };
 
-  return h('div', { className: 'select-container' }, [
-    label && h('label', { className: 'select-label', key: 'label' }, label),
-    h('select', {
-      className: 'select',
+  return h('div', { className: 'c-textarea-wrapper' }, [
+    label && h('label', { className: 'c-textarea-label', key: 'label' }, label),
+    h('textarea', {
+      className: 'c-textarea',
+      placeholder,
+      rows,
+      disabled,
       value,
       onChange: handleChange,
-      disabled,
-      key: 'select'
-    }, [
-      h('option', { value: '', disabled: true, key: 'placeholder' }, placeholder),
-      ...options.map((o, i) => h('option', {
-        key: i,
-        value: o.value || o.label || o
-      }, o.label || o))
-    ])
+      key: 'textarea'
+    })
   ]);
 }

@@ -143,12 +143,16 @@ def create_server(app: "App") -> Starlette:
         return HTMLResponse(html)
 
     # Set up routes
+    # Note: Catch-all route "{path:path}" handles SPA routing - any path
+    # not matched by earlier routes serves the index HTML, allowing
+    # direct navigation to routes like /base64, /uuid, etc.
     routes = [
-        Route("/", index_handler),
         Route("/health", health_handler),
         Route("/api/pages", pages_handler),
         WebSocketRoute("/ws", websocket_handler),
         Mount("/static", StaticFiles(directory=str(FRONTEND_DIST_DIR)), name="static"),
+        Route("/", index_handler),
+        Route("/{path:path}", index_handler),  # Catch-all for SPA routing
     ]
 
     # Create Starlette app
