@@ -13,7 +13,12 @@ function getRouteFromPath() {
     const hash = window.location.hash.replace(/^#\/?/, '');
     if (hash) return hash;
   }
-  // Fall back to pathname
+  // In static mode or file:// protocol, don't use pathname as route
+  // (pathname would be the full file path like /C:/Users/.../index.html)
+  if (isStaticMode() || window.location.protocol === 'file:') {
+    return null;
+  }
+  // Fall back to pathname (only for server mode)
   const path = window.location.pathname;
   // Remove leading slash, return null if empty (will use default)
   const route = path.replace(/^\/+/, '');

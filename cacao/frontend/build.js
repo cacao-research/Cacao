@@ -19,8 +19,9 @@ execSync('npx lessc src/styles/index.less dist/cacao.css', {
 });
 
 // Build JS
+// Note: Don't use --global-name because window.Cacao is set manually in the code
 console.log('[Cacao] Bundling JS');
-execSync('npx esbuild src/components/index.js --bundle --outfile=dist/cacao.js --format=iife --global-name=Cacao --external:React --external:ReactDOM --external:Chart', {
+execSync('npx esbuild src/components/index.js --bundle --outfile=dist/cacao.js --format=iife --external:React --external:ReactDOM --external:Chart', {
   cwd: __dirname,
   stdio: 'inherit'
 });
