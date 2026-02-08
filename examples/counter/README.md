@@ -14,7 +14,7 @@ cd cacao/examples/counter
 python server.py
 ```
 
-The server will start at `http://localhost:8000` with WebSocket at `ws://localhost:8000/ws`.
+The server will start at `http://localhost:1502` with WebSocket at `ws://localhost:1502/ws`.
 
 ### 2. Start the React Client
 

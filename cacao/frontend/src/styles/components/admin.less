@@ -1,0 +1,192 @@
+// Admin Layout Components
+// AppShell, NavSidebar, NavGroup, NavItem
+
+// AppShell - Main admin layout container
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-primary);
+}
+
+.app-shell-nav {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-shell-brand {
+  display: flex;
+  align-items: center;
+  gap: @space-3;
+  padding: @space-4 @space-4;
+  border-bottom: 1px solid var(--border-color);
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.app-shell-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.app-shell-brand-text {
+  font-size: @font-size-lg;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+// NavSidebar
+.nav-sidebar {
+  flex: 1;
+  overflow-y: auto;
+  padding: @space-2 0;
+}
+
+// NavGroup - Collapsible group
+.nav-group {
+  margin-bottom: @space-1;
+}
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: @space-2 @space-4;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: @font-size-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  text-align: left;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.nav-group-label {
+  flex: 1;
+}
+
+.nav-group-chevron {
+  font-size: 8px;
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+
+.nav-group.open .nav-group-chevron {
+  transform: rotate(0deg);
+}
+
+.nav-group-items {
+  padding: @space-1 0;
+}
+
+// NavItem - Individual navigation item
+.nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: @space-2 @space-4;
+  padding-left: @space-6;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: @font-size-sm;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  gap: @space-2;
+  position: relative;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+  }
+
+  &.active {
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: var(--primary);
+      border-radius: 0 2px 2px 0;
+    }
+  }
+}
+
+.nav-icon {
+  width: 18px;
+  text-align: center;
+  font-size: @font-size-sm;
+  opacity: 0.7;
+}
+
+.nav-item-label {
+  flex: 1;
+}
+
+.nav-item-badge {
+  padding: 2px 6px;
+  font-size: @font-size-xs;
+  background: var(--primary);
+  color: white;
+  border-radius: @radius-sm;
+}
+
+// ShellContent - Main content area
+.shell-content {
+  padding: @space-6;
+  width: 100%;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .app-shell-nav {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: left 0.3s ease;
+  }
+
+  .app-shell-nav.open {
+    left: 0;
+  }
+
+  .app-shell-content {
+    width: 100%;
+  }
+
+  .shell-content {
+    padding: @space-4;
+  }
+}

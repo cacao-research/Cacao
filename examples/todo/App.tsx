@@ -199,7 +199,7 @@ function TodoApp() {
 export default function App() {
   return (
     <CacaoProvider
-      url="ws://localhost:1634/ws"
+      url="ws://localhost:1502/ws"
       onConnect={() => console.log('Connected to Cacao server')}
       onDisconnect={() => console.log('Disconnected from Cacao server')}
       onError={(err) => console.error('Cacao error:', err)}

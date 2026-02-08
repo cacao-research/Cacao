@@ -48,4 +48,4 @@ async def reset(session, event):
 
 
 if __name__ == "__main__":
-    app.run(port=1634)
+    app.run()  # Uses default chocolate year port (1502)

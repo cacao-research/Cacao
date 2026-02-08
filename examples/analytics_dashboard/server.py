@@ -597,8 +597,6 @@ if __name__ == "__main__":
     print("  - Multi-page support with proper routing")
     print()
     print("=" * 70)
-    print(f"  Server starting on http://localhost:1634")
-    print("=" * 70)
     print()
 
-    app.run(port=1634)
+    app.run()  # Uses default chocolate year port (1502)

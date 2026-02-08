@@ -209,7 +209,6 @@ if __name__ == "__main__":
     print("\nThis demonstrates the Streamlit-killer fluent UI API!")
     print("\nCompare this code to Streamlit and see how much cleaner it is,")
     print("while being 10x faster with true WebSocket reactivity.\n")
-    print("Server starting on http://localhost:1634")
     print("=" * 60 + "\n")
 
-    app.run(port=1634)
+    app.run()  # Uses default chocolate year port (1502)

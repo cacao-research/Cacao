@@ -18,7 +18,7 @@
  *
  * function App() {
  *   return (
- *     <CacaoProvider url="ws://localhost:8000/ws">
+ *     <CacaoProvider url="ws://localhost:1502/ws">
  *       <Counter />
  *     </CacaoProvider>
  *   )
