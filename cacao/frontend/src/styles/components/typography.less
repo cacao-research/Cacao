@@ -28,18 +28,19 @@
 
 // Code block
 .c-code {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-family: @font-mono;
   font-size: @font-size-sm;
   line-height: 1.6;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: @radius-md;
-  padding: 1rem;
+  padding: @space-4;
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text-primary);
   margin: 0;
+  position: relative;
 
   code {
     font-family: inherit;
@@ -48,6 +49,32 @@
   }
 }
 
-@media (max-width: 768px) {
+.c-code-copy {
+  position: absolute;
+  top: @space-2;
+  right: @space-2;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: @radius-sm;
+  color: var(--text-muted);
+  padding: @space-1 @space-2;
+  font-size: @font-size-xs;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity @transition-fast;
+
+  .c-code:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+  }
+}
+
+@media (max-width: @breakpoint-md) {
   .title-1 { font-size: @font-size-3xl; }
+  .title-2 { font-size: 1.25rem; }
+  .title-3 { font-size: @font-size-lg; }
 }

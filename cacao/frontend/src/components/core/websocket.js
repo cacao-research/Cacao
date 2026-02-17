@@ -91,6 +91,16 @@ class CacaoWebSocket {
         }
         break;
 
+      case 'toast':
+        // Toast notification from server: { type: 'toast', message: '...', variant: '...', duration: N }
+        if (window.CacaoToast) {
+          window.CacaoToast.show(message.message, {
+            type: message.variant || 'info',
+            duration: message.duration || 4000,
+          });
+        }
+        break;
+
       default:
         console.log('[Cacao] Unknown message type:', type, message);
     }

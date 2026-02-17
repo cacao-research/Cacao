@@ -62,6 +62,8 @@ from .server.ui import (
     slider as _slider,
     date_picker as _date_picker,
     file_upload as _file_upload,
+    # Toast
+    toast as _toast,
     # Internal
     _current_container,
     _component_stack,
@@ -406,13 +408,23 @@ def app_shell(
     brand: str | None = None,
     logo: str | None = None,
     default: str | None = None,
+    theme_dark: str | None = None,
+    theme_light: str | None = None,
     **props: Any,
 ):
     """
     Admin-style application shell with sidebar navigation.
 
+    Args:
+        brand: Brand name shown in sidebar header.
+        logo: URL to logo image.
+        default: Default active nav item key.
+        theme_dark: Dark theme name for the toggle (e.g. "tukuy").
+        theme_light: Light theme name for the toggle (e.g. "tukuy-light").
+
     Example:
-        with c.app_shell(brand="My App", default="dashboard"):
+        with c.app_shell(brand="My App", default="dashboard",
+                         theme_dark="dark", theme_light="light"):
             with c.nav_sidebar():
                 with c.nav_group("Tools"):
                     c.nav_item("Dashboard", key="dashboard")
@@ -421,7 +433,11 @@ def app_shell(
                     c.title("Dashboard")
     """
     _ensure_context()
-    with _app_shell(brand=brand, logo=logo, default=default, **props) as comp:
+    with _app_shell(
+        brand=brand, logo=logo, default=default,
+        theme_dark=theme_dark, theme_light=theme_light,
+        **props,
+    ) as comp:
         yield comp
 
 
@@ -835,6 +851,28 @@ file_upload = upload
 
 
 # =============================================================================
+# Toast Notifications
+# =============================================================================
+
+def toast(
+    message: str,
+    variant: Literal["info", "success", "warning", "error"] = "info",
+    duration: int = 4000,
+) -> dict[str, Any]:
+    """
+    Create a toast notification payload.
+
+    Use with session.send_toast() in event handlers to show transient messages.
+
+    Example:
+        @c.on("save")
+        async def handle_save(session, event):
+            await session.send_toast("Saved!", variant="success")
+    """
+    return _toast(message=message, variant=variant, duration=duration)
+
+
+# =============================================================================
 # Charts (re-export from chart module)
 # =============================================================================
 
@@ -1081,6 +1119,8 @@ __all__ = [
     "date_picker",
     "upload",
     "file_upload",
+    # Toast
+    "toast",
     # Charts
     "line",
     "bar",

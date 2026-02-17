@@ -5,6 +5,8 @@
 const { createElement: h, useState, useEffect, useCallback } = React;
 import { renderComponent } from './renderer.js';
 import { isStaticMode } from './core/static-runtime.js';
+import { CommandPalette } from './core/CommandPalette.js';
+import { ToastContainer } from './core/Toast.js';
 
 // Extract route from URL (supports both pathname and hash-based routing)
 function getRouteFromPath() {
@@ -101,11 +103,20 @@ export function App({ renderers }) {
 
   const render = (comp, key) => renderComponent(comp, key, setActiveTabWithRoute, activeTab, renderers);
 
+  // Global overlays
+  const overlays = [
+    h(CommandPalette, { key: 'cmd-palette', setActiveTab: setActiveTabWithRoute, pages: pageData }),
+    h(ToastContainer, { key: 'toast' }),
+  ];
+
   // Check if there's an AppShell component (admin layout)
   const appShellIdx = components.findIndex(c => c.type === 'AppShell');
   if (appShellIdx >= 0) {
     // Render the AppShell which handles its own layout
-    return render(components[appShellIdx], 'app-shell');
+    return h(React.Fragment, null, [
+      render(components[appShellIdx], 'app-shell'),
+      ...overlays,
+    ]);
   }
 
   // Standard layout with optional right sidebar
@@ -113,8 +124,11 @@ export function App({ renderers }) {
   const sidebar = sidebarIdx >= 0 ? components[sidebarIdx] : null;
   const mainComponents = sidebarIdx >= 0 ? [...components.slice(0, sidebarIdx), ...components.slice(sidebarIdx + 1)] : components;
 
-  return h('div', { className: 'app-container' }, [
-    h('div', { className: 'main-content', key: 'main' }, mainComponents.map((c, i) => render(c, i))),
-    sidebar && h('div', { className: 'sidebar', key: 'sidebar' }, (sidebar.children || []).map((c, i) => render(c, i)))
+  return h(React.Fragment, null, [
+    h('div', { className: 'app-container', key: 'app' }, [
+      h('div', { className: 'main-content', key: 'main' }, mainComponents.map((c, i) => render(c, i))),
+      sidebar && h('div', { className: 'sidebar', key: 'sidebar' }, (sidebar.children || []).map((c, i) => render(c, i)))
+    ]),
+    ...overlays,
   ]);
 }

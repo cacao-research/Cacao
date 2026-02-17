@@ -21,9 +21,12 @@ from starlette.middleware.cors import CORSMiddleware
 
 from .signal import Signal
 from .session import Session
+from .log import get_logger, get_uvicorn_log_config
 
 if TYPE_CHECKING:
     from .ui import App
+
+logger = get_logger("cacao.server")
 
 # Path to frontend build output
 FRONTEND_DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
@@ -47,8 +50,7 @@ def create_server(app: "App") -> Starlette:
         # Create session for this connection
         session = app.sessions.create(websocket)
 
-        if app.debug:
-            print(f"[Cacao] Session {session.id} connected")
+        logger.debug("Session %s connected", session.id, extra={"label": "ws"})
 
         try:
             # Send initial state
@@ -77,8 +79,7 @@ def create_server(app: "App") -> Starlette:
                 try:
                     message = json.loads(data)
                 except json.JSONDecodeError:
-                    if app.debug:
-                        print(f"[Cacao] Invalid JSON: {data}")
+                    logger.warning("Invalid JSON: %s", data, extra={"label": "ws"})
                     continue
 
                 msg_type = message.get("type")
@@ -87,16 +88,14 @@ def create_server(app: "App") -> Starlette:
                     event_name = message.get("name", "")
                     event_data = message.get("data", {})
 
-                    if app.debug:
-                        print(f"[Cacao] Event: {event_name} {event_data}")
+                    logger.debug("Event: %s %s", event_name, event_data, extra={"label": "event"})
 
                     await app.handle_event(session, event_name, event_data)
 
         except WebSocketDisconnect:
             pass
         except Exception as e:
-            if app.debug:
-                print(f"[Cacao] WebSocket error: {e}")
+            logger.warning("WebSocket error: %s", e, extra={"label": "ws"})
         finally:
             # Clean up
             for unsub in unsubscribers:
@@ -104,8 +103,7 @@ def create_server(app: "App") -> Starlette:
 
             app.sessions.remove(session.id)
 
-            if app.debug:
-                print(f"[Cacao] Session {session.id} disconnected")
+            logger.debug("Session %s disconnected", session.id, extra={"label": "ws"})
 
     async def health_handler(request: Any) -> JSONResponse:
         """Health check endpoint."""
@@ -204,14 +202,17 @@ def run_server(
 
     starlette_app = create_server(app)
 
-    print(f"[Cacao] Starting server at http://{host}:{port}")
-    print(f"[Cacao] WebSocket endpoint: ws://{host}:{port}/ws")
+    log_config = get_uvicorn_log_config(debug=app.debug)
+    logger.info(
+        "Listening on http://%s:%d", host, port, extra={"label": "ready"},
+    )
 
     uvicorn.run(
         starlette_app,
         host=host,
         port=port,
         reload=reload,
+        log_config=log_config,
     )
 
 

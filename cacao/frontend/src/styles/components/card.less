@@ -4,20 +4,23 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: @radius-lg;
-  padding: 1.25rem;
-  transition: border-color 0.2s ease;
+  padding: @space-4;
+  box-shadow: @shadow-xs;
+  transition: border-color @transition-base, box-shadow @transition-base, background @transition-base;
 
   &:hover {
     border-color: var(--accent-primary);
+    box-shadow: @shadow-md;
+    background: var(--bg-card-hover);
   }
 }
 
 .card-title {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: @font-weight-semibold;
   color: var(--text-secondary);
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: @space-4;
+  padding-bottom: @space-3;
   border-bottom: 1px solid var(--border-subtle);
   text-transform: uppercase;
   letter-spacing: 0.04em;

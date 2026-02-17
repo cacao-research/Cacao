@@ -17,13 +17,13 @@
 
 .c-input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: @space-2 @space-3;
   border-radius: @radius-md;
   border: 1px solid var(--border-color);
   background: var(--bg-tertiary);
   color: var(--text-primary);
   font-size: @font-size-base;
-  transition: border-color 0.15s ease;
+  transition: border-color @transition-fast;
 
   &::placeholder {
     color: var(--text-muted);
@@ -36,12 +36,19 @@
   &:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  &.error {
+    border-color: var(--danger);
+    &:focus {
+      box-shadow: 0 0 0 3px var(--danger-bg);
+    }
   }
 }
 
@@ -62,7 +69,7 @@
 
 .c-textarea {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: @space-2 @space-3;
   border-radius: @radius-md;
   border: 1px solid var(--border-color);
   background: var(--bg-tertiary);
@@ -72,7 +79,7 @@
   line-height: 1.5;
   resize: vertical;
   min-height: 80px;
-  transition: border-color 0.15s ease;
+  transition: border-color @transition-fast;
 
   &::placeholder {
     color: var(--text-muted);
@@ -85,12 +92,19 @@
   &:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  &.error {
+    border-color: var(--danger);
+    &:focus {
+      box-shadow: 0 0 0 3px var(--danger-bg);
+    }
   }
 }
 
@@ -109,16 +123,23 @@
 
 .select {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: @space-2 @space-3;
   border-radius: @radius-md;
   border: 1px solid var(--border-color);
   background: var(--bg-tertiary);
   color: var(--text-primary);
   font-size: @font-size-base;
   cursor: pointer;
+  transition: border-color @transition-fast;
 
   &:hover { border-color: var(--accent-primary); }
   &:focus { outline: none; border-color: var(--accent-primary); }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
 }
 
 .checkbox-container {
@@ -139,6 +160,11 @@
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 2px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
 }
 
 .checkbox-label { font-size: @font-size-base; color: var(--text-primary); }
@@ -184,7 +210,7 @@
   border-radius: 12px;
   background: var(--bg-tertiary);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background @transition-base;
 
   &:hover {
     background: var(--border-color);
@@ -198,6 +224,11 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
 }
 
 .c-switch-thumb {
@@ -208,7 +239,7 @@
   height: 20px;
   border-radius: 50%;
   background: white;
-  transition: transform 0.2s ease;
+  transition: transform @transition-base;
 
   .c-switch.active & {
     transform: translateX(20px);
@@ -232,7 +263,7 @@
 
 .c-datepicker {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: @space-2 @space-3;
   border-radius: @radius-md;
   border: 1px solid var(--border-color);
   background: var(--bg-tertiary);
@@ -265,14 +296,35 @@
   color: var(--text-primary);
   font-size: @font-size-base;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all @transition-fast;
 
   &:hover {
     border-color: var(--accent-primary);
     background: var(--bg-secondary);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
 }
 
 .c-upload-icon {
   font-size: 1rem;
+}
+
+// Mobile touch targets
+@media (max-width: @breakpoint-md) {
+  .c-input, .c-textarea, .select, .c-datepicker {
+    padding: @space-3 @space-3;
+    min-height: 44px;
+  }
+  .checkbox {
+    width: 22px;
+    height: 22px;
+  }
+  .c-switch {
+    width: 48px;
+    height: 28px;
+  }
 }

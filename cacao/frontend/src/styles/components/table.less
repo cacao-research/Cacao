@@ -9,20 +9,62 @@ table {
 }
 
 th, td {
-  padding: 0.75rem 1rem;
+  padding: @space-3 @space-4;
   text-align: left;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 th {
-  font-weight: 600;
+  font-weight: @font-weight-semibold;
   color: var(--text-muted);
   text-transform: uppercase;
   font-size: @font-size-xs;
   letter-spacing: 0.04em;
   background: var(--bg-tertiary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+tbody tr {
+  transition: background @transition-fast;
 }
 
 tbody tr:hover {
   background: var(--bg-card-hover);
+}
+
+// Mobile: card view
+@media (max-width: @breakpoint-md) {
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+  thead {
+    display: none;
+  }
+  tbody tr {
+    margin-bottom: @space-3;
+    border: 1px solid var(--border-color);
+    border-radius: @radius-md;
+    padding: @space-2;
+    background: var(--bg-card);
+  }
+  td {
+    padding: @space-2 @space-3;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: right;
+
+    &::before {
+      content: attr(data-label);
+      float: left;
+      font-weight: @font-weight-semibold;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: @font-size-xs;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
 }

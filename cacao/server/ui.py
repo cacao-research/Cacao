@@ -266,13 +266,23 @@ def app_shell(
     brand: str | None = None,
     logo: str | None = None,
     default: str | None = None,
+    theme_dark: str | None = None,
+    theme_light: str | None = None,
     **props: Any,
 ):
     """
     Admin-style application shell with sidebar navigation.
 
+    Args:
+        brand: Brand name shown in sidebar header.
+        logo: URL to logo image.
+        default: Default active nav item key.
+        theme_dark: Dark theme name for the toggle (e.g. "tukuy").
+        theme_light: Light theme name for the toggle (e.g. "tukuy-light").
+
     Example:
-        with app_shell(brand="My App", default="dashboard"):
+        with app_shell(brand="My App", default="dashboard",
+                       theme_dark="dark", theme_light="light"):
             with nav_sidebar():
                 with nav_group("Tools", icon="wrench"):
                     nav_item("Dashboard", key="dashboard", icon="home")
@@ -283,7 +293,11 @@ def app_shell(
     """
     component = Component(
         type="AppShell",
-        props={"brand": brand, "logo": logo, "default": default, **props}
+        props={
+            "brand": brand, "logo": logo, "default": default,
+            "themeDark": theme_dark, "themeLight": theme_light,
+            **props,
+        }
     )
     with _container_context(component):
         yield component
@@ -838,6 +852,34 @@ def file_upload(
 
 
 # =============================================================================
+# Toast Notifications
+# =============================================================================
+
+def toast(
+    message: str,
+    variant: Literal["info", "success", "warning", "error"] = "info",
+    duration: int = 4000,
+) -> dict[str, Any]:
+    """
+    Create a toast notification payload.
+
+    This returns the toast data dict. To send it, use session.send_toast()
+    or session_manager.broadcast_toast() from an event handler.
+
+    Example:
+        @app.on("save")
+        async def handle_save(session):
+            # ... do save ...
+            await session.send_toast("Saved successfully!", variant="success")
+    """
+    return {
+        "message": message,
+        "variant": variant,
+        "duration": duration,
+    }
+
+
+# =============================================================================
 # Application Class
 # =============================================================================
 
@@ -961,4 +1003,6 @@ __all__ = [
     "slider",
     "date_picker",
     "file_upload",
+    # Toast
+    "toast",
 ]
