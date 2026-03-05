@@ -18,6 +18,7 @@ import * as typography from './typography/index.js';
 import * as form from './form/index.js';
 import * as charts from './charts/index.js';
 
+import { cacaoWs } from './core/websocket.js';
 import { App } from './App.js';
 
 // Build renderers map
@@ -40,6 +41,8 @@ window.Cacao = {
   signals: staticSignals,
   dispatcher: staticDispatcher,
   renderers,
+  // WebSocket / chat streaming
+  ws: cacaoWs,
   // Feature APIs
   toast: showToast,
   setTheme,

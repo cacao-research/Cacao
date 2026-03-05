@@ -155,6 +155,12 @@ class CacaoWebSocket {
     return () => this.chatListeners.delete(listener);
   }
 
+  dispatchChat(msg) {
+    // Dispatch a chat_delta or chat_done message to chat listeners.
+    // Used by static mode JS handlers to drive chat streaming.
+    this.chatListeners.forEach(listener => listener(msg));
+  }
+
   notifyListeners() {
     this.listeners.forEach(listener => listener(this.signals));
   }

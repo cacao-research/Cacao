@@ -1586,6 +1586,69 @@ class App(BaseApp):
         """Get all pages as JSON-serializable data."""
         return {path: [c.to_dict() for c in components] for path, components in self._pages.items()}
 
+    def get_used_categories(self) -> set[str]:
+        """Analyze all pages and return the set of component categories used."""
+        types: set[str] = set()
+        for components in self._pages.values():
+            for comp in components:
+                _collect_types(comp, types)
+        return _types_to_categories(types)
+
+
+def _collect_types(component: Component, types: set[str]) -> None:
+    """Recursively collect all component types from a tree."""
+    types.add(component.type)
+    for child in component.children:
+        _collect_types(child, types)
+
+
+# Component type → category mapping
+_CATEGORY_MAP: dict[str, str] = {}
+
+_LAYOUT_TYPES = {
+    "Row", "Col", "Grid", "Sidebar", "AppShell", "NavSidebar",
+    "NavGroup", "NavItem", "ShellContent", "NavPanel",
+    "Container", "Stack", "Split", "Hero",
+}
+_TYPOGRAPHY_TYPES = {
+    "Title", "Text", "Html", "RawHtml", "Markdown", "Code", "Spacer", "Divider",
+}
+_DISPLAY_TYPES = {
+    "Card", "Metric", "Table", "Alert", "Progress", "Gauge", "JsonView",
+    "Badge", "Accordion", "AccordionItem", "Steps", "Step", "FileTree",
+    "LinkCard", "Modal", "Tooltip", "Breadcrumb", "Image",
+    "Timeline", "TimelineItem", "Video", "Diff",
+}
+_FORM_TYPES = {
+    "Button", "Input", "Textarea", "Select", "Checkbox", "Switch",
+    "Slider", "DatePicker", "FileUpload", "Chat", "Tabs", "Tab",
+}
+_CHART_TYPES = {
+    "LineChart", "BarChart", "PieChart", "AreaChart", "ScatterChart",
+    "RadarChart", "GaugeChart", "FunnelChart", "HeatmapChart", "TreemapChart",
+}
+
+for _t in _LAYOUT_TYPES:
+    _CATEGORY_MAP[_t] = "layout"
+for _t in _TYPOGRAPHY_TYPES:
+    _CATEGORY_MAP[_t] = "typography"
+for _t in _DISPLAY_TYPES:
+    _CATEGORY_MAP[_t] = "display"
+for _t in _FORM_TYPES:
+    _CATEGORY_MAP[_t] = "form"
+for _t in _CHART_TYPES:
+    _CATEGORY_MAP[_t] = "charts"
+
+
+def _types_to_categories(types: set[str]) -> set[str]:
+    """Map component types to their categories."""
+    categories: set[str] = set()
+    for t in types:
+        cat = _CATEGORY_MAP.get(t)
+        if cat:
+            categories.add(cat)
+    return categories
+
 
 # =============================================================================
 # Convenience exports

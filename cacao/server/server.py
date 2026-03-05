@@ -142,7 +142,12 @@ def create_server(app: App) -> Starlette:
         theme = getattr(app, "theme", "dark")
         branding = getattr(app, "branding", None)
 
-        html = _get_dashboard_html(title, theme, branding)
+        # Determine which component categories are used
+        categories: set[str] | None = None
+        if hasattr(app, "get_used_categories"):
+            categories = app.get_used_categories()
+
+        html = _get_dashboard_html(title, theme, branding, categories=categories)
         return HTMLResponse(html)
 
     # Set up routes
@@ -238,21 +243,44 @@ def _get_branding_html(branding: bool | str | None) -> str:
     return f'\n    <div class="cacao-branding">{content}</div>'
 
 
-def _get_dashboard_html(title: str, theme: str, branding: bool | str | None = None) -> str:
+def _get_css_links(categories: set[str] | None) -> str:
+    """Generate CSS link tags based on used categories."""
+    if categories is None:
+        # Fallback: load full bundle
+        return '    <link rel="stylesheet" href="/static/cacao.css">'
+
+    # Always load core styles
+    links = ['    <link rel="stylesheet" href="/static/cacao-core.css">']
+    for cat in sorted(categories):
+        links.append(f'    <link rel="stylesheet" href="/static/cacao-cat-{cat}.css">')
+    return "\n".join(links)
+
+
+def _get_dashboard_html(
+    title: str,
+    theme: str,
+    branding: bool | str | None = None,
+    categories: set[str] | None = None,
+) -> str:
     """Generate the dashboard HTML that links to external CSS and JS."""
     branding_html = _get_branding_html(branding)
+    css_links = _get_css_links(categories)
+    needs_charts = categories is None or "charts" in (categories or set())
+    chartjs_tag = (
+        '\n    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>'
+        if needs_charts else ""
+    )
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <link rel="stylesheet" href="/static/cacao.css">
+{css_links}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>{chartjs_tag}
 </head>
 <body>
     <div id="root"><div class="loading">Loading...</div></div>{branding_html}
