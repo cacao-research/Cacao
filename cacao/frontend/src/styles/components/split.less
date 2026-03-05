@@ -1,0 +1,70 @@
+// Split component
+
+.c-split {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+
+  &--horizontal {
+    flex-direction: row;
+  }
+
+  &--vertical {
+    flex-direction: column;
+  }
+}
+
+.c-split-pane {
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.c-split-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  transition: background @transition-fast;
+  z-index: 1;
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  &--horizontal {
+    width: 8px;
+    cursor: col-resize;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  &--vertical {
+    height: 8px;
+    cursor: row-resize;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.c-split-handle-bar {
+  border-radius: 2px;
+  background: var(--text-muted);
+
+  .c-split-handle--horizontal & {
+    width: 2px;
+    height: 24px;
+  }
+
+  .c-split-handle--vertical & {
+    height: 2px;
+    width: 24px;
+  }
+
+  .c-split-handle:hover & {
+    background: var(--primary);
+  }
+}

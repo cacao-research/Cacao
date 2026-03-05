@@ -30,6 +30,13 @@ from .server.ui import (
     _current_container,
 )
 from .server.ui import (
+    # Content components
+    accordion as _accordion,
+)
+from .server.ui import (
+    accordion_item as _accordion_item,
+)
+from .server.ui import (
     alert as _alert,
 )
 from .server.ui import (
@@ -38,6 +45,9 @@ from .server.ui import (
 )
 from .server.ui import (
     badge as _badge,
+)
+from .server.ui import (
+    breadcrumb as _breadcrumb,
 )
 from .server.ui import (
     # Form components
@@ -59,10 +69,19 @@ from .server.ui import (
     col as _col,
 )
 from .server.ui import (
+    container as _container,
+)
+from .server.ui import (
     date_picker as _date_picker,
 )
 from .server.ui import (
+    diff as _diff,
+)
+from .server.ui import (
     divider as _divider,
+)
+from .server.ui import (
+    file_tree as _file_tree,
 )
 from .server.ui import (
     file_upload as _file_upload,
@@ -71,7 +90,13 @@ from .server.ui import (
     grid as _grid,
 )
 from .server.ui import (
+    hero as _hero,
+)
+from .server.ui import (
     html as _html,
+)
+from .server.ui import (
+    image as _image,
 )
 from .server.ui import (
     input_field as _input_field,
@@ -80,11 +105,18 @@ from .server.ui import (
     json_view as _json_view,
 )
 from .server.ui import (
+    link_card as _link_card,
+)
+from .server.ui import (
     markdown as _markdown,
 )
 from .server.ui import (
     # Data display
     metric as _metric,
+)
+from .server.ui import (
+    # General UI components
+    modal as _modal,
 )
 from .server.ui import (
     nav_group as _nav_group,
@@ -124,6 +156,18 @@ from .server.ui import (
     spacer as _spacer,
 )
 from .server.ui import (
+    split as _split,
+)
+from .server.ui import (
+    stack as _stack,
+)
+from .server.ui import (
+    step as _step,
+)
+from .server.ui import (
+    steps as _steps,
+)
+from .server.ui import (
     switch as _switch,
 )
 from .server.ui import (
@@ -142,6 +186,13 @@ from .server.ui import (
     textarea as _textarea,
 )
 from .server.ui import (
+    # Nice-to-Have components
+    timeline as _timeline,
+)
+from .server.ui import (
+    timeline_item as _timeline_item,
+)
+from .server.ui import (
     # Typography (leaf components)
     title as _title,
 )
@@ -150,49 +201,10 @@ from .server.ui import (
     toast as _toast,
 )
 from .server.ui import (
-    # Content components
-    accordion as _accordion,
-)
-from .server.ui import (
-    accordion_item as _accordion_item,
-)
-from .server.ui import (
-    steps as _steps,
-)
-from .server.ui import (
-    step as _step,
-)
-from .server.ui import (
-    file_tree as _file_tree,
-)
-from .server.ui import (
-    link_card as _link_card,
-)
-from .server.ui import (
-    # General UI components
-    modal as _modal,
-)
-from .server.ui import (
     tooltip as _tooltip,
 )
 from .server.ui import (
-    breadcrumb as _breadcrumb,
-)
-from .server.ui import (
-    image as _image,
-)
-from .server.ui import (
-    # Nice-to-Have components
-    timeline as _timeline,
-)
-from .server.ui import (
-    timeline_item as _timeline_item,
-)
-from .server.ui import (
     video as _video,
-)
-from .server.ui import (
-    diff as _diff,
 )
 
 T = TypeVar("T")
@@ -539,6 +551,117 @@ def tab(
     """Individual tab within tabs()."""
     _ensure_context()
     with _tab(key=key, label=label, icon=icon, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def container(
+    size: Literal["sm", "md", "lg", "xl", "full"] = "lg",
+    padding: bool = True,
+    center: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Centered max-width content wrapper.
+
+    Example:
+        with c.container(size="md"):
+            c.title("Welcome")
+            c.text("Centered content.")
+    """
+    _ensure_context()
+    with _container(size=size, padding=padding, center=center, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def stack(
+    direction: Literal["vertical", "horizontal"] = "vertical",
+    gap: int = 4,
+    divider: bool = False,
+    align: Literal["start", "center", "end", "stretch"] | None = None,
+    justify: Literal["start", "center", "end", "between", "around"] | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Stack layout with optional dividers between items.
+
+    Example:
+        with c.stack(divider=True):
+            c.text("Item 1")
+            c.text("Item 2")
+    """
+    _ensure_context()
+    with _stack(
+        direction=direction,
+        gap=gap,
+        divider=divider,
+        align=align,
+        justify=justify,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def split(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    default_size: int = 50,
+    min_size: int = 20,
+    max_size: int = 80,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Two-pane resizable layout with draggable divider.
+
+    Example:
+        with c.split(default_size=40):
+            with c.col():
+                c.code(source, language="python")
+            with c.col():
+                c.text("Output")
+    """
+    _ensure_context()
+    with _split(
+        direction=direction,
+        default_size=default_size,
+        min_size=min_size,
+        max_size=max_size,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def hero(
+    title: str | None = None,
+    subtitle: str | None = None,
+    background: str | None = None,
+    image: str | None = None,
+    height: str = "400px",
+    align: Literal["center", "left", "right"] = "center",
+    gradient: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Full-width hero/banner section.
+
+    Example:
+        with c.hero(title="My App", subtitle="Build amazing things",
+                     gradient="135deg, #667eea, #764ba2"):
+            c.button("Get Started")
+    """
+    _ensure_context()
+    with _hero(
+        title=title,
+        subtitle=subtitle,
+        background=background,
+        image=image,
+        height=height,
+        align=align,
+        gradient=gradient,
+        **props,
+    ) as comp:
         yield comp
 
 
@@ -1412,8 +1535,14 @@ def image(
     """
     _ensure_context()
     return _image(
-        src=src, alt=alt, caption=caption, width=width, height=height,
-        lightbox=lightbox, lazy=lazy, **props,
+        src=src,
+        alt=alt,
+        caption=caption,
+        width=width,
+        height=height,
+        lightbox=lightbox,
+        lazy=lazy,
+        **props,
     )
 
 
@@ -1459,7 +1588,12 @@ def timeline_item(
     """
     _ensure_context()
     return _timeline_item(
-        title=title, description=description, date=date, icon=icon, color=color, **props,
+        title=title,
+        description=description,
+        date=date,
+        icon=icon,
+        color=color,
+        **props,
     )
 
 
@@ -1485,8 +1619,17 @@ def video(
     """
     _ensure_context()
     return _video(
-        src=src, title=title, width=width, height=height, aspect=aspect,
-        poster=poster, autoplay=autoplay, controls=controls, loop=loop, muted=muted, **props,
+        src=src,
+        title=title,
+        width=width,
+        height=height,
+        aspect=aspect,
+        poster=poster,
+        autoplay=autoplay,
+        controls=controls,
+        loop=loop,
+        muted=muted,
+        **props,
     )
 
 
@@ -1753,6 +1896,10 @@ __all__ = [
     "row",
     "col",
     "grid",
+    "container",
+    "stack",
+    "split",
+    "hero",
     "card",
     "sidebar",
     "tabs",

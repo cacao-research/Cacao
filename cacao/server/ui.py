@@ -176,6 +176,133 @@ def grid(
 
 
 @contextmanager
+def container(
+    size: Literal["sm", "md", "lg", "xl", "full"] = "lg",
+    padding: bool = True,
+    center: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Centered max-width content wrapper.
+
+    Example:
+        with container(size="md"):
+            title("Welcome")
+            text("Centered, readable content.")
+    """
+    component = Component(
+        type="Container",
+        props={"size": size, "padding": padding, "center": center, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def stack(
+    direction: Literal["vertical", "horizontal"] = "vertical",
+    gap: int = 4,
+    divider: bool = False,
+    align: Literal["start", "center", "end", "stretch"] | None = None,
+    justify: Literal["start", "center", "end", "between", "around"] | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Stack layout with optional dividers between items.
+
+    Example:
+        with stack(gap=4, divider=True):
+            text("Item 1")
+            text("Item 2")
+            text("Item 3")
+    """
+    component = Component(
+        type="Stack",
+        props={
+            "direction": direction,
+            "gap": gap,
+            "divider": divider,
+            "align": align,
+            "justify": justify,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def split(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    default_size: int = 50,
+    min_size: int = 20,
+    max_size: int = 80,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Two-pane resizable layout with draggable divider.
+
+    Place exactly two children inside. The first goes in the left/top pane,
+    the second in the right/bottom pane.
+
+    Example:
+        with split(default_size=40):
+            with col():
+                code(source_code, language="python")
+            with col():
+                text("Output here")
+    """
+    component = Component(
+        type="Split",
+        props={
+            "direction": direction,
+            "defaultSize": default_size,
+            "minSize": min_size,
+            "maxSize": max_size,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def hero(
+    title: str | None = None,
+    subtitle: str | None = None,
+    background: str | None = None,
+    image: str | None = None,
+    height: str = "400px",
+    align: Literal["center", "left", "right"] = "center",
+    gradient: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Full-width hero/banner section.
+
+    Example:
+        with hero(title="My App", subtitle="Build amazing things",
+                  gradient="135deg, #667eea, #764ba2", height="300px"):
+            button("Get Started", variant="primary")
+    """
+    component = Component(
+        type="Hero",
+        props={
+            "title": title,
+            "subtitle": subtitle,
+            "background": background,
+            "image": image,
+            "height": height,
+            "align": align,
+            "gradient": gradient,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
 def card(
     title: str | None = None,
     subtitle: str | None = None,
@@ -1084,7 +1211,8 @@ def link_card(
     Clickable navigation card with title, description, and icon.
 
     Example:
-        link_card("Getting Started", description="Learn the basics", href="/docs/start", icon="book")
+        link_card("Getting Started", description="Learn the basics",
+            href="/docs/start", icon="book")
     """
     return _add_to_current_container(
         Component(
@@ -1471,6 +1599,10 @@ __all__ = [
     "row",
     "col",
     "grid",
+    "container",
+    "stack",
+    "split",
+    "hero",
     "card",
     "sidebar",
     "tabs",
