@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          touch VERSION
+          echo "0.0.0.dev0" > VERSION
           pip install -e ".[dev]"
 
       - name: Ruff check
@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          touch VERSION
+          echo "0.0.0.dev0" > VERSION
           pip install -e ".[dev]"
 
       - name: Run tests
