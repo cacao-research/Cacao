@@ -136,8 +136,9 @@ def create_server(app: "App") -> Starlette:
         # Get app metadata
         title = getattr(app, "title", "Cacao App")
         theme = getattr(app, "theme", "dark")
+        branding = getattr(app, "branding", None)
 
-        html = _get_dashboard_html(title, theme)
+        html = _get_dashboard_html(title, theme, branding)
         return HTMLResponse(html)
 
     # Set up routes
@@ -216,8 +217,20 @@ def run_server(
     )
 
 
-def _get_dashboard_html(title: str, theme: str) -> str:
+def _get_branding_html(branding: bool | str | None) -> str:
+    """Generate branding badge HTML."""
+    if not branding:
+        return ""
+    if isinstance(branding, str):
+        content = branding
+    else:
+        content = 'Built with <a href="https://github.com/CacaoFramework/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;'
+    return f'\n    <div class="cacao-branding">{content}</div>'
+
+
+def _get_dashboard_html(title: str, theme: str, branding: bool | str | None = None) -> str:
     """Generate the dashboard HTML that links to external CSS and JS."""
+    branding_html = _get_branding_html(branding)
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
@@ -231,7 +244,7 @@ def _get_dashboard_html(title: str, theme: str) -> str:
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <div id="root"><div class="loading">Loading...</div></div>
+    <div id="root"><div class="loading">Loading...</div></div>{branding_html}
     <script src="/static/cacao.js"></script>
 </body>
 </html>'''

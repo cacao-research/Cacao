@@ -116,7 +116,7 @@
   cursor: pointer;
   transition: color @transition-fast;
   text-align: left;
-  gap: @space-2;
+  gap: @space-3;
 
   &:hover {
     color: var(--text-secondary);
@@ -150,22 +150,22 @@
 // Group items container with a left guide line
 .nav-group-items {
   position: relative;
-  padding: 2px 0;
+  padding: 2px 0 @space-1;
   max-height: 500px;
   overflow: hidden;
   transition: max-height @transition-slow, opacity @transition-base, padding @transition-base;
   opacity: 1;
 
-  // Vertical guide line on the left
+  // Vertical guide line aligned under the group header icon
+  // Header icon: padding-left 16px, icon width 16px → center at 24px
   &::before {
     content: '';
     position: absolute;
-    left: 26px;
-    top: 4px;
-    bottom: 4px;
+    left: 24px;
+    top: 0;
+    bottom: @space-1;
     width: 1px;
-    background: var(--border-subtle);
-    border-radius: 1px;
+    background: var(--border-color);
   }
 }
 
@@ -173,6 +173,10 @@
   max-height: 0;
   opacity: 0;
   padding: 0;
+
+  &::before {
+    display: none;
+  }
 }
 
 // NavItem - Individual navigation item
@@ -212,11 +216,13 @@
 }
 
 // Top-level nav items (direct children of nav-sidebar, not inside a group)
+// Align icon with group header icons: both at padding-left 16px
 .nav-sidebar > .nav-item {
-  width: calc(100% - @space-4);
-  margin-left: @space-2;
+  width: calc(100% - @space-2);
+  margin-left: 0;
   margin-right: @space-2;
-  padding-left: @space-3;
+  padding-left: @space-4;
+  gap: @space-3;
 }
 
 .nav-icon {

@@ -8,6 +8,12 @@
   box-shadow: @shadow-xs;
   transition: border-color @transition-base, box-shadow @transition-base, background @transition-base;
 
+  // Distribute evenly when inside a row (same as .metric)
+  .c-row > & {
+    flex: 1;
+    min-width: 200px;
+  }
+
   &:hover {
     border-color: var(--accent-primary);
     box-shadow: @shadow-md;

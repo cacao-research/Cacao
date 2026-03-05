@@ -15,8 +15,18 @@ export function getTheme() {
 }
 
 export function initTheme() {
+  // Only restore saved theme if the page doesn't specify one,
+  // or if the saved theme belongs to the same theme family.
+  // This prevents a tukuy session from overriding a dark/light app.
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
+  if (!saved) return;
+
+  const serverTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const serverFamily = serverTheme.replace('-light', '');
+  const savedFamily = saved.replace('-light', '');
+
+  // Only apply saved theme if it's from the same family (e.g. dark/light or tukuy/tukuy-light)
+  if (serverFamily === savedFamily) {
     setTheme(saved);
   }
 }

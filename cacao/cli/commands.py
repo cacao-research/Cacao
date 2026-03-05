@@ -668,6 +668,7 @@ def build_command(args: list[str]) -> None:
     metadata = export_data.get("metadata", {})
     title = metadata.get("title", "Cacao App")
     theme = metadata.get("theme", "dark")
+    branding = metadata.get("branding")
 
     # Serialize pages data
     pages_json = json.dumps({
@@ -682,6 +683,14 @@ def build_command(args: list[str]) -> None:
     base_path = parsed_args.base_path.rstrip("/")
     asset_prefix = base_path if base_path else "."
 
+    # Generate branding HTML
+    branding_html = ""
+    if branding:
+        if isinstance(branding, str):
+            branding_html = f'\n    <div class="cacao-branding">{branding}</div>'
+        else:
+            branding_html = '\n    <div class="cacao-branding">Built with <a href="https://github.com/CacaoFramework/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
+
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
@@ -695,7 +704,7 @@ def build_command(args: list[str]) -> None:
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <div id="root"><div class="loading">Loading...</div></div>
+    <div id="root"><div class="loading">Loading...</div></div>{branding_html}
 
     <script>
     // Static mode configuration

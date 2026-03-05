@@ -826,6 +826,43 @@ def date_picker(
     ))
 
 
+def chat(
+    signal: Signal[list] | None = None,
+    on_send: Callable | None = None,
+    on_clear: Callable | None = None,
+    placeholder: str = "Type a message...",
+    title: str | None = None,
+    height: str = "500px",
+    show_clear: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Interactive chat component with streaming support.
+
+    Renders a message list with user/assistant bubbles, a text input,
+    and supports real-time streaming of responses via WebSocket.
+
+    The signal should hold a list of messages: [{"role": "user"|"assistant", "content": "..."}]
+
+    Example:
+        messages = app.signal([], name="chat_messages")
+        chat(signal=messages, on_send=handle_send, title="AI Chat")
+    """
+    return _add_to_current_container(Component(
+        type="Chat",
+        props={
+            "signal": signal,
+            "on_send": on_send,
+            "on_clear": on_clear,
+            "placeholder": placeholder,
+            "title": title,
+            "height": height,
+            "show_clear": show_clear,
+            **props,
+        }
+    ))
+
+
 def file_upload(
     label: str,
     on_upload: Callable[[bytes, str], Any] | None = None,
@@ -906,11 +943,13 @@ class App(BaseApp):
         title: str = "Cacao App",
         theme: Literal["light", "dark", "auto"] = "dark",
         debug: bool = False,
+        branding: bool | str | None = None,
         **kwargs: Any,
     ):
         super().__init__(debug=debug, **kwargs)
         self.title = title
         self.theme = theme
+        self.branding = branding
         self._pages: dict[str, list[Component]] = {}
         self._current_page: str | None = None
 
@@ -1002,6 +1041,7 @@ __all__ = [
     "switch",
     "slider",
     "date_picker",
+    "chat",
     "file_upload",
     # Toast
     "toast",

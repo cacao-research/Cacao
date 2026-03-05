@@ -1,0 +1,49 @@
+// Branding badge - "Built with Cacao" footer
+
+.cacao-branding {
+  position: fixed;
+  bottom: @space-3;
+  right: @space-4;
+  z-index: 50;
+  padding: @space-1 @space-3;
+  border-radius: @radius-sm;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: @font-family;
+  font-size: @font-size-xs;
+  line-height: 1.6;
+  opacity: 0.7;
+  transition: opacity @transition-base, box-shadow @transition-base;
+  pointer-events: auto;
+  user-select: none;
+
+  &:hover {
+    opacity: 1;
+    box-shadow: @shadow-md;
+  }
+
+  strong {
+    color: var(--accent-primary);
+    font-weight: @font-weight-semibold;
+  }
+
+  a {
+    color: var(--accent-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Ensure branding doesn't overlap content on mobile
+@media (max-width: @breakpoint-md) {
+  .cacao-branding {
+    bottom: @space-2;
+    right: @space-2;
+    font-size: @font-size-xs;
+    padding: @space-1 @space-2;
+  }
+}

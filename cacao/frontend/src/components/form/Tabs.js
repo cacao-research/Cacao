@@ -1,8 +1,10 @@
-const { createElement: h, useRef } = React;
+const { createElement: h, useRef, useState } = React;
 
-export function Tabs({ props, children, setActiveTab, activeTab }) {
+export function Tabs({ props, children }) {
   const tabs = children.filter(c => c && c.props && c.props.type === 'Tab');
-  const current = activeTab || props.default || (tabs[0]?.props?.props?.tabKey);
+  const defaultTab = props.default || (tabs[0]?.props?.props?.tabKey);
+  const [localTab, setLocalTab] = useState(defaultTab);
+  const current = localTab || defaultTab;
   const tabListRef = useRef(null);
 
   const handleKeyDown = (e) => {
@@ -26,7 +28,7 @@ export function Tabs({ props, children, setActiveTab, activeTab }) {
       return;
     }
 
-    setActiveTab(tabKeys[nextIdx]);
+    setLocalTab(tabKeys[nextIdx]);
     if (tabListRef.current) {
       const buttons = tabListRef.current.querySelectorAll('[role="tab"]');
       if (buttons[nextIdx]) buttons[nextIdx].focus();
@@ -41,7 +43,7 @@ export function Tabs({ props, children, setActiveTab, activeTab }) {
         role: 'tab',
         'aria-selected': t.props.props.tabKey === current,
         tabIndex: t.props.props.tabKey === current ? 0 : -1,
-        onClick: () => setActiveTab(t.props.props.tabKey),
+        onClick: () => setLocalTab(t.props.props.tabKey),
         onKeyDown: handleKeyDown
       }, t.props.props.label)
     )),

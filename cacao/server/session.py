@@ -103,6 +103,42 @@ class Session:
             "duration": duration,
         })
 
+    async def send_chat_delta(self, signal_name: str, delta: str) -> None:
+        """
+        Send a streaming chat text chunk to the client.
+
+        This bypasses the normal signal batching for real-time streaming.
+
+        Args:
+            signal_name: The chat signal this delta belongs to
+            delta: The text chunk to append
+        """
+        if self.websocket is None:
+            return
+
+        await self.websocket.send_json({
+            "type": "chat_delta",
+            "signal": signal_name,
+            "delta": delta,
+        })
+
+    async def send_chat_done(self, signal_name: str) -> None:
+        """
+        Signal that a chat stream has finished.
+
+        The final full message should be added to the signal separately.
+
+        Args:
+            signal_name: The chat signal that finished streaming
+        """
+        if self.websocket is None:
+            return
+
+        await self.websocket.send_json({
+            "type": "chat_done",
+            "signal": signal_name,
+        })
+
     def queue_update(self, key: str, value: Any) -> None:
         """
         Queue a state update to be batched and sent.

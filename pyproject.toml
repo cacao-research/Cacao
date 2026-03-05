@@ -56,10 +56,10 @@ dev = [
 cacao = "cacao.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jhd3197/Cacao"
-Documentation = "https://github.com/jhd3197/Cacao#readme"
-Repository = "https://github.com/jhd3197/Cacao"
-Issues = "https://github.com/jhd3197/Cacao/issues"
+Homepage = "https://github.com/cacao-research/Cacao"
+Documentation = "https://github.com/cacao-research/Cacao#readme"
+Repository = "https://github.com/cacao-research/Cacao"
+Issues = "https://github.com/cacao-research/Cacao/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["cacao"]

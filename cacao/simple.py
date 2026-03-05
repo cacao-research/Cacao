@@ -61,6 +61,7 @@ from .server.ui import (
     switch as _switch,
     slider as _slider,
     date_picker as _date_picker,
+    chat as _chat,
     file_upload as _file_upload,
     # Toast
     toast as _toast,
@@ -98,6 +99,7 @@ def _get_app() -> _App:
         _global_app = _App(
             title=_global_config["title"],
             theme=_global_config["theme"],
+            branding=_global_config.get("branding"),
         )
         _simple_mode = True
 
@@ -136,6 +138,7 @@ def config(
     host: str | None = None,
     port: int | None = None,
     debug: bool | None = None,
+    branding: bool | str | None = None,
 ) -> None:
     """
     Configure the application.
@@ -155,6 +158,8 @@ def config(
         host: Host to bind server to (default: 127.0.0.1)
         port: Port for server (default: 1502 - historic chocolate year)
         debug: Enable debug mode with verbose logging
+        branding: Show branding badge. True for default "Built with Cacao",
+                  or a custom HTML string. False to disable.
     """
     global _global_config, _global_app
 
@@ -168,6 +173,8 @@ def config(
         _global_config["port"] = port
     if debug is not None:
         _global_config["debug"] = debug
+    if branding is not None:
+        _global_config["branding"] = branding
 
     # If app already created, update it
     if _global_app is not None:
@@ -177,6 +184,8 @@ def config(
             _global_app.theme = theme
         if debug is not None:
             _global_app.debug = debug
+        if branding is not None:
+            _global_app.branding = branding
 
 
 # =============================================================================
@@ -509,6 +518,116 @@ def nav_panel(key: str, **props: Any):
 
 
 # =============================================================================
+# Layout Presets
+# =============================================================================
+
+class _LayoutHelper:
+    """Helper object returned by layout() for accessing sub-regions."""
+
+    def __init__(self, preset: str, **kwargs: Any):
+        self.preset = preset
+        self._kwargs = kwargs
+
+    @contextmanager
+    def side(self):
+        """Sidebar region of a sidebar/split layout."""
+        width = self._kwargs.get("sidebar_width", "300px")
+        with col(gap=4, width=width):
+            yield
+
+    @contextmanager
+    def main(self):
+        """Main content region."""
+        with col(gap=0):
+            yield
+
+    @contextmanager
+    def left(self):
+        """Left pane of a split layout."""
+        ratio = self._kwargs.get("ratio", "1:1")
+        left_flex = int(ratio.split(":")[0])
+        with col(gap=4, flex=str(left_flex)):
+            yield
+
+    @contextmanager
+    def right(self):
+        """Right pane of a split layout."""
+        ratio = self._kwargs.get("ratio", "1:1")
+        right_flex = int(ratio.split(":")[1])
+        with col(gap=4, flex=str(right_flex)):
+            yield
+
+
+@contextmanager
+def layout(
+    preset: Literal["sidebar", "centered", "split", "dashboard"] = "sidebar",
+    *,
+    sidebar_width: str = "300px",
+    max_width: str = "600px",
+    ratio: str = "1:1",
+    height: str = "calc(100vh - 4rem)",
+    gap: int = 4,
+    **props: Any,
+):
+    """
+    Pre-built layout preset for common patterns.
+
+    Presets:
+        "sidebar"   - Side panel + main content, full viewport height
+        "centered"  - Centered content with max-width (forms, login)
+        "split"     - Two-pane split with custom ratio
+        "dashboard" - Full viewport dashboard layout
+
+    Example:
+        # Sidebar layout (like the chat app)
+        with c.layout("sidebar", sidebar_width="300px") as l:
+            with l.side():
+                c.card(title="Settings")
+            with l.main():
+                c.chat(...)
+
+        # Centered form
+        with c.layout("centered", max_width="500px"):
+            c.title("Login")
+            c.input("Email")
+
+        # Split pane
+        with c.layout("split", ratio="1:2") as l:
+            with l.left():
+                c.text("Editor")
+            with l.right():
+                c.text("Preview")
+    """
+    _ensure_context()
+    helper = _LayoutHelper(preset, sidebar_width=sidebar_width, ratio=ratio)
+
+    if preset == "sidebar":
+        with row(gap=gap, wrap=False, height=height, **props):
+            yield helper
+
+    elif preset == "centered":
+        with row(justify="center", gap=gap, height=height, **props):
+            with col(
+                gap=gap,
+                max_width=max_width,
+                width="100%",
+                align="stretch",
+            ):
+                yield helper
+
+    elif preset == "split":
+        with row(gap=gap, wrap=False, height=height, **props):
+            yield helper
+
+    elif preset == "dashboard":
+        with col(gap=gap, height=height, **props):
+            yield helper
+
+    else:
+        raise ValueError(f"Unknown layout preset: {preset!r}")
+
+
+# =============================================================================
 # Typography Components
 # =============================================================================
 
@@ -826,6 +945,44 @@ def date(
 date_picker = date
 
 
+def chat(
+    signal: Signal[list] | None = None,
+    on_send: Callable | str | None = None,
+    on_clear: Callable | str | None = None,
+    placeholder: str = "Type a message...",
+    title: str | None = None,
+    height: str = "500px",
+    show_clear: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Interactive chat component with streaming support.
+
+    Renders a message list with user/assistant bubbles, a text input,
+    and supports real-time streaming of responses via WebSocket.
+
+    The signal should hold a list of messages:
+    [{"role": "user"|"assistant"|"error", "content": "..."}]
+
+    Use with Prompture's AsyncConversation for AI-powered chat:
+
+    Example:
+        messages = c.signal([], name="chat_messages")
+        c.chat(signal=messages, on_send="chat_send", title="AI Chat")
+
+        @c.on("chat_send")
+        async def handle_send(session, event):
+            text = event["text"]
+            # ... use Prompture to get response and stream back
+    """
+    _ensure_context()
+    return _chat(
+        signal=signal, on_send=on_send, on_clear=on_clear,
+        placeholder=placeholder, title=title, height=height,
+        show_clear=show_clear, **props
+    )
+
+
 def upload(
     label: str,
     on_upload: Callable[[bytes, str], Any] | None = None,
@@ -1044,6 +1201,9 @@ def export_static() -> dict:
         "title": getattr(app, "title", _global_config["title"]),
         "theme": getattr(app, "theme", _global_config["theme"]),
     }
+    branding = getattr(app, "branding", _global_config.get("branding"))
+    if branding is not None:
+        metadata["branding"] = branding
 
     # Get signal defaults
     from .server.signal import Signal
@@ -1084,6 +1244,7 @@ __all__ = [
     "sidebar",
     "tabs",
     "tab",
+    "layout",
     # Admin Layout
     "app_shell",
     "nav_sidebar",
@@ -1117,6 +1278,7 @@ __all__ = [
     "slider",
     "date",
     "date_picker",
+    "chat",
     "upload",
     "file_upload",
     # Toast

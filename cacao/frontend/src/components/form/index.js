@@ -7,4 +7,5 @@ export { Switch } from './Switch.js';
 export { Slider } from './Slider.js';
 export { DatePicker } from './DatePicker.js';
 export { FileUpload } from './FileUpload.js';
+export { Chat } from './Chat.js';
 export { Tabs, Tab } from './Tabs.js';

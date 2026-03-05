@@ -143,10 +143,10 @@ with c.app_shell(brand="Tukuy", default="overview",
     with c.nav_sidebar():
         c.nav_item("Overview", key="overview", icon="home")
 
-        for group in ordered_groups:
+        for i, group in enumerate(ordered_groups):
             plugins = catalog[group]
             icon = GROUP_ICONS.get(group, "package")
-            with c.nav_group(group, icon=icon):
+            with c.nav_group(group, icon=icon, default_open=(i == 0)):
                 for plugin in plugins:
                     n_items = len(plugin["transformer_names"]) + len(plugin["skill_names"])
                     c.nav_item(
@@ -162,44 +162,26 @@ with c.app_shell(brand="Tukuy", default="overview",
         # ── Overview ──
         with c.nav_panel("overview"):
 
-            c.title("Tukuy")
+            # Hero
+            c.title("Tukuy", level=1)
             c.text(
-                "Tukuy (Quechua: to transform) is a portable Python library for "
-                "agent skills and data transformation. It provides a typed, "
-                "framework-agnostic system for declaring, composing, and exposing "
-                "Python functions as skills that any LLM agent can consume.",
+                "A portable Python library for agent skills and data "
+                "transformation. Tukuy (Quechua: to transform) gives you "
+                "typed, framework-agnostic skills that any LLM agent can "
+                "consume — with async execution, safety policies, and "
+                "composable pipelines out of the box.",
                 color="muted",
             )
 
+            c.spacer(size=1)
+
+            with c.row(gap=2, wrap=True):
+                c.badge("MIT License", color="success")
+                c.badge(f"v{registry.plugins[next(iter(registry.plugins))].manifest.version if registry.plugins else '?'}", color="info")
+                c.badge(f"{total_plugins} plugins", color="primary")
+                c.badge("Python 3.8+", color="default")
+
             c.spacer(size=2)
-
-            # What Tukuy does
-            with c.row(gap=4, wrap=True):
-                with c.card("Data Transformation"):
-                    c.text(
-                        "Chain named operations into pipelines: text, HTML, JSON, "
-                        "dates, numbers, validation, and more. Over 70 built-in "
-                        "plugins cover everything from string manipulation to "
-                        "external API integrations.",
-                        size="sm",
-                    )
-                with c.card("Agent Skills"):
-                    c.text(
-                        "Declare Python functions as typed skills with auto-inferred "
-                        "JSON schemas. Bridge to OpenAI, Anthropic, and MCP formats "
-                        "with a single decorator. Built-in safety policies and "
-                        "sandboxed execution.",
-                        size="sm",
-                    )
-                with c.card("Composable Chains"):
-                    c.text(
-                        "Build pipelines with Chain, Branch, and Parallel primitives. "
-                        "Steps can be transformer names, skill functions, or nested "
-                        "chains. Runs sync or async.",
-                        size="sm",
-                    )
-
-            c.spacer()
 
             # KPI row
             with c.row():
@@ -208,14 +190,111 @@ with c.app_shell(brand="Tukuy", default="overview",
                 c.metric("Skills", total_skills)
                 c.metric("Groups", len(ordered_groups))
 
-            c.spacer()
+            c.spacer(size=2)
+
+            # Install + Quick start
+            c.title("Getting Started", level=2)
+            c.spacer(size=1)
+
+            with c.row(gap=4, wrap=True):
+                with c.card("Install"):
+                    c.code("pip install tukuy", language="bash")
+
+                with c.card("Use a transformer"):
+                    c.code(
+                        'from tukuy import transform\n\n'
+                        'result = transform("upper", "hello world")\n'
+                        '# "HELLO WORLD"',
+                        language="python",
+                    )
+
+                with c.card("Define a skill"):
+                    c.code(
+                        'from tukuy import skill\n\n'
+                        '@skill\n'
+                        'def greet(name: str) -> str:\n'
+                        '    """Say hello."""\n'
+                        '    return f"Hello, {name}!"',
+                        language="python",
+                    )
+
+            c.spacer(size=2)
+
+            # Feature cards
+            c.title("Core Concepts", level=2)
+            c.spacer(size=1)
+
+            with c.row(gap=4, wrap=True):
+                with c.card("Data Transformation"):
+                    c.text(
+                        "Chain named operations into pipelines: text, HTML, "
+                        "JSON, dates, numbers, validation, and more. Over "
+                        f"{total_plugins} built-in plugins cover everything "
+                        "from string manipulation to external API integrations.",
+                        size="sm",
+                    )
+                with c.card("Agent Skills"):
+                    c.text(
+                        "Declare Python functions as typed skills with "
+                        "auto-inferred JSON schemas. Bridge to OpenAI, "
+                        "Anthropic, and MCP formats with a single decorator. "
+                        "Built-in safety policies and sandboxed execution.",
+                        size="sm",
+                    )
+                with c.card("Composable Chains"):
+                    c.text(
+                        "Build pipelines with Chain, Branch, and Parallel "
+                        "primitives. Steps can be transformer names, skill "
+                        "functions, or nested chains. Runs sync or async.",
+                        size="sm",
+                    )
+
+            c.spacer(size=2)
+
+            # CLI section
+            c.title("CLI & MCP", level=2)
+            c.spacer(size=1)
+
+            with c.row(gap=4, wrap=True):
+                with c.card("CLI"):
+                    c.text(
+                        "Inspect plugins, run skills, and apply transformers "
+                        "directly from the terminal.",
+                        size="sm", color="muted",
+                    )
+                    c.spacer(size=1)
+                    c.code(
+                        "tukuy plugins          # list all plugins\n"
+                        "tukuy run upper hello   # run a transformer\n"
+                        "tukuy skills            # list all skills",
+                        language="bash",
+                    )
+
+                with c.card("MCP Server"):
+                    c.text(
+                        "Expose all plugins, skills, and transformers as "
+                        "tools for Claude Desktop, Claude Code, or any "
+                        "MCP-compatible agent.",
+                        size="sm", color="muted",
+                    )
+                    c.spacer(size=1)
+                    c.code("tukuy-mcp", language="bash")
+
+            c.spacer(size=2)
+
+            # Plugin breakdown
+            c.title("Plugin Catalog", level=2)
+            c.spacer(size=1)
 
             with c.row(gap=2, wrap=True):
-                c.badge(f"{plugins_with_network} network plugins", color="info")
-                c.badge(f"{plugins_with_filesystem} filesystem plugins", color="warning")
-                c.badge(f"{total_plugins - plugins_with_network - plugins_with_filesystem} pure plugins", color="success")
+                c.badge(f"{plugins_with_network} network", color="info")
+                c.badge(f"{plugins_with_filesystem} filesystem", color="warning")
+                c.badge(
+                    f"{total_plugins - plugins_with_network - plugins_with_filesystem} pure",
+                    color="success",
+                )
 
-            c.spacer()
+            c.spacer(size=1)
 
             # Group summary table
             group_rows = []
@@ -230,16 +309,15 @@ with c.app_shell(brand="Tukuy", default="overview",
                     "Skills": s_count,
                 })
 
-            with c.card("Groups"):
-                c.table(
-                    group_rows,
-                    columns=["Group", "Plugins", "Transformers", "Skills"],
-                    searchable=True,
-                )
+            c.table(
+                group_rows,
+                columns=["Group", "Plugins", "Transformers", "Skills"],
+                searchable=True,
+            )
 
-            c.spacer()
+            c.spacer(size=2)
 
-            # Full plugin catalog table
+            # Full plugin table
             all_plugins_table = []
             for group in ordered_groups:
                 for p in catalog[group]:
@@ -257,13 +335,12 @@ with c.app_shell(brand="Tukuy", default="overview",
                         "Version": p["version"],
                     })
 
-            with c.card("All Plugins"):
-                c.table(
-                    all_plugins_table,
-                    columns=["Plugin", "Group", "Transformers", "Skills", "Requires", "Version"],
-                    searchable=True,
-                    page_size=15,
-                )
+            c.table(
+                all_plugins_table,
+                columns=["Plugin", "Group", "Transformers", "Skills", "Requires", "Version"],
+                searchable=True,
+                page_size=15,
+            )
 
         # ── Per-plugin panels ──
         for group in ordered_groups:
@@ -274,7 +351,7 @@ with c.app_shell(brand="Tukuy", default="overview",
                     if plugin["description"]:
                         c.text(plugin["description"], color="muted")
 
-                    c.spacer(size=2)
+                    c.spacer(size=1)
 
                     # Badges
                     with c.row(gap=2, wrap=True):
@@ -291,14 +368,25 @@ with c.app_shell(brand="Tukuy", default="overview",
                         for imp in plugin["requires"].get("imports", []):
                             c.badge(imp, color="info")
 
-                    c.spacer()
+                    c.spacer(size=2)
 
                     # Quick stats
                     with c.row():
                         c.metric("Transformers", len(plugin["transformer_names"]))
                         c.metric("Skills", len(plugin["skill_names"]))
 
-                    c.spacer()
+                    c.spacer(size=2)
+
+                    # Usage example
+                    if plugin["transformer_names"]:
+                        first_t = plugin["transformer_names"][0]
+                        with c.card("Quick Usage"):
+                            c.code(
+                                f'from tukuy import transform\n\n'
+                                f'result = transform("{first_t}", your_input)',
+                                language="python",
+                            )
+                        c.spacer(size=2)
 
                     # Tabs for transformers / skills
                     has_transformers = bool(plugin["transformer_names"])
@@ -309,7 +397,7 @@ with c.app_shell(brand="Tukuy", default="overview",
                         with c.tabs(default=default_tab):
 
                             if has_transformers:
-                                with c.tab("transformers", "Transformers"):
+                                with c.tab("transformers", f"Transformers ({len(plugin['transformer_names'])})"):
                                     transformer_rows = [
                                         {"Name": t} for t in plugin["transformer_names"]
                                     ]
@@ -320,7 +408,7 @@ with c.app_shell(brand="Tukuy", default="overview",
                                     )
 
                             if has_skills:
-                                with c.tab("skills", "Skills"):
+                                with c.tab("skills", f"Skills ({len(plugin['skill_names'])})"):
                                     for sname in plugin["skill_names"]:
                                         sd = plugin["skill_descriptors"].get(sname, {})
                                         with c.card(sd.get("display_name", sname)):
