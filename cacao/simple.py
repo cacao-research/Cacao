@@ -149,6 +149,38 @@ from .server.ui import (
     # Toast
     toast as _toast,
 )
+from .server.ui import (
+    # Content components
+    accordion as _accordion,
+)
+from .server.ui import (
+    accordion_item as _accordion_item,
+)
+from .server.ui import (
+    steps as _steps,
+)
+from .server.ui import (
+    step as _step,
+)
+from .server.ui import (
+    file_tree as _file_tree,
+)
+from .server.ui import (
+    link_card as _link_card,
+)
+from .server.ui import (
+    # General UI components
+    modal as _modal,
+)
+from .server.ui import (
+    tooltip as _tooltip,
+)
+from .server.ui import (
+    breadcrumb as _breadcrumb,
+)
+from .server.ui import (
+    image as _image,
+)
 
 T = TypeVar("T")
 
@@ -1180,6 +1212,199 @@ file_upload = upload
 
 
 # =============================================================================
+# Content Components
+# =============================================================================
+
+
+@contextmanager
+def accordion(
+    title: str | None = None,
+    items: list[dict[str, Any]] | None = None,
+    mode: Literal["multiple", "single"] = "multiple",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Collapsible accordion sections.
+
+    Example:
+        with c.accordion(mode="single"):
+            with c.accordion_item("FAQ 1"):
+                c.text("Answer 1")
+    """
+    _ensure_context()
+    with _accordion(title=title, items=items, mode=mode, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def accordion_item(
+    title: str,
+    default_open: bool = False,
+    icon: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """Individual accordion item."""
+    _ensure_context()
+    with _accordion_item(title=title, default_open=default_open, icon=icon, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def steps(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Step-by-step guide container.
+
+    Example:
+        with c.steps():
+            c.step("Sign Up", status="complete")
+            c.step("Verify", status="active")
+            c.step("Done", status="pending")
+    """
+    _ensure_context()
+    with _steps(direction=direction, **props) as comp:
+        yield comp
+
+
+def step(
+    title: str,
+    description: str | None = None,
+    status: Literal["pending", "active", "complete", "error"] = "pending",
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """Individual step within steps()."""
+    _ensure_context()
+    return _step(title=title, description=description, status=status, icon=icon, **props)
+
+
+def file_tree(
+    data: dict[str, Any] | str,
+    highlight: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    File/directory tree display.
+
+    Example:
+        c.file_tree({"src": {"main.py": None}, "README.md": None})
+    """
+    _ensure_context()
+    return _file_tree(data=data, highlight=highlight, **props)
+
+
+def link_card(
+    title: str,
+    description: str | None = None,
+    href: str | None = None,
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Clickable navigation card.
+
+    Example:
+        c.link_card("Getting Started", description="Learn the basics", href="/docs", icon="book")
+    """
+    _ensure_context()
+    return _link_card(title=title, description=description, href=href, icon=icon, **props)
+
+
+# =============================================================================
+# General UI Components
+# =============================================================================
+
+
+@contextmanager
+def modal(
+    title: str | None = None,
+    signal: Signal[bool] | None = None,
+    size: Literal["sm", "md", "lg", "full"] = "md",
+    close_on_backdrop: bool = True,
+    close_on_escape: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Modal dialog overlay.
+
+    Example:
+        show = c.signal(False, name="show_modal")
+        with c.modal(title="Confirm", signal=show):
+            c.text("Are you sure?")
+            c.button("Yes", on_click="confirm")
+    """
+    _ensure_context()
+    with _modal(
+        title=title,
+        signal=signal,
+        size=size,
+        close_on_backdrop=close_on_backdrop,
+        close_on_escape=close_on_escape,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def tooltip(
+    text: str,
+    position: Literal["top", "bottom", "left", "right"] = "top",
+    delay: int = 200,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Tooltip wrapper.
+
+    Example:
+        with c.tooltip("Click to submit"):
+            c.button("Submit")
+    """
+    _ensure_context()
+    with _tooltip(text=text, position=position, delay=delay, **props) as comp:
+        yield comp
+
+
+def breadcrumb(
+    items: list[dict[str, Any]],
+    separator: str = "/",
+    **props: Any,
+) -> Component:
+    """
+    Breadcrumb navigation.
+
+    Example:
+        c.breadcrumb([{"label": "Home", "href": "/"}, {"label": "Docs"}, {"label": "API"}])
+    """
+    _ensure_context()
+    return _breadcrumb(items=items, separator=separator, **props)
+
+
+def image(
+    src: str,
+    alt: str = "",
+    caption: str | None = None,
+    width: int | str | None = None,
+    height: int | str | None = None,
+    lightbox: bool = False,
+    lazy: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Image with optional caption and lightbox.
+
+    Example:
+        c.image("photo.jpg", caption="Figure 1", lightbox=True, width=300)
+    """
+    _ensure_context()
+    return _image(
+        src=src, alt=alt, caption=caption, width=width, height=height,
+        lightbox=lightbox, lazy=lazy, **props,
+    )
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1469,6 +1694,18 @@ __all__ = [
     "chat",
     "upload",
     "file_upload",
+    # Content
+    "accordion",
+    "accordion_item",
+    "steps",
+    "step",
+    "file_tree",
+    "link_card",
+    # General UI
+    "modal",
+    "tooltip",
+    "breadcrumb",
+    "image",
     # Toast
     "toast",
     # Charts

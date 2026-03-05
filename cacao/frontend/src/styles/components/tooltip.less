@@ -1,0 +1,50 @@
+// Tooltip component
+
+.c-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.c-tooltip {
+  position: absolute;
+  z-index: 900;
+  padding: @space-1 @space-2;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: @radius-sm;
+  font-size: @font-size-sm;
+  color: var(--text-primary);
+  white-space: nowrap;
+  box-shadow: @shadow-md;
+  pointer-events: none;
+  animation: tooltipIn @transition-fast;
+
+  &--top {
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &--bottom {
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &--left {
+    right: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  &--right {
+    left: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes tooltipIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

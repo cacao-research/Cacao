@@ -1,0 +1,56 @@
+// FileTree component
+
+.c-file-tree {
+  font-family: @font-mono;
+  font-size: @font-size-sm;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+  padding: @space-3;
+  overflow-x: auto;
+}
+
+.c-file-tree-label {
+  display: flex;
+  align-items: center;
+  gap: @space-1;
+  padding: @space-1 @space-2;
+  border-radius: @radius-sm;
+  cursor: default;
+  white-space: nowrap;
+  transition: background @transition-fast;
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  &--highlight {
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+}
+
+.c-file-tree-arrow {
+  font-size: 8px;
+  color: var(--text-secondary);
+  transition: transform @transition-fast;
+  display: inline-block;
+  width: 10px;
+
+  &--open {
+    transform: rotate(90deg);
+  }
+}
+
+.c-file-tree-icon {
+  font-size: @font-size-base;
+  line-height: 1;
+}
+
+.c-file-tree-name {
+  color: var(--text-primary);
+}
+
+.c-file-tree-children {
+  // Children are indented via padding-left on label
+}

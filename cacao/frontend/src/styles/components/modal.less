@@ -1,0 +1,82 @@
+// Modal / Dialog component
+
+.c-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalOverlayIn @transition-fast;
+  padding: @space-4;
+}
+
+.c-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: @radius-lg;
+  box-shadow: @shadow-xl;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  animation: modalIn @transition-base;
+
+  &--sm { width: 400px; max-width: 100%; }
+  &--md { width: 560px; max-width: 100%; }
+  &--lg { width: 800px; max-width: 100%; }
+  &--full { width: calc(100vw - 2 * @space-4); height: calc(100vh - 2 * @space-4); }
+}
+
+.c-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: @space-4;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.c-modal-title {
+  font-size: @font-size-lg;
+  font-weight: @font-weight-semibold;
+  color: var(--text-primary);
+}
+
+.c-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: @font-size-xl;
+  cursor: pointer;
+  padding: @space-1 @space-2;
+  border-radius: @radius-sm;
+  line-height: 1;
+  transition: all @transition-fast;
+
+  &:hover {
+    background: var(--hover);
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.c-modal-body {
+  padding: @space-4;
+  overflow-y: auto;
+  flex: 1;
+}
+
+@keyframes modalOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

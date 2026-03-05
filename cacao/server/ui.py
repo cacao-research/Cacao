@@ -944,6 +944,282 @@ def file_upload(
 
 
 # =============================================================================
+# Content Components
+# =============================================================================
+
+
+@contextmanager
+def accordion(
+    title: str | None = None,
+    items: list[dict[str, Any]] | None = None,
+    mode: Literal["multiple", "single"] = "multiple",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Collapsible accordion sections.
+
+    Use as context manager for custom content, or pass items for simple text sections.
+
+    Example:
+        with accordion(mode="single"):
+            with accordion_item("Section 1", default_open=True):
+                text("Content 1")
+            with accordion_item("Section 2"):
+                text("Content 2")
+
+        # Or with items list:
+        accordion(items=[{"title": "FAQ 1", "content": "Answer 1"}])
+    """
+    component = Component(
+        type="Accordion",
+        props={"title": title, "items": items, "mode": mode, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def accordion_item(
+    title: str,
+    default_open: bool = False,
+    icon: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Individual accordion item. Must be used inside accordion().
+
+    Example:
+        with accordion_item("Details", default_open=True):
+            text("Some details here")
+    """
+    component = Component(
+        type="AccordionItem",
+        props={"title": title, "defaultOpen": default_open, "icon": icon, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def steps(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Step-by-step guide container.
+
+    Example:
+        with steps():
+            step("Sign Up", status="complete")
+            step("Verify Email", status="active")
+            step("Complete Profile", status="pending")
+    """
+    component = Component(type="Steps", props={"direction": direction, **props})
+    with _container_context(component):
+        yield component
+
+
+def step(
+    title: str,
+    description: str | None = None,
+    status: Literal["pending", "active", "complete", "error"] = "pending",
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Individual step. Must be used inside steps().
+
+    Example:
+        step("Sign Up", description="Create your account", status="complete")
+    """
+    return _add_to_current_container(
+        Component(
+            type="Step",
+            props={
+                "title": title,
+                "description": description,
+                "status": status,
+                "icon": icon,
+                **props,
+            },
+        )
+    )
+
+
+def file_tree(
+    data: dict[str, Any] | str,
+    highlight: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    File/directory tree display.
+
+    Accepts a nested dict (folders as dicts, files as None) or a string (tree command output).
+
+    Example:
+        file_tree({
+            "src": {
+                "main.py": None,
+                "utils": {"helper.py": None}
+            },
+            "README.md": None
+        })
+    """
+    return _add_to_current_container(
+        Component(
+            type="FileTree",
+            props={"data": data, "highlight": highlight, **props},
+        )
+    )
+
+
+def link_card(
+    title: str,
+    description: str | None = None,
+    href: str | None = None,
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Clickable navigation card with title, description, and icon.
+
+    Example:
+        link_card("Getting Started", description="Learn the basics", href="/docs/start", icon="book")
+    """
+    return _add_to_current_container(
+        Component(
+            type="LinkCard",
+            props={
+                "title": title,
+                "description": description,
+                "href": href,
+                "icon": icon,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
+# General UI Components
+# =============================================================================
+
+
+@contextmanager
+def modal(
+    title: str | None = None,
+    signal: Signal[bool] | None = None,
+    size: Literal["sm", "md", "lg", "full"] = "md",
+    close_on_backdrop: bool = True,
+    close_on_escape: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Modal dialog overlay.
+
+    Example:
+        show = app.signal(False, name="show_modal")
+        with modal(title="Confirm", signal=show):
+            text("Are you sure?")
+            button("Yes", on_click=handle_confirm)
+    """
+    component = Component(
+        type="Modal",
+        props={
+            "title": title,
+            "signal": signal,
+            "size": size,
+            "closeOnBackdrop": close_on_backdrop,
+            "closeOnEscape": close_on_escape,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def tooltip(
+    text: str,
+    position: Literal["top", "bottom", "left", "right"] = "top",
+    delay: int = 200,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Tooltip wrapper. Wraps child elements with hover tooltip.
+
+    Example:
+        with tooltip("This button submits the form"):
+            button("Submit")
+    """
+    component = Component(
+        type="Tooltip",
+        props={"text": text, "position": position, "delay": delay, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+def breadcrumb(
+    items: list[dict[str, Any]],
+    separator: str = "/",
+    **props: Any,
+) -> Component:
+    """
+    Breadcrumb navigation.
+
+    Each item: {"label": "Home", "href": "/", "icon": "home"}
+    The last item is treated as the current page (no link).
+
+    Example:
+        breadcrumb([
+            {"label": "Home", "href": "/"},
+            {"label": "Docs", "href": "/docs"},
+            {"label": "API"}
+        ])
+    """
+    return _add_to_current_container(
+        Component(
+            type="Breadcrumb",
+            props={"items": items, "separator": separator, **props},
+        )
+    )
+
+
+def image(
+    src: str,
+    alt: str = "",
+    caption: str | None = None,
+    width: int | str | None = None,
+    height: int | str | None = None,
+    lightbox: bool = False,
+    lazy: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Image with optional caption and lightbox.
+
+    Example:
+        image("photo.jpg", caption="Figure 1", lightbox=True, width=300)
+    """
+    return _add_to_current_container(
+        Component(
+            type="Image",
+            props={
+                "src": src,
+                "alt": alt,
+                "caption": caption,
+                "width": width,
+                "height": height,
+                "lightbox": lightbox,
+                "lazy": lazy,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1102,6 +1378,18 @@ __all__ = [
     "date_picker",
     "chat",
     "file_upload",
+    # Content
+    "accordion",
+    "accordion_item",
+    "steps",
+    "step",
+    "file_tree",
+    "link_card",
+    # General UI
+    "modal",
+    "tooltip",
+    "breadcrumb",
+    "image",
     # Toast
     "toast",
 ]
