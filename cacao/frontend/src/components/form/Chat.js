@@ -12,6 +12,7 @@
  *   height       - Container height (default: "500px")
  *   show_clear   - Show clear conversation button
  *   on_clear     - Event name fired when user clears chat
+ *   persist      - Enable localStorage persistence for chat messages
  */
 
 const { createElement: h, useState, useEffect, useRef, useCallback } = React;
@@ -26,6 +27,7 @@ export function Chat({ props }) {
     title,
     height = '500px',
     show_clear = false,
+    persist = false,
   } = props;
 
   const [messages, setMessages] = useState([]);
@@ -35,24 +37,45 @@ export function Chat({ props }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const signalName = signal?.__signal__;
+  const storageKey = persist && signalName ? `cacao-chat-${signalName}` : null;
+
+  // Load from localStorage on mount (before signal subscription)
+  useEffect(() => {
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(parsed);
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    }
+  }, [storageKey]);
 
   // Subscribe to signal for message history
   useEffect(() => {
     if (signalName) {
       const unsubscribe = cacaoWs.subscribe((signals) => {
         if (signals[signalName] !== undefined) {
-          setMessages(signals[signalName]);
+          const newMsgs = signals[signalName];
+          setMessages(newMsgs);
+          // Persist to localStorage
+          if (storageKey && Array.isArray(newMsgs)) {
+            try { localStorage.setItem(storageKey, JSON.stringify(newMsgs)); } catch {}
+          }
         }
       });
       const initial = cacaoWs.getSignal(signalName);
-      if (initial !== undefined) {
+      if (initial !== undefined && Array.isArray(initial) && initial.length > 0) {
         setMessages(initial);
       }
       return unsubscribe;
     }
-  }, [signalName]);
+  }, [signalName, storageKey]);
 
-  // Listen for chat_delta and chat_done WebSocket messages
+  // Listen for chat_delta and chat_done messages (WebSocket or static mode)
   useEffect(() => {
     if (!signalName) return;
 
@@ -105,7 +128,11 @@ export function Chat({ props }) {
     if (eventName) {
       cacaoWs.sendEvent(eventName, {});
     }
-  }, [on_clear]);
+    // Clear localStorage too
+    if (storageKey) {
+      try { localStorage.removeItem(storageKey); } catch {}
+    }
+  }, [on_clear, storageKey]);
 
   // Render a single message bubble
   const renderMessage = (msg, index) => {

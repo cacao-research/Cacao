@@ -11,12 +11,22 @@ if (!fs.existsSync(distDir)) {
 
 console.log('[Cacao] Building frontend...');
 
-// Build CSS
-console.log('[Cacao] Compiling LESS → CSS');
+// Build full CSS (backward compat)
+console.log('[Cacao] Compiling LESS → CSS (full bundle)');
 execSync('npx lessc src/styles/index.less dist/cacao.css', {
   cwd: __dirname,
   stdio: 'inherit'
 });
+
+// Build category CSS files for optimized loading
+const categories = ['core', 'cat-layout', 'cat-display', 'cat-typography', 'cat-form', 'cat-charts'];
+console.log('[Cacao] Compiling category CSS:', categories.join(', '));
+for (const cat of categories) {
+  execSync(`npx lessc src/styles/${cat}.less dist/cacao-${cat}.css`, {
+    cwd: __dirname,
+    stdio: 'inherit'
+  });
+}
 
 // Build JS
 // Note: Don't use --global-name because window.Cacao is set manually in the code

@@ -216,16 +216,59 @@ T = TypeVar("T")
 # The implicit global app instance (lazily created)
 _global_app: _App | None = None
 
-# Configuration set via config()
-_global_config: dict[str, Any] = {
+# Default configuration
+_DEFAULT_CONFIG: dict[str, Any] = {
     "title": "Cacao App",
     "theme": "dark",
     "host": "127.0.0.1",
     "port": 1502,  # 1502: Columbus encounters cacao in Honduras
 }
 
+# Configuration set via config() — seeded from cacao.yaml then overridden by c.config()
+_global_config: dict[str, Any] = _DEFAULT_CONFIG.copy()
+
+# Track which keys were explicitly set via c.config() (these take priority over yaml)
+_explicit_config_keys: set[str] = set()
+
+# Whether we've loaded the yaml config yet
+_yaml_config_loaded: bool = False
+
+# The raw yaml data (full file, for plugins/CacaoDocs to access)
+_yaml_raw_data: dict[str, Any] = {}
+
+# Path to the loaded config file
+_yaml_config_path: str | None = None
+
 # Whether we're in "simple mode" (implicit app)
 _simple_mode: bool = False
+
+# Static build: custom JS handlers and scripts registered by the app
+_static_handlers: dict[str, str] = {}
+_static_scripts: list[str] = []
+
+
+def _load_yaml_config() -> None:
+    """Load cacao.yaml if not already loaded. Called lazily on first app creation."""
+    global _yaml_config_loaded, _yaml_raw_data, _yaml_config_path
+
+    if _yaml_config_loaded:
+        return
+    _yaml_config_loaded = True
+
+    from .config import extract_app_config, find_config_file, load_config_file
+
+    path = find_config_file()
+    if path is None:
+        return
+
+    _yaml_config_path = str(path)
+    _yaml_raw_data = load_config_file(path)
+    app_config = extract_app_config(_yaml_raw_data)
+
+    # Apply yaml values only for keys NOT explicitly set via c.config()
+    for key, value in app_config.items():
+        if key not in _explicit_config_keys:
+            _global_config[key] = value
 
 
 def _get_app() -> _App:
@@ -233,6 +276,9 @@ def _get_app() -> _App:
     global _global_app, _simple_mode
 
     if _global_app is None:
+        # Load cacao.yaml before creating the app
+        _load_yaml_config()
+
         _global_app = _App(
             title=_global_config["title"],
             theme=_global_config["theme"],
@@ -303,16 +349,22 @@ def config(
 
     if title is not None:
         _global_config["title"] = title
+        _explicit_config_keys.add("title")
     if theme is not None:
         _global_config["theme"] = theme
+        _explicit_config_keys.add("theme")
     if host is not None:
         _global_config["host"] = host
+        _explicit_config_keys.add("host")
     if port is not None:
         _global_config["port"] = port
+        _explicit_config_keys.add("port")
     if debug is not None:
         _global_config["debug"] = debug
+        _explicit_config_keys.add("debug")
     if branding is not None:
         _global_config["branding"] = branding
+        _explicit_config_keys.add("branding")
 
     # If app already created, update it
     if _global_app is not None:
@@ -1291,6 +1343,7 @@ def chat(
     title: str | None = None,
     height: str = "500px",
     show_clear: bool = False,
+    persist: bool = False,
     **props: Any,
 ) -> Component:
     """
@@ -1302,11 +1355,13 @@ def chat(
     The signal should hold a list of messages:
     [{"role": "user"|"assistant"|"error", "content": "..."}]
 
-    Use with Prompture's AsyncConversation for AI-powered chat:
+    Args:
+        persist: If True, saves chat messages to localStorage so they
+            survive page refreshes. Messages are keyed by signal name.
 
     Example:
         messages = c.signal([], name="chat_messages")
-        c.chat(signal=messages, on_send="chat_send", title="AI Chat")
+        c.chat(signal=messages, on_send="chat_send", title="AI Chat", persist=True)
 
         @c.on("chat_send")
         async def handle_send(session, event):
@@ -1322,6 +1377,7 @@ def chat(
         title=title,
         height=height,
         show_clear=show_clear,
+        persist=persist,
         **props,
     )
 
@@ -1817,14 +1873,87 @@ def reset() -> None:
     Mainly useful for testing. Clears the global app and config.
     """
     global _global_app, _simple_mode, _global_config
+    global _yaml_config_loaded, _yaml_raw_data, _yaml_config_path
     _global_app = None
     _simple_mode = False
-    _global_config = {
-        "title": "Cacao App",
-        "theme": "dark",
-        "host": "127.0.0.1",
-        "port": 1502,  # 1502: Columbus encounters cacao in Honduras
-    }
+    _global_config = _DEFAULT_CONFIG.copy()
+    _explicit_config_keys.clear()
+    _yaml_config_loaded = False
+    _yaml_raw_data = {}
+    _yaml_config_path = None
+    _static_handlers.clear()
+    _static_scripts.clear()
+
+
+def get_yaml_config() -> dict[str, Any]:
+    """
+    Get the raw parsed cacao.yaml data.
+
+    Returns the full YAML dictionary, including keys that Cacao doesn't
+    use directly (e.g. plugin-specific settings like CacaoDocs' doc_types).
+    Useful for plugins that read their own config from the shared file.
+
+    Returns:
+        Full parsed YAML dictionary, or empty dict if no config file found.
+    """
+    _load_yaml_config()
+    return _yaml_raw_data.copy()
+
+
+def get_yaml_config_path() -> str | None:
+    """
+    Get the path to the loaded cacao.yaml file.
+
+    Returns:
+        Absolute path string, or None if no config file was found.
+    """
+    _load_yaml_config()
+    return _yaml_config_path
+
+
+def static_handler(event_name: str, js_code: str) -> None:
+    """
+    Register a JavaScript event handler for static builds.
+
+    In static mode (GitHub Pages, etc.), there is no Python server.
+    This lets apps define client-side JavaScript handlers that run
+    when events are dispatched.
+
+    The js_code should be a JavaScript function expression:
+        async function(signals, event) { ... }
+
+    Args:
+        event_name: The event name (e.g. "chat_send").
+        js_code: JavaScript function body.
+
+    Example:
+        c.static_handler("chat_send", '''async function(signals, event) {
+            const text = event.text;
+            const msgs = signals.get("messages") || [];
+            signals.set("messages", [...msgs, {role: "user", content: text}]);
+        }''')
+    """
+    _static_handlers[event_name] = js_code
+
+
+def static_script(js_code: str) -> None:
+    """
+    Register extra JavaScript to include in static builds.
+
+    The code is injected as a <script> block before the app initializes.
+    Useful for utility functions, library setup, etc.
+
+    Args:
+        js_code: Raw JavaScript code.
+
+    Example:
+        c.static_script('''
+        window.myApp = {
+            search: function(query) { return []; }
+        };
+        ''')
+    """
+    _static_scripts.append(js_code)
 
 
 def export_static() -> dict[str, Any]:
@@ -1835,6 +1964,8 @@ def export_static() -> dict[str, Any]:
     - pages: Component tree for all pages
     - metadata: App metadata (title, theme)
     - signals: Default signal values
+    - static_handlers: Custom JS event handlers
+    - static_scripts: Extra JS code blocks
 
     Example:
         import cacao as c
@@ -1872,6 +2003,8 @@ def export_static() -> dict[str, Any]:
         "pages": pages,
         "metadata": metadata,
         "signals": signals,
+        "static_handlers": dict(_static_handlers),
+        "static_scripts": list(_static_scripts),
     }
 
 
@@ -1981,4 +2114,8 @@ __all__ = [
     "is_simple_mode",
     "reset",
     "export_static",
+    "static_handler",
+    "static_script",
+    "get_yaml_config",
+    "get_yaml_config_path",
 ]

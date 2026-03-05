@@ -160,6 +160,7 @@ def print_banner(
     reload: bool,
     app_file: str,
     year_significance: str = "",
+    config_file: str | None = None,
 ) -> None:
     """Print the startup banner with a random chocolate fact."""
     print(_get_logo())
@@ -169,6 +170,8 @@ def print_banner(
         return f"  {DARK_BROWN}{label:<12}{RESET}{value}"
 
     print(_line("App", app_file))
+    if config_file:
+        print(_line("Config", config_file))
     print(_line("URL", f"{CYAN}http://{host}:{port}{RESET}"))
     if year_significance:
         print(_line("Port", f"{DIM}{port} \u00b7 {year_significance}{RESET}"))
@@ -398,6 +401,12 @@ def run_command(args: list[str]) -> None:
         print(f"{RED}Error: {e}{RESET}")
         sys.exit(1)
 
+    # Check for cacao.yaml config file
+    from cacao.config import find_config_file
+
+    config_file = find_config_file(app_path.parent)
+    config_file_str = str(config_file) if config_file else None
+
     # Print banner
     print_banner(
         host=parsed_args.host,
@@ -405,6 +414,7 @@ def run_command(args: list[str]) -> None:
         reload=hot_reload,
         app_file=str(app_path.resolve()),
         year_significance=year_significance,
+        config_file=config_file_str,
     )
 
     try:
@@ -648,7 +658,7 @@ def build_command(args: list[str]) -> None:
         if parsed_args.verbose:
             print(f"  Loading {app_path.name}...")
 
-        load_app_module(app_path)
+        module = load_app_module(app_path)
 
         # Get the export data using cacao.export_static()
         import cacao
@@ -676,12 +686,43 @@ def build_command(args: list[str]) -> None:
         )
         sys.exit(1)
 
-    # Copy CSS and JS
-    shutil.copy(frontend_dist / "cacao.css", output_dir / "cacao.css")
+    # Determine which component categories are used
+    categories: set[str] | None = None
+    try:
+        import cacao as _cacao_mod
+
+        if _cacao_mod.is_simple_mode():
+            app_instance = _cacao_mod.get_app()
+        else:
+            app_instance = find_app_instance(module)
+        if hasattr(app_instance, "get_used_categories"):
+            categories = app_instance.get_used_categories()
+            if parsed_args.verbose:
+                cats = ", ".join(sorted(categories)) if categories else "none"
+                print(f"  Component categories: {cats}")
+    except Exception:
+        pass  # Fall back to full bundle
+
+    # Copy JS (always needed)
     shutil.copy(frontend_dist / "cacao.js", output_dir / "cacao.js")
 
+    # Copy CSS — optimized per category or full bundle as fallback
+    if categories is not None and (frontend_dist / "cacao-core.css").exists():
+        shutil.copy(frontend_dist / "cacao-core.css", output_dir / "cacao-core.css")
+        for cat in sorted(categories):
+            css_file = f"cacao-cat-{cat}.css"
+            if (frontend_dist / css_file).exists():
+                shutil.copy(frontend_dist / css_file, output_dir / css_file)
+    else:
+        shutil.copy(frontend_dist / "cacao.css", output_dir / "cacao.css")
+        categories = None  # Signal to use full bundle in HTML
+
     if parsed_args.verbose:
-        print("  Copied cacao.css and cacao.js (includes built-in handlers)")
+        print("  Copied cacao.js (includes built-in handlers)")
+        if categories is not None:
+            print(f"  Copied optimized CSS: core + {', '.join(sorted(categories))}")
+        else:
+            print("  Copied full cacao.css")
 
     # Generate index.html
     metadata = export_data.get("metadata", {})
@@ -697,6 +738,19 @@ def build_command(args: list[str]) -> None:
         }
     )
     signals_json = json.dumps(export_data.get("signals", {}))
+
+    # Static handlers and scripts from the app
+    static_handlers = export_data.get("static_handlers", {})
+    static_scripts = export_data.get("static_scripts", [])
+
+    # Build handlers JS object: { "event_name": async function(signals, event) { ... }, ... }
+    handler_entries = []
+    for evt_name, js_code in static_handlers.items():
+        handler_entries.append(f'"{evt_name}": {js_code}')
+    handlers_js = "{" + ", ".join(handler_entries) + "}" if handler_entries else "{}"
+
+    # Build extra scripts block
+    extra_scripts = "\n".join(static_scripts) if static_scripts else ""
 
     # Build the HTML
     # Use relative paths when no base_path is specified (for file:// and local preview)
@@ -716,18 +770,32 @@ def build_command(args: list[str]) -> None:
                 ' target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
             )
 
+    # Build CSS links based on categories
+    if categories is not None:
+        css_links = f'    <link rel="stylesheet" href="{asset_prefix}/cacao-core.css">'
+        for cat in sorted(categories):
+            css_links += f'\n    <link rel="stylesheet" href="{asset_prefix}/cacao-cat-{cat}.css">'
+    else:
+        css_links = f'    <link rel="stylesheet" href="{asset_prefix}/cacao.css">'
+
+    needs_charts = categories is None or "charts" in (categories or set())
+    chartjs_tag = (
+        '\n    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>'
+        if needs_charts
+        else ""
+    )
+
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <link rel="stylesheet" href="{asset_prefix}/cacao.css">
+{css_links}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>{chartjs_tag}
 </head>
 <body>
     <div id="root"><div class="loading">Loading...</div></div>{branding_html}
@@ -743,13 +811,15 @@ def build_command(args: list[str]) -> None:
 
     <script src="{asset_prefix}/cacao.js"></script>
 
+    {f"<script>{extra_scripts}</script>" if extra_scripts else ""}
+
     <script>
     // Initialize static mode and mount (handlers are built into cacao.js)
     (function() {{
         Cacao.initStatic({{
             pages: window.__CACAO_PAGES__,
             signals: window.__CACAO_INITIAL_SIGNALS__,
-            handlers: {{}}
+            handlers: {handlers_js}
         }});
         Cacao.mount();
     }})();
@@ -767,7 +837,17 @@ def build_command(args: list[str]) -> None:
     print(f"\nOutput: {output_dir.resolve()}")
     print("  - index.html")
     print("  - 404.html (for SPA routing)")
-    print("  - cacao.css")
+    if categories is not None:
+        print("  - cacao-core.css")
+        for cat in sorted(categories):
+            print(f"  - cacao-cat-{cat}.css")
+        skipped = {"layout", "display", "typography", "form"} - categories
+        if skipped:
+            print(f"  {DIM}(skipped: {', '.join(sorted(skipped))}){RESET}")
+        if "charts" not in categories:
+            print(f"  {DIM}(skipped: Chart.js CDN ~200KB){RESET}")
+    else:
+        print("  - cacao.css")
     print("  - cacao.js (includes built-in handlers)")
     print()
     print("To preview locally:")

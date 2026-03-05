@@ -48,6 +48,8 @@ if ($Mode -eq "validate") {
         Write-Host "Running linters..." -ForegroundColor Cyan
         Write-Host ""
 
+        $script:failures = 0
+
         # --- Python: ruff check (auto-fix) ---
         Write-Host "  ruff check      " -ForegroundColor Cyan -NoNewline
         $out = & ruff check $pyPath 2>&1
@@ -59,6 +61,7 @@ if ($Mode -eq "validate") {
                 $fixed = ($out | Select-String "^\[").Count
                 Write-Host "fixed $fixed issues" -ForegroundColor Yellow
             } else {
+                $script:failures++
                 Write-Host "fail" -ForegroundColor Red
                 $fixOut | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
             }
@@ -71,16 +74,43 @@ if ($Mode -eq "validate") {
             Write-Host "ok" -ForegroundColor Green
         } else {
             & ruff format $pyPath 2>&1 | Out-Null
-            $fixed = ($out | Select-String "^Would reformat:").Count
-            Write-Host "fixed $fixed files" -ForegroundColor Yellow
+            # Verify format is clean after fix
+            & ruff format --check $pyPath 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                $fixed = ($out | Select-String "^Would reformat:").Count
+                Write-Host "fixed $fixed files" -ForegroundColor Yellow
+            } else {
+                $script:failures++
+                Write-Host "fail (could not auto-format)" -ForegroundColor Red
+                $out | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+            }
+        }
+
+        # --- Verify: ruff clean after fixes ---
+        Write-Host "  ruff verify     " -ForegroundColor Cyan -NoNewline
+        $out = & ruff check $pyPath 2>&1
+        $checkOk = $LASTEXITCODE -eq 0
+        $out2 = & ruff format --check $pyPath 2>&1
+        $fmtOk = $LASTEXITCODE -eq 0
+        if ($checkOk -and $fmtOk) {
+            Write-Host "ok" -ForegroundColor Green
+        } else {
+            $script:failures++
+            Write-Host "fail (issues remain after auto-fix)" -ForegroundColor Red
+            if (-not $checkOk) { $out  | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray } }
+            if (-not $fmtOk)   { $out2 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray } }
         }
 
         # --- Python: mypy type check ---
         Write-Host "  mypy            " -ForegroundColor Cyan -NoNewline
+        $savedEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
         $out = & mypy $pyPath 2>&1
-        if ($LASTEXITCODE -eq 0) {
+        $myExit = $LASTEXITCODE
+        $ErrorActionPreference = $savedEAP
+        if ($myExit -eq 0) {
             Write-Host "ok" -ForegroundColor Green
         } else {
+            $script:failures++
             $errCount = ($out | Select-String "^Found \d+ error").Count
             if ($errCount -gt 0) {
                 $summary = ($out | Select-String "^Found \d+ error").Line
@@ -102,6 +132,7 @@ if ($Mode -eq "validate") {
         if ($exitCode -eq 0) {
             Write-Host "ok" -ForegroundColor Green
         } else {
+            $script:failures++
             Write-Host "fail" -ForegroundColor Red
             $out | Where-Object { $_ -match "error|Error" } | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         }
@@ -121,6 +152,7 @@ if ($Mode -eq "validate") {
         } elseif ($LASTEXITCODE -eq 5) {
             Write-Host "skipped (no tests)" -ForegroundColor Yellow
         } else {
+            $script:failures++
             $failLine = ($out | Select-String "failed|error").Line | Select-Object -First 1
             if ($failLine) {
                 Write-Host "fail ($failLine)" -ForegroundColor Red
@@ -130,6 +162,13 @@ if ($Mode -eq "validate") {
             $out | Where-Object { $_ -match "FAILED|ERROR" } | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         }
 
+        # --- Summary ---
+        Write-Host ""
+        if ($script:failures -eq 0) {
+            Write-Host "  All checks passed!" -ForegroundColor Green
+        } else {
+            Write-Host "  $($script:failures) check(s) failed" -ForegroundColor Red
+        }
         Write-Host ""
     }
 
