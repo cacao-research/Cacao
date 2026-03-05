@@ -10,9 +10,6 @@ from typing import Any
 
 import yaml
 
-# Keys that map directly to c.config() parameters
-_KNOWN_KEYS = {"title", "theme", "host", "port", "debug", "branding"}
-
 # File names to search for, in priority order
 _CONFIG_FILENAMES = ["cacao.yaml", "cacao.yml", ".cacao.yaml", ".cacao.yml"]
 

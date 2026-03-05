@@ -245,15 +245,15 @@ def _get_branding_html(branding: bool | str | None) -> str:
 
 def _get_css_links(categories: set[str] | None) -> str:
     """Generate CSS link tags based on used categories."""
-    if categories is None:
-        # Fallback: load full bundle
-        return '    <link rel="stylesheet" href="/static/cacao.css">'
+    if categories is not None and (FRONTEND_DIST_DIR / "cacao-core.css").exists():
+        # Split CSS: core + per-category
+        links = ['    <link rel="stylesheet" href="/static/cacao-core.css">']
+        for cat in sorted(categories):
+            links.append(f'    <link rel="stylesheet" href="/static/cacao-cat-{cat}.css">')
+        return "\n".join(links)
 
-    # Always load core styles
-    links = ['    <link rel="stylesheet" href="/static/cacao-core.css">']
-    for cat in sorted(categories):
-        links.append(f'    <link rel="stylesheet" href="/static/cacao-cat-{cat}.css">')
-    return "\n".join(links)
+    # Fallback: load full bundle
+    return '    <link rel="stylesheet" href="/static/cacao.css">'
 
 
 def _get_dashboard_html(

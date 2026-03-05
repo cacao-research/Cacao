@@ -841,7 +841,7 @@ def build_command(args: list[str]) -> None:
         print("  - cacao-core.css")
         for cat in sorted(categories):
             print(f"  - cacao-cat-{cat}.css")
-        skipped = {"layout", "display", "typography", "form", "charts"} - categories
+        skipped = {"layout", "display", "typography", "form"} - categories
         if skipped:
             print(f"  {DIM}(skipped: {', '.join(sorted(skipped))}){RESET}")
         if "charts" not in categories:
