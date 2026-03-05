@@ -255,7 +255,7 @@ def _load_yaml_config() -> None:
         return
     _yaml_config_loaded = True
 
-    from .config import find_config_file, load_config_file, extract_app_config
+    from .config import extract_app_config, find_config_file, load_config_file
 
     path = find_config_file()
     if path is None:

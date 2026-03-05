@@ -698,7 +698,8 @@ def build_command(args: list[str]) -> None:
         if hasattr(app_instance, "get_used_categories"):
             categories = app_instance.get_used_categories()
             if parsed_args.verbose:
-                print(f"  Component categories: {', '.join(sorted(categories)) if categories else 'none'}")
+                cats = ', '.join(sorted(categories)) if categories else 'none'
+                print(f"  Component categories: {cats}")
     except Exception:
         pass  # Fall back to full bundle
 

@@ -4,12 +4,10 @@ Reads app-level settings from cacao.yaml / cacao.yml files.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
 import yaml
-
 
 # Keys that map directly to c.config() parameters
 _KNOWN_KEYS = {"title", "theme", "host", "port", "debug", "branding"}
@@ -46,7 +44,7 @@ def load_config_file(path: str | Path) -> dict[str, Any]:
     Returns:
         Parsed configuration dictionary.
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     if not isinstance(data, dict):
