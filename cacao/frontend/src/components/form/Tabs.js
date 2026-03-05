@@ -35,19 +35,24 @@ export function Tabs({ props, children }) {
     }
   };
 
+  const tabPanelId = 'tabpanel-' + current;
+  const tabId = (key) => 'tab-' + key;
+
   return h('div', null, [
     h('div', { className: 'tabs', key: 'tabs', role: 'tablist', ref: tabListRef }, tabs.map(t =>
       h('button', {
         className: 'tab ' + (t.props.props.tabKey === current ? 'active' : ''),
         key: t.props.props.tabKey,
+        id: tabId(t.props.props.tabKey),
         role: 'tab',
         'aria-selected': t.props.props.tabKey === current,
+        'aria-controls': t.props.props.tabKey === current ? tabPanelId : undefined,
         tabIndex: t.props.props.tabKey === current ? 0 : -1,
         onClick: () => setLocalTab(t.props.props.tabKey),
         onKeyDown: handleKeyDown
       }, t.props.props.label)
     )),
-    h('div', { key: 'content', className: 'tab-content', role: 'tabpanel' },
+    h('div', { key: 'content', className: 'tab-content', role: 'tabpanel', id: tabPanelId, 'aria-labelledby': tabId(current) },
       tabs.find(t => t.props.props.tabKey === current)
     )
   ]);

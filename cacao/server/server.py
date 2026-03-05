@@ -224,7 +224,7 @@ def _get_branding_html(branding: bool | str | None) -> str:
     if isinstance(branding, str):
         content = branding
     else:
-        content = 'Built with <a href="https://github.com/CacaoFramework/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;'
+        content = 'Built with <a href="https://github.com/cacao-research/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;'
     return f'\n    <div class="cacao-branding">{content}</div>'
 
 

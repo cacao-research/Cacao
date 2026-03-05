@@ -36,6 +36,9 @@ export function Code({ props }) {
     navigator.clipboard.writeText(displayContent).then(() => {
       setCopyText('Copied!');
       setTimeout(() => setCopyText('Copy'), 1500);
+    }).catch(() => {
+      setCopyText('Failed');
+      setTimeout(() => setCopyText('Copy'), 1500);
     });
   }, [displayContent]);
 

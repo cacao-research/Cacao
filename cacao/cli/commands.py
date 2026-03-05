@@ -689,7 +689,7 @@ def build_command(args: list[str]) -> None:
         if isinstance(branding, str):
             branding_html = f'\n    <div class="cacao-branding">{branding}</div>'
         else:
-            branding_html = '\n    <div class="cacao-branding">Built with <a href="https://github.com/CacaoFramework/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
+            branding_html = '\n    <div class="cacao-branding">Built with <a href="https://github.com/cacao-research/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
 
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">

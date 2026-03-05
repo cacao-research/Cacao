@@ -541,19 +541,28 @@ class _LayoutHelper:
         with col(gap=0):
             yield
 
+    def _parse_ratio(self) -> tuple[int, int]:
+        """Parse ratio string into (left, right) flex values."""
+        ratio = self._kwargs.get("ratio", "1:1")
+        parts = ratio.split(":")
+        if len(parts) != 2:
+            raise ValueError(f"Invalid ratio '{ratio}': expected format 'N:M' (e.g. '1:1', '2:1')")
+        try:
+            return int(parts[0]), int(parts[1])
+        except ValueError:
+            raise ValueError(f"Invalid ratio '{ratio}': both parts must be integers (e.g. '1:1', '2:1')")
+
     @contextmanager
     def left(self):
         """Left pane of a split layout."""
-        ratio = self._kwargs.get("ratio", "1:1")
-        left_flex = int(ratio.split(":")[0])
+        left_flex, _ = self._parse_ratio()
         with col(gap=4, flex=str(left_flex)):
             yield
 
     @contextmanager
     def right(self):
         """Right pane of a split layout."""
-        ratio = self._kwargs.get("ratio", "1:1")
-        right_flex = int(ratio.split(":")[1])
+        _, right_flex = self._parse_ratio()
         with col(gap=4, flex=str(right_flex)):
             yield
 

@@ -13,7 +13,6 @@ export function NavItem({ props, setActiveTab, activeTab }) {
     className: 'nav-item' + (isActive ? ' active' : ''),
     onClick: () => setActiveTab(itemKey),
     type: 'button',
-    role: 'menuitem',
     'aria-current': isActive ? 'page' : undefined,
   }, [
     icon && h('span', { className: 'nav-icon', key: 'icon', 'aria-hidden': 'true' }, getIcon(icon)),
