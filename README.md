@@ -5,9 +5,9 @@
 [![PyPI Version](https://img.shields.io/pypi/v/cacao)](https://pypi.org/project/cacao/)
 [![Downloads](https://static.pepy.tech/badge/cacao)](https://pepy.tech/project/cacao)
 [![Python Versions](https://img.shields.io/pypi/pyversions/cacao)](https://pypi.org/project/cacao/)
-[![License](https://img.shields.io/pypi/l/cacao)](https://github.com/jhd3197/Cacao/blob/main/LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/jhd3197/Cacao/publish.yml?branch=main)](https://github.com/jhd3197/Cacao/actions)
-[![GitHub Stars](https://img.shields.io/github/stars/jhd3197/Cacao?style=social)](https://github.com/jhd3197/Cacao)
+[![License](https://img.shields.io/pypi/l/cacao)](https://github.com/cacao-research/Cacao/blob/main/LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/cacao-research/Cacao/publish.yml?branch=main)](https://github.com/cacao-research/Cacao/actions)
+[![GitHub Stars](https://img.shields.io/github/stars/cacao-research/Cacao?style=social)](https://github.com/cacao-research/Cacao)
 
 ---
 

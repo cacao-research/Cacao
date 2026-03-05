@@ -1,18 +1,38 @@
 // Button component
 
 .btn {
-  padding: 0.625rem 1.25rem;
+  padding: @space-2 @space-4;
   border-radius: @radius-md;
-  font-weight: 500;
+  font-weight: @font-weight-medium;
   font-size: @font-size-base;
   cursor: pointer;
   border: none;
-  transition: all 0.15s ease;
+  transition: all @transition-fast;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: @space-2;
+  min-height: 36px;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 
   &-primary {
     background: var(--accent-primary);
     color: var(--bg-primary);
-    font-weight: 600;
+    font-weight: @font-weight-semibold;
 
     &:hover { background: var(--accent-secondary); }
   }
@@ -30,5 +50,16 @@
     color: var(--text-secondary);
 
     &:hover { background: var(--bg-tertiary); }
+  }
+
+  &-loading {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: @breakpoint-md) {
+  .btn {
+    min-height: 44px;
   }
 }

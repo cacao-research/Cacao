@@ -3,41 +3,32 @@
  */
 
 const { createElement: h, useState } = React;
-
-// Simple icon mapping for common icons
-const ICONS = {
-  code: '\u2039\u203a',
-  wrench: '\u2692',
-  hash: '#',
-  text: 'T',
-  lock: '\u26bf',
-  shuffle: '\u21c4',
-  home: '\u2302',
-  cog: '\u2699',
-  folder: '\u2750',
-  file: '\u2b1a',
-  chevron: '\u276f',
-};
-
-function getIcon(iconName) {
-  return ICONS[iconName] || iconName?.charAt(0)?.toUpperCase() || '\u25cf';
-}
+import { getIcon } from '../core/icons.js';
 
 export function NavGroup({ props, children }) {
   const { label, icon, defaultOpen = true } = props;
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const groupId = 'nav-group-' + label.toLowerCase().replace(/\s+/g, '-');
 
-  return h('div', { className: 'nav-group' + (isOpen ? ' open' : '') }, [
+  return h('div', { className: 'nav-group' + (isOpen ? ' open' : ''), role: 'group', 'aria-label': label }, [
     h('button', {
       className: 'nav-group-header',
       key: 'header',
       onClick: () => setIsOpen(!isOpen),
-      type: 'button'
+      type: 'button',
+      'aria-expanded': isOpen,
+      'aria-controls': groupId,
     }, [
-      icon && h('span', { className: 'nav-icon', key: 'icon' }, getIcon(icon)),
+      icon && h('span', { className: 'nav-icon', key: 'icon', 'aria-hidden': 'true' }, getIcon(icon)),
       h('span', { className: 'nav-group-label', key: 'label' }, label),
-      h('span', { className: 'nav-group-chevron', key: 'chevron' }, isOpen ? '\u25bc' : '\u25b6')
+      h('span', { className: 'nav-group-chevron', key: 'chevron', 'aria-hidden': 'true' },
+        getIcon(isOpen ? 'chevron-down' : 'chevron-right'))
     ]),
-    isOpen && h('div', { className: 'nav-group-items', key: 'items' }, children)
+    h('div', {
+      className: 'nav-group-items',
+      key: 'items',
+      id: groupId,
+      role: 'menu',
+    }, children)
   ]);
 }

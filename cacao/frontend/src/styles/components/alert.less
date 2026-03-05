@@ -1,16 +1,45 @@
 // Alert component
 
 .alert {
-  padding: 0.875rem 1rem;
+  padding: @space-3 @space-4;
   border-radius: @radius-md;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  gap: @space-3;
+  margin-bottom: @space-3;
   font-size: @font-size-base;
+  animation: alertIn @transition-base;
+  position: relative;
 
   &-info { background: var(--info-bg); border: 1px solid var(--info); color: var(--info); }
   &-success { background: var(--success-bg); border: 1px solid var(--success); color: var(--success); }
   &-warning { background: var(--warning-bg); border: 1px solid var(--warning); color: var(--warning); }
   &-error { background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); }
+}
+
+.alert-close {
+  position: absolute;
+  top: @space-2;
+  right: @space-3;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: @font-size-lg;
+  padding: @space-1;
+
+  &:hover { opacity: 1; }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: @radius-sm;
+    opacity: 1;
+  }
+}
+
+@keyframes alertIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }

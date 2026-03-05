@@ -12,6 +12,7 @@ class CacaoWebSocket {
     this.connected = false;
     this.signals = {};
     this.listeners = new Set();
+    this.chatListeners = new Set();  // For chat_delta/chat_done messages
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
@@ -91,6 +92,22 @@ class CacaoWebSocket {
         }
         break;
 
+      case 'toast':
+        // Toast notification from server: { type: 'toast', message: '...', variant: '...', duration: N }
+        if (window.CacaoToast) {
+          window.CacaoToast.show(message.message, {
+            type: message.variant || 'info',
+            duration: message.duration || 4000,
+          });
+        }
+        break;
+
+      case 'chat_delta':
+      case 'chat_done':
+        // Chat streaming messages — forwarded to chat listeners
+        this.chatListeners.forEach(listener => listener(message));
+        break;
+
       default:
         console.log('[Cacao] Unknown message type:', type, message);
     }
@@ -131,6 +148,11 @@ class CacaoWebSocket {
     }
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  subscribeChatStream(listener) {
+    this.chatListeners.add(listener);
+    return () => this.chatListeners.delete(listener);
   }
 
   notifyListeners() {

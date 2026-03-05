@@ -13,7 +13,7 @@
   width: 260px;
   flex-shrink: 0;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -24,24 +24,58 @@
   align-items: center;
   gap: @space-3;
   padding: @space-4 @space-4;
-  border-bottom: 1px solid var(--border-color);
-  height: 60px;
+  border-bottom: 1px solid var(--border-subtle);
+  height: 56px;
   flex-shrink: 0;
 }
 
 .app-shell-logo {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
 .app-shell-brand-text {
   font-size: @font-size-lg;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  letter-spacing: -0.01em;
+}
+
+// Theme toggle button in the brand bar
+.app-shell-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: @radius-sm;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all @transition-fast;
+  flex-shrink: 0;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
 }
 
 .app-shell-content {
@@ -60,7 +94,11 @@
 
 // NavGroup - Collapsible group
 .nav-group {
-  margin-bottom: @space-1;
+  margin-bottom: 0;
+
+  & + .nav-group {
+    margin-top: @space-1;
+  }
 }
 
 .nav-group-header {
@@ -70,17 +108,24 @@
   padding: @space-2 @space-4;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: @font-size-xs;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color @transition-fast;
   text-align: left;
+  gap: @space-3;
 
   &:hover {
-    color: var(--text-primary);
+    color: var(--text-secondary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
+    border-radius: @radius-sm;
   }
 }
 
@@ -89,32 +134,66 @@
 }
 
 .nav-group-chevron {
-  font-size: 8px;
-  opacity: 0.6;
-  transition: transform 0.2s ease;
+  opacity: 0.5;
+  transition: transform @transition-base;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .nav-group.open .nav-group-chevron {
   transform: rotate(0deg);
 }
 
+// Group items container with a left guide line
 .nav-group-items {
-  padding: @space-1 0;
+  position: relative;
+  padding: 2px 0 @space-1;
+  max-height: 500px;
+  overflow: hidden;
+  transition: max-height @transition-slow, opacity @transition-base, padding @transition-base;
+  opacity: 1;
+
+  // Vertical guide line aligned under the group header icon
+  // Header icon: padding-left 16px, icon width 16px → center at 24px
+  &::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: @space-1;
+    width: 1px;
+    background: var(--border-color);
+  }
+}
+
+.nav-group:not(.open) .nav-group-items {
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
+
+  &::before {
+    display: none;
+  }
 }
 
 // NavItem - Individual navigation item
 .nav-item {
   display: flex;
   align-items: center;
-  width: 100%;
-  padding: @space-2 @space-4;
+  width: calc(100% - @space-3);
+  margin-left: @space-2;
+  padding: 6px @space-3;
   padding-left: @space-6;
   background: transparent;
   border: none;
+  border-radius: @radius-sm;
   color: var(--text-secondary);
   font-size: @font-size-sm;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all @transition-fast;
   text-align: left;
   gap: @space-2;
   position: relative;
@@ -125,40 +204,64 @@
   }
 
   &.active {
-    color: var(--primary);
-    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-primary);
+    background: var(--accent-glow);
+    font-weight: @font-weight-medium;
+  }
 
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 60%;
-      background: var(--primary);
-      border-radius: 0 2px 2px 0;
-    }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
   }
 }
 
+// Top-level nav items (direct children of nav-sidebar, not inside a group)
+// Align icon with group header icons: both at padding-left 16px
+.nav-sidebar > .nav-item {
+  width: calc(100% - @space-2);
+  margin-left: 0;
+  margin-right: @space-2;
+  padding-left: @space-4;
+  gap: @space-3;
+}
+
 .nav-icon {
-  width: 18px;
+  width: 16px;
   text-align: center;
   font-size: @font-size-sm;
-  opacity: 0.7;
+  opacity: 0.65;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.nav-item.active .nav-icon {
+  opacity: 1;
 }
 
 .nav-item-label {
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-item-badge {
-  padding: 2px 6px;
-  font-size: @font-size-xs;
-  background: var(--primary);
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: @font-weight-medium;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
+.nav-item.active .nav-item-badge {
+  background: var(--accent-primary);
   color: white;
-  border-radius: @radius-sm;
 }
 
 // ShellContent - Main content area
@@ -167,15 +270,57 @@
   width: 100%;
 }
 
+// Hamburger menu button (hidden on desktop)
+.app-shell-hamburger {
+  display: none;
+  position: fixed;
+  top: @space-3;
+  left: @space-3;
+  z-index: 101;
+  width: 40px;
+  height: 40px;
+  border-radius: @radius-sm;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: @font-size-lg;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: @shadow-sm;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}
+
+// Mobile backdrop overlay
+.app-shell-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
 // Responsive
-@media (max-width: 768px) {
+@media (max-width: @breakpoint-md) {
+  .app-shell-hamburger {
+    display: flex;
+  }
+
+  .app-shell-backdrop.open {
+    display: block;
+  }
+
   .app-shell-nav {
     position: fixed;
     left: -260px;
     top: 0;
     height: 100vh;
     z-index: 100;
-    transition: left 0.3s ease;
+    transition: left @transition-slow;
   }
 
   .app-shell-nav.open {

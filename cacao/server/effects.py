@@ -12,11 +12,15 @@ from typing import TypeVar, Generic, Callable, Any, TYPE_CHECKING, Awaitable
 from functools import wraps
 import asyncio
 
+from .log import get_logger
+
 if TYPE_CHECKING:
     from .session import Session
     from .signal import Signal
 
 T = TypeVar("T")
+
+_logger = get_logger("cacao.effects")
 
 
 class Effect:
@@ -108,7 +112,7 @@ class Effect:
                 asyncio.create_task(result)
         except Exception as e:
             # Log but don't break the signal chain
-            print(f"Effect '{self._name}' error: {e}")
+            _logger.error("Effect '%s': %s", self._name, e, extra={"label": "effect"})
 
     def dispose(self) -> None:
         """
@@ -202,7 +206,7 @@ class Watch(Generic[T]):
                 if asyncio.iscoroutine(result):
                     asyncio.create_task(result)
             except Exception as e:
-                print(f"Watch callback error: {e}")
+                _logger.error("Watch callback: %s", e, extra={"label": "watch"})
 
     def dispose(self) -> None:
         """Stop watching the signal."""

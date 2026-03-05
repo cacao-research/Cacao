@@ -37,3 +37,86 @@ body {
   color: var(--text-muted);
   font-size: @font-size-base;
 }
+
+// Global focus ring for keyboard navigation
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+// Theme-aware text selection
+::selection {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+// Themed scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 4px;
+
+  &:hover {
+    background: var(--accent-secondary);
+  }
+}
+
+// Loading skeleton shimmer
+.skeleton {
+  background: var(--bg-tertiary);
+  border-radius: @radius-md;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent-glow),
+      transparent
+    );
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes skeletonShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// Accessibility: reduce motion
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Print styles
+@media print {
+  .app-shell-nav,
+  .app-shell-hamburger,
+  .app-shell-backdrop,
+  .toast-container,
+  .cmd-palette-overlay {
+    display: none !important;
+  }
+  .app-shell-content {
+    width: 100% !important;
+  }
+  .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+  }
+}

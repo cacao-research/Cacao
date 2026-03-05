@@ -153,7 +153,7 @@ class MiddlewareChain:
 
 
 def logging_middleware(
-    log_fn: Callable[[str], None] = print,
+    log_fn: Callable[[str], None] | None = None,
 ) -> MiddlewareFunc:
     """
     Create a logging middleware.
@@ -164,6 +164,13 @@ def logging_middleware(
     Returns:
         Middleware function
     """
+    if log_fn is None:
+        from .log import get_logger
+        _mw_logger = get_logger("cacao.middleware")
+
+        def log_fn(msg: str) -> None:
+            _mw_logger.info(msg, extra={"label": "event"})
+
     async def middleware(
         ctx: EventContext,
         next: Callable[[EventContext], Awaitable[None]],

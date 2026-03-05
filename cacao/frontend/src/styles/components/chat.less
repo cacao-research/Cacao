@@ -1,0 +1,297 @@
+// Chat Component
+// Full-featured chat with message bubbles, streaming, thinking blocks
+
+.c-chat {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: @radius-md;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  min-height: 300px;
+
+  // ── Header ──
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: @space-3 @space-4;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+  }
+
+  &__title {
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-base;
+    color: var(--text-primary);
+  }
+
+  &__clear {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: @font-size-sm;
+    cursor: pointer;
+    padding: @space-1 @space-2;
+    border-radius: @radius-sm;
+    line-height: 1;
+    transition: all @transition-fast;
+
+    &:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+      background: var(--danger-bg);
+    }
+  }
+
+  // ── Messages area ──
+  &__messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: @space-4;
+    display: flex;
+    flex-direction: column;
+    gap: @space-4;
+  }
+
+  &__empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: @space-2;
+    color: var(--text-muted);
+    font-size: @font-size-base;
+    padding: @space-8;
+
+    &::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 48px;
+      border-radius: @radius-full;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+    }
+  }
+
+  // ── Input area ──
+  &__input-area {
+    display: flex;
+    align-items: flex-end;
+    gap: @space-2;
+    padding: @space-3 @space-4;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+  }
+
+  &__input {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--border-color);
+    border-radius: @radius-md;
+    padding: @space-2 @space-3;
+    font-family: @font-family;
+    font-size: @font-size-base;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    line-height: 1.5;
+    min-height: 40px;
+    max-height: 120px;
+    transition: border-color @transition-fast, box-shadow @transition-fast;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    &:hover {
+      border-color: var(--accent-primary);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: @radius-md;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity @transition-fast, transform @transition-fast, box-shadow @transition-fast;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  }
+
+  // ── Typing dots ──
+  &__dots {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+
+    span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: @radius-full;
+      background: var(--text-muted);
+      animation: c-chat-dot 1.4s infinite ease-in-out;
+
+      &:nth-child(2) { animation-delay: 0.2s; }
+      &:nth-child(3) { animation-delay: 0.4s; }
+    }
+  }
+}
+
+// ── Message bubbles ──
+.c-chat-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 85%;
+  animation: c-chat-msg-in 0.2s ease-out;
+
+  &__role {
+    font-size: @font-size-xs;
+    font-weight: @font-weight-semibold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0 @space-1;
+  }
+
+  &__content {
+    padding: @space-3 @space-4;
+    border-radius: @radius-md;
+    font-size: @font-size-base;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  // User messages — right-aligned, accent color
+  &--user {
+    align-self: flex-end;
+    align-items: flex-end;
+
+    .c-chat-message__content {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border-bottom-right-radius: @radius-xs;
+      font-weight: @font-weight-medium;
+    }
+  }
+
+  // Assistant messages — left-aligned, card background
+  &--assistant {
+    align-self: flex-start;
+    align-items: flex-start;
+
+    .c-chat-message__content {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-bottom-left-radius: @radius-xs;
+    }
+  }
+
+  // Error messages — centered
+  &--error {
+    align-self: center;
+    align-items: center;
+    max-width: 90%;
+
+    .c-chat-message__role {
+      color: var(--danger);
+    }
+
+    .c-chat-message__content {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid fade(#e57373, 25%);
+      font-size: @font-size-sm;
+      text-align: center;
+    }
+  }
+
+  // Streaming state — subtle dashed border
+  &--streaming {
+    .c-chat-message__content {
+      border-style: dashed;
+    }
+  }
+
+  &__typing {
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+  }
+}
+
+// ── Animations ──
+@keyframes c-chat-dot {
+  0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes c-chat-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Mobile ──
+@media (max-width: @breakpoint-md) {
+  .c-chat {
+    &__input-area {
+      padding: @space-2 @space-3;
+    }
+
+    &__input {
+      min-height: 44px;
+      padding: @space-3;
+    }
+
+    &__send {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  .c-chat-message {
+    max-width: 92%;
+  }
+}

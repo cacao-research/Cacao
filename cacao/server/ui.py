@@ -266,13 +266,23 @@ def app_shell(
     brand: str | None = None,
     logo: str | None = None,
     default: str | None = None,
+    theme_dark: str | None = None,
+    theme_light: str | None = None,
     **props: Any,
 ):
     """
     Admin-style application shell with sidebar navigation.
 
+    Args:
+        brand: Brand name shown in sidebar header.
+        logo: URL to logo image.
+        default: Default active nav item key.
+        theme_dark: Dark theme name for the toggle (e.g. "tukuy").
+        theme_light: Light theme name for the toggle (e.g. "tukuy-light").
+
     Example:
-        with app_shell(brand="My App", default="dashboard"):
+        with app_shell(brand="My App", default="dashboard",
+                       theme_dark="dark", theme_light="light"):
             with nav_sidebar():
                 with nav_group("Tools", icon="wrench"):
                     nav_item("Dashboard", key="dashboard", icon="home")
@@ -283,7 +293,11 @@ def app_shell(
     """
     component = Component(
         type="AppShell",
-        props={"brand": brand, "logo": logo, "default": default, **props}
+        props={
+            "brand": brand, "logo": logo, "default": default,
+            "themeDark": theme_dark, "themeLight": theme_light,
+            **props,
+        }
     )
     with _container_context(component):
         yield component
@@ -812,6 +826,43 @@ def date_picker(
     ))
 
 
+def chat(
+    signal: Signal[list] | None = None,
+    on_send: Callable | None = None,
+    on_clear: Callable | None = None,
+    placeholder: str = "Type a message...",
+    title: str | None = None,
+    height: str = "500px",
+    show_clear: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Interactive chat component with streaming support.
+
+    Renders a message list with user/assistant bubbles, a text input,
+    and supports real-time streaming of responses via WebSocket.
+
+    The signal should hold a list of messages: [{"role": "user"|"assistant", "content": "..."}]
+
+    Example:
+        messages = app.signal([], name="chat_messages")
+        chat(signal=messages, on_send=handle_send, title="AI Chat")
+    """
+    return _add_to_current_container(Component(
+        type="Chat",
+        props={
+            "signal": signal,
+            "on_send": on_send,
+            "on_clear": on_clear,
+            "placeholder": placeholder,
+            "title": title,
+            "height": height,
+            "show_clear": show_clear,
+            **props,
+        }
+    ))
+
+
 def file_upload(
     label: str,
     on_upload: Callable[[bytes, str], Any] | None = None,
@@ -835,6 +886,34 @@ def file_upload(
             **props
         }
     ))
+
+
+# =============================================================================
+# Toast Notifications
+# =============================================================================
+
+def toast(
+    message: str,
+    variant: Literal["info", "success", "warning", "error"] = "info",
+    duration: int = 4000,
+) -> dict[str, Any]:
+    """
+    Create a toast notification payload.
+
+    This returns the toast data dict. To send it, use session.send_toast()
+    or session_manager.broadcast_toast() from an event handler.
+
+    Example:
+        @app.on("save")
+        async def handle_save(session):
+            # ... do save ...
+            await session.send_toast("Saved successfully!", variant="success")
+    """
+    return {
+        "message": message,
+        "variant": variant,
+        "duration": duration,
+    }
 
 
 # =============================================================================
@@ -864,11 +943,13 @@ class App(BaseApp):
         title: str = "Cacao App",
         theme: Literal["light", "dark", "auto"] = "dark",
         debug: bool = False,
+        branding: bool | str | None = None,
         **kwargs: Any,
     ):
         super().__init__(debug=debug, **kwargs)
         self.title = title
         self.theme = theme
+        self.branding = branding
         self._pages: dict[str, list[Component]] = {}
         self._current_page: str | None = None
 
@@ -960,5 +1041,8 @@ __all__ = [
     "switch",
     "slider",
     "date_picker",
+    "chat",
     "file_upload",
+    # Toast
+    "toast",
 ]

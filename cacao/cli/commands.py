@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 # ANSI color codes
-PURPLE = "\033[95m"
+BROWN = "\033[38;5;130m"
+DARK_BROWN = "\033[38;5;94m"
 CYAN = "\033[96m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -27,13 +28,16 @@ BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
 
-# ASCII art logo
-LOGO = f"""{PURPLE}
+
+def _get_logo() -> str:
+    """Get the ASCII art logo with the current version."""
+    from cacao import __version__
+    return f"""{BROWN}
    ______
   / ____/___ _________ _____
  / /   / __ `/ ___/ __ `/ __ \\
 / /___/ /_/ / /__/ /_/ / /_/ /
-\\____/\\__,_/\\___/\\__,_/\\____/  {DIM}v2{RESET}
+\\____/\\__,_/\\___/\\__,_/\\____/{RESET}  {DIM}v{__version__}{RESET}
 """
 
 # Historic chocolate years (sorted) - used as default ports
@@ -155,12 +159,18 @@ def print_banner(
     year_significance: str = "",
 ) -> None:
     """Print the startup banner with a random chocolate fact."""
-    print(LOGO)
-    print(f"  {BOLD}App:{RESET}        {app_file}")
-    print(f"  {BOLD}URL:{RESET}        {CYAN}http://{host}:{port}{RESET}")
+    print(_get_logo())
+
+    # Consistent label width for alignment
+    def _line(label: str, value: str) -> str:
+        return f"  {DARK_BROWN}{label:<12}{RESET}{value}"
+
+    print(_line("App", app_file))
+    print(_line("URL", f"{CYAN}http://{host}:{port}{RESET}"))
     if year_significance:
-        print(f"  {BOLD}Port:{RESET}       {DIM}{port} - {year_significance}{RESET}")
-    print(f"  {BOLD}Hot reload:{RESET} {GREEN}enabled{RESET}" if reload else f"  {BOLD}Hot reload:{RESET} {DIM}disabled{RESET}")
+        print(_line("Port", f"{DIM}{port} \u00b7 {year_significance}{RESET}"))
+    reload_val = f"{GREEN}enabled{RESET}" if reload else f"{DIM}disabled{RESET}"
+    print(_line("Hot reload", reload_val))
     print()
     # Display a random chocolate fact
     fact = random.choice(CHOCOLATE_FACTS)
@@ -287,11 +297,11 @@ def run_with_reload(app_path: Path, host: str, port: int, verbose: bool) -> None
 
             # Print reload message
             print()
-            print(f"{YELLOW}Detected changes in:{RESET}")
+            print(f"{DARK_BROWN}Detected changes in:{RESET}")
             for f in changed_files:
                 rel_path = os.path.relpath(f, app_dir)
                 print(f"  {DIM}{rel_path}{RESET}")
-            print(f"{CYAN}Reloading...{RESET}")
+            print(f"{BROWN}Reloading...{RESET}")
 
             # Stop the old process
             process.terminate()
@@ -658,6 +668,7 @@ def build_command(args: list[str]) -> None:
     metadata = export_data.get("metadata", {})
     title = metadata.get("title", "Cacao App")
     theme = metadata.get("theme", "dark")
+    branding = metadata.get("branding")
 
     # Serialize pages data
     pages_json = json.dumps({
@@ -672,6 +683,14 @@ def build_command(args: list[str]) -> None:
     base_path = parsed_args.base_path.rstrip("/")
     asset_prefix = base_path if base_path else "."
 
+    # Generate branding HTML
+    branding_html = ""
+    if branding:
+        if isinstance(branding, str):
+            branding_html = f'\n    <div class="cacao-branding">{branding}</div>'
+        else:
+            branding_html = '\n    <div class="cacao-branding">Built with <a href="https://github.com/CacaoFramework/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
+
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
@@ -685,7 +704,7 @@ def build_command(args: list[str]) -> None:
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <div id="root"><div class="loading">Loading...</div></div>
+    <div id="root"><div class="loading">Loading...</div></div>{branding_html}
 
     <script>
     // Static mode configuration
@@ -732,13 +751,14 @@ def build_command(args: list[str]) -> None:
 
 def version_command(args: list[str]) -> None:
     """Show version information."""
-    print(f"Cacao v2 CLI")
+    from cacao import __version__
+    print(f"Cacao v{__version__}")
     print(f"Python: {sys.version}")
 
 
 def help_command(args: list[str]) -> None:
     """Show help information."""
-    print(LOGO)
+    print(_get_logo())
     print("Usage: cacao <command> [options]")
     print()
     print("Commands:")

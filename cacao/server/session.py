@@ -79,6 +79,66 @@ class Session:
             "sessionId": self.id,
         })
 
+    async def send_toast(
+        self,
+        message: str,
+        variant: str = "info",
+        duration: int = 4000,
+    ) -> None:
+        """
+        Send a toast notification to the client.
+
+        Args:
+            message: The toast message text
+            variant: One of 'info', 'success', 'warning', 'error'
+            duration: Auto-dismiss time in milliseconds (0 = manual dismiss)
+        """
+        if self.websocket is None:
+            return
+
+        await self.websocket.send_json({
+            "type": "toast",
+            "message": message,
+            "variant": variant,
+            "duration": duration,
+        })
+
+    async def send_chat_delta(self, signal_name: str, delta: str) -> None:
+        """
+        Send a streaming chat text chunk to the client.
+
+        This bypasses the normal signal batching for real-time streaming.
+
+        Args:
+            signal_name: The chat signal this delta belongs to
+            delta: The text chunk to append
+        """
+        if self.websocket is None:
+            return
+
+        await self.websocket.send_json({
+            "type": "chat_delta",
+            "signal": signal_name,
+            "delta": delta,
+        })
+
+    async def send_chat_done(self, signal_name: str) -> None:
+        """
+        Signal that a chat stream has finished.
+
+        The final full message should be added to the signal separately.
+
+        Args:
+            signal_name: The chat signal that finished streaming
+        """
+        if self.websocket is None:
+            return
+
+        await self.websocket.send_json({
+            "type": "chat_done",
+            "signal": signal_name,
+        })
+
     def queue_update(self, key: str, value: Any) -> None:
         """
         Queue a state update to be batched and sent.
@@ -185,3 +245,24 @@ class SessionManager:
                     await session.websocket.send_json(message)
                 except Exception:
                     pass  # Ignore send errors during broadcast
+
+    async def broadcast_toast(
+        self,
+        message: str,
+        variant: str = "info",
+        duration: int = 4000,
+    ) -> None:
+        """
+        Broadcast a toast notification to all sessions.
+
+        Args:
+            message: The toast message text
+            variant: One of 'info', 'success', 'warning', 'error'
+            duration: Auto-dismiss time in milliseconds
+        """
+        await self.broadcast({
+            "type": "toast",
+            "message": message,
+            "variant": variant,
+            "duration": duration,
+        })

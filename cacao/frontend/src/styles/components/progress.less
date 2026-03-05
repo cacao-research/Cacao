@@ -20,7 +20,17 @@
   height: 100%;
   background: var(--accent-primary);
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width @transition-slow;
+}
+
+.progress-fill.indeterminate {
+  width: 30% !important;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
 }
 
 // Gauge

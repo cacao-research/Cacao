@@ -13,11 +13,15 @@ import json
 import asyncio
 from pathlib import Path
 
+from .log import get_logger
+
 if TYPE_CHECKING:
     from .session import Session
     from .signal import Signal
 
 T = TypeVar("T")
+
+_logger = get_logger("cacao.persist")
 
 
 class StorageBackend(Protocol):
@@ -199,7 +203,7 @@ class Persist(Generic[T]):
             serialized = self._serialize(value)
             await self._storage.set(key, serialized)
         except Exception as e:
-            print(f"Persist save error for {self._signal.name}: {e}")
+            _logger.error("Save error for %s: %s", self._signal.name, e, extra={"label": "persist"})
         finally:
             self._pending_saves.pop(session_id, None)
 
@@ -221,7 +225,7 @@ class Persist(Generic[T]):
                 self._signal.set(session, value)
                 return value
         except Exception as e:
-            print(f"Persist restore error for {self._signal.name}: {e}")
+            _logger.error("Restore error for %s: %s", self._signal.name, e, extra={"label": "persist"})
         return None
 
     async def delete(self, session: "Session") -> None:
@@ -235,7 +239,7 @@ class Persist(Generic[T]):
             key = self._storage_key(session.id)
             await self._storage.delete(key)
         except Exception as e:
-            print(f"Persist delete error for {self._signal.name}: {e}")
+            _logger.error("Delete error for %s: %s", self._signal.name, e, extra={"label": "persist"})
 
     def dispose(self) -> None:
         """Stop persisting and cancel pending saves."""

@@ -39,6 +39,15 @@ export function Button({ props, setActiveTab }) {
         return;
       }
 
+      // Handle theme switching (theme:name)
+      if (typeof eventName === 'string' && eventName.startsWith('theme:')) {
+        const theme = eventName.slice(6); // Remove 'theme:' prefix
+        if (window.Cacao?.setTheme) {
+          window.Cacao.setTheme(theme);
+        }
+        return;
+      }
+
       cacaoWs.sendEvent(eventName, {});
     }
   };
