@@ -1,0 +1,86 @@
+// Image component
+
+.c-image {
+  display: inline-block;
+  margin: 0;
+}
+
+.c-image-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: @radius-md;
+
+  &--clickable {
+    cursor: zoom-in;
+    transition: opacity @transition-fast;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+.c-image-placeholder {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+  min-height: 120px;
+  min-width: 120px;
+  animation: imagePlaceholderPulse 1.5s ease-in-out infinite;
+}
+
+.c-image-caption {
+  margin-top: @space-2;
+  font-size: @font-size-sm;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+// Lightbox overlay
+.c-image-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  cursor: zoom-out;
+  animation: modalOverlayIn @transition-fast;
+  padding: @space-8;
+}
+
+.c-image-lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: @radius-sm;
+}
+
+.c-image-lightbox-close {
+  position: absolute;
+  top: @space-4;
+  right: @space-4;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: @font-size-3xl;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: @radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background @transition-fast;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes imagePlaceholderPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}

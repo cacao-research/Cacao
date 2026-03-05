@@ -1,0 +1,116 @@
+// Steps / Stepper component
+
+.c-steps {
+  display: flex;
+  gap: @space-2;
+
+  &--horizontal {
+    flex-direction: row;
+    align-items: flex-start;
+
+    .c-step {
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+
+      &:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 16px;
+        left: calc(50% + 20px);
+        right: calc(-50% + 20px);
+        height: 2px;
+        background: var(--border);
+      }
+
+      &--complete:not(:last-child)::after {
+        background: var(--success);
+      }
+    }
+  }
+
+  &--vertical {
+    flex-direction: column;
+
+    .c-step {
+      flex-direction: row;
+      position: relative;
+
+      &:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 36px;
+        bottom: -8px;
+        width: 2px;
+        background: var(--border);
+      }
+
+      &--complete:not(:last-child)::after {
+        background: var(--success);
+      }
+    }
+  }
+}
+
+.c-step {
+  display: flex;
+  gap: @space-2;
+
+  &-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: @radius-full;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: @font-size-sm;
+    font-weight: @font-weight-bold;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    transition: all @transition-fast;
+    z-index: 1;
+  }
+
+  &--complete .c-step-indicator {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+
+  &--active .c-step-indicator {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+
+  &--error .c-step-indicator {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+  }
+
+  &-content {
+    min-width: 0;
+  }
+
+  &-title {
+    font-size: @font-size-base;
+    font-weight: @font-weight-medium;
+    color: var(--text-primary);
+  }
+
+  &-description {
+    font-size: @font-size-sm;
+    color: var(--text-secondary);
+    margin-top: @space-1;
+  }
+
+  &--pending .c-step-title {
+    color: var(--text-secondary);
+  }
+}

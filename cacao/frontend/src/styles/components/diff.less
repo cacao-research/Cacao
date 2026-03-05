@@ -1,0 +1,124 @@
+// Diff component
+
+.c-diff {
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+  overflow: hidden;
+  font-family: @font-mono;
+  font-size: @font-size-sm;
+}
+
+.c-diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: @space-2 @space-3;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-family: @font-family;
+}
+
+.c-diff-lang {
+  color: var(--text-secondary);
+  font-size: @font-size-sm;
+}
+
+.c-diff-stats {
+  display: flex;
+  gap: @space-2;
+  font-size: @font-size-sm;
+}
+
+.c-diff-stat--add {
+  color: var(--success);
+  font-weight: @font-weight-medium;
+}
+
+.c-diff-stat--remove {
+  color: var(--danger);
+  font-weight: @font-weight-medium;
+}
+
+.c-diff-body {
+  overflow-x: auto;
+}
+
+.c-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  line-height: 1.5;
+}
+
+.c-diff-line {
+  &--add {
+    background: rgba(46, 160, 67, 0.12);
+
+    .c-diff-gutter {
+      background: rgba(46, 160, 67, 0.2);
+      color: var(--success);
+    }
+
+    .c-diff-prefix {
+      color: var(--success);
+    }
+  }
+
+  &--remove {
+    background: rgba(248, 81, 73, 0.12);
+
+    .c-diff-gutter {
+      background: rgba(248, 81, 73, 0.2);
+      color: var(--danger);
+    }
+
+    .c-diff-prefix {
+      color: var(--danger);
+    }
+  }
+
+  &--empty {
+    background: var(--bg-secondary);
+
+    .c-diff-gutter {
+      background: var(--bg-secondary);
+    }
+  }
+}
+
+.c-diff-gutter {
+  width: 40px;
+  min-width: 40px;
+  padding: 0 @space-2;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+
+.c-diff-prefix {
+  width: 20px;
+  min-width: 20px;
+  padding: 0 @space-1;
+  text-align: center;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.c-diff-code {
+  padding: 0 @space-3;
+  white-space: pre;
+  color: var(--text-primary);
+}
+
+// Side-by-side layout
+.c-diff-side-by-side {
+  display: flex;
+
+  .c-diff-table {
+    width: 50%;
+
+    &--left {
+      border-right: 1px solid var(--border);
+    }
+  }
+}

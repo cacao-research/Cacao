@@ -176,6 +176,133 @@ def grid(
 
 
 @contextmanager
+def container(
+    size: Literal["sm", "md", "lg", "xl", "full"] = "lg",
+    padding: bool = True,
+    center: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Centered max-width content wrapper.
+
+    Example:
+        with container(size="md"):
+            title("Welcome")
+            text("Centered, readable content.")
+    """
+    component = Component(
+        type="Container",
+        props={"size": size, "padding": padding, "center": center, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def stack(
+    direction: Literal["vertical", "horizontal"] = "vertical",
+    gap: int = 4,
+    divider: bool = False,
+    align: Literal["start", "center", "end", "stretch"] | None = None,
+    justify: Literal["start", "center", "end", "between", "around"] | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Stack layout with optional dividers between items.
+
+    Example:
+        with stack(gap=4, divider=True):
+            text("Item 1")
+            text("Item 2")
+            text("Item 3")
+    """
+    component = Component(
+        type="Stack",
+        props={
+            "direction": direction,
+            "gap": gap,
+            "divider": divider,
+            "align": align,
+            "justify": justify,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def split(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    default_size: int = 50,
+    min_size: int = 20,
+    max_size: int = 80,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Two-pane resizable layout with draggable divider.
+
+    Place exactly two children inside. The first goes in the left/top pane,
+    the second in the right/bottom pane.
+
+    Example:
+        with split(default_size=40):
+            with col():
+                code(source_code, language="python")
+            with col():
+                text("Output here")
+    """
+    component = Component(
+        type="Split",
+        props={
+            "direction": direction,
+            "defaultSize": default_size,
+            "minSize": min_size,
+            "maxSize": max_size,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def hero(
+    title: str | None = None,
+    subtitle: str | None = None,
+    background: str | None = None,
+    image: str | None = None,
+    height: str = "400px",
+    align: Literal["center", "left", "right"] = "center",
+    gradient: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Full-width hero/banner section.
+
+    Example:
+        with hero(title="My App", subtitle="Build amazing things",
+                  gradient="135deg, #667eea, #764ba2", height="300px"):
+            button("Get Started", variant="primary")
+    """
+    component = Component(
+        type="Hero",
+        props={
+            "title": title,
+            "subtitle": subtitle,
+            "background": background,
+            "image": image,
+            "height": height,
+            "align": align,
+            "gradient": gradient,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
 def card(
     title: str | None = None,
     subtitle: str | None = None,
@@ -409,12 +536,55 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
 
 def html(content: str, **props: Any) -> Component:
     """
-    Render raw HTML content.
+    Render pre-rendered HTML with prose styling.
+
+    Applies full prose typography (headings, lists, tables, code blocks).
+    For raw HTML injection without styling, use raw_html().
+    For rendering markdown source, use markdown().
 
     Example:
         html("<h1>Hello</h1><p>World</p>")
     """
     return _add_to_current_container(Component(type="Html", props={"content": content, **props}))
+
+
+def raw_html(content: str, **props: Any) -> Component:
+    """
+    Render raw HTML content with zero styling.
+
+    Use for embedding widgets, iframes, or custom HTML that manages its own styling.
+
+    Example:
+        raw_html('<iframe src="https://example.com"></iframe>')
+    """
+    return _add_to_current_container(Component(type="RawHtml", props={"content": content, **props}))
+
+
+def markdown(content: str, toc: bool = False, **props: Any) -> Component:
+    """
+    Render markdown content with full prose styling.
+
+    Parses raw markdown on the frontend and renders with:
+    - Prose typography (headings, paragraphs, lists, blockquotes)
+    - Code blocks with syntax highlighting and copy button
+    - GFM tables, task lists, strikethrough
+    - Callout blocks ([!NOTE], [!WARNING], [!TIP], [!IMPORTANT], [!CAUTION])
+    - Mermaid diagrams (fenced code blocks with ``mermaid`` language)
+    - KaTeX math ($inline$ and $$block$$)
+    - Auto-linking URLs
+    - Image sizing via ![alt|WxH](url)
+
+    Args:
+        content: Raw markdown string.
+        toc: If True, generates a floating sidebar table of contents from headings.
+
+    Example:
+        markdown("# Hello\\n\\nThis is **bold** text.")
+        markdown(doc_content, toc=True)
+    """
+    return _add_to_current_container(
+        Component(type="Markdown", props={"content": content, "toc": toc, **props})
+    )
 
 
 def code(content: str, language: str = "python", **props: Any) -> Component:
@@ -901,6 +1071,413 @@ def file_upload(
 
 
 # =============================================================================
+# Content Components
+# =============================================================================
+
+
+@contextmanager
+def accordion(
+    title: str | None = None,
+    items: list[dict[str, Any]] | None = None,
+    mode: Literal["multiple", "single"] = "multiple",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Collapsible accordion sections.
+
+    Use as context manager for custom content, or pass items for simple text sections.
+
+    Example:
+        with accordion(mode="single"):
+            with accordion_item("Section 1", default_open=True):
+                text("Content 1")
+            with accordion_item("Section 2"):
+                text("Content 2")
+
+        # Or with items list:
+        accordion(items=[{"title": "FAQ 1", "content": "Answer 1"}])
+    """
+    component = Component(
+        type="Accordion",
+        props={"title": title, "items": items, "mode": mode, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def accordion_item(
+    title: str,
+    default_open: bool = False,
+    icon: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Individual accordion item. Must be used inside accordion().
+
+    Example:
+        with accordion_item("Details", default_open=True):
+            text("Some details here")
+    """
+    component = Component(
+        type="AccordionItem",
+        props={"title": title, "defaultOpen": default_open, "icon": icon, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def steps(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Step-by-step guide container.
+
+    Example:
+        with steps():
+            step("Sign Up", status="complete")
+            step("Verify Email", status="active")
+            step("Complete Profile", status="pending")
+    """
+    component = Component(type="Steps", props={"direction": direction, **props})
+    with _container_context(component):
+        yield component
+
+
+def step(
+    title: str,
+    description: str | None = None,
+    status: Literal["pending", "active", "complete", "error"] = "pending",
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Individual step. Must be used inside steps().
+
+    Example:
+        step("Sign Up", description="Create your account", status="complete")
+    """
+    return _add_to_current_container(
+        Component(
+            type="Step",
+            props={
+                "title": title,
+                "description": description,
+                "status": status,
+                "icon": icon,
+                **props,
+            },
+        )
+    )
+
+
+def file_tree(
+    data: dict[str, Any] | str,
+    highlight: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    File/directory tree display.
+
+    Accepts a nested dict (folders as dicts, files as None) or a string (tree command output).
+
+    Example:
+        file_tree({
+            "src": {
+                "main.py": None,
+                "utils": {"helper.py": None}
+            },
+            "README.md": None
+        })
+    """
+    return _add_to_current_container(
+        Component(
+            type="FileTree",
+            props={"data": data, "highlight": highlight, **props},
+        )
+    )
+
+
+def link_card(
+    title: str,
+    description: str | None = None,
+    href: str | None = None,
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Clickable navigation card with title, description, and icon.
+
+    Example:
+        link_card("Getting Started", description="Learn the basics",
+            href="/docs/start", icon="book")
+    """
+    return _add_to_current_container(
+        Component(
+            type="LinkCard",
+            props={
+                "title": title,
+                "description": description,
+                "href": href,
+                "icon": icon,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
+# General UI Components
+# =============================================================================
+
+
+@contextmanager
+def modal(
+    title: str | None = None,
+    signal: Signal[bool] | None = None,
+    size: Literal["sm", "md", "lg", "full"] = "md",
+    close_on_backdrop: bool = True,
+    close_on_escape: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Modal dialog overlay.
+
+    Example:
+        show = app.signal(False, name="show_modal")
+        with modal(title="Confirm", signal=show):
+            text("Are you sure?")
+            button("Yes", on_click=handle_confirm)
+    """
+    component = Component(
+        type="Modal",
+        props={
+            "title": title,
+            "signal": signal,
+            "size": size,
+            "closeOnBackdrop": close_on_backdrop,
+            "closeOnEscape": close_on_escape,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+@contextmanager
+def tooltip(
+    text: str,
+    position: Literal["top", "bottom", "left", "right"] = "top",
+    delay: int = 200,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Tooltip wrapper. Wraps child elements with hover tooltip.
+
+    Example:
+        with tooltip("This button submits the form"):
+            button("Submit")
+    """
+    component = Component(
+        type="Tooltip",
+        props={"text": text, "position": position, "delay": delay, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+def breadcrumb(
+    items: list[dict[str, Any]],
+    separator: str = "/",
+    **props: Any,
+) -> Component:
+    """
+    Breadcrumb navigation.
+
+    Each item: {"label": "Home", "href": "/", "icon": "home"}
+    The last item is treated as the current page (no link).
+
+    Example:
+        breadcrumb([
+            {"label": "Home", "href": "/"},
+            {"label": "Docs", "href": "/docs"},
+            {"label": "API"}
+        ])
+    """
+    return _add_to_current_container(
+        Component(
+            type="Breadcrumb",
+            props={"items": items, "separator": separator, **props},
+        )
+    )
+
+
+def image(
+    src: str,
+    alt: str = "",
+    caption: str | None = None,
+    width: int | str | None = None,
+    height: int | str | None = None,
+    lightbox: bool = False,
+    lazy: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Image with optional caption and lightbox.
+
+    Example:
+        image("photo.jpg", caption="Figure 1", lightbox=True, width=300)
+    """
+    return _add_to_current_container(
+        Component(
+            type="Image",
+            props={
+                "src": src,
+                "alt": alt,
+                "caption": caption,
+                "width": width,
+                "height": height,
+                "lightbox": lightbox,
+                "lazy": lazy,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
+# Nice-to-Have Components
+# =============================================================================
+
+
+@contextmanager
+def timeline(
+    items: list[dict[str, Any]] | None = None,
+    alternate: bool = False,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Vertical timeline for changelogs, events, history.
+
+    Use as context manager with timeline_item(), or pass items list.
+
+    Example:
+        with timeline():
+            timeline_item("v1.0", "Initial release", date="2024-01-01")
+            timeline_item("v1.1", "Bug fixes", date="2024-02-01")
+
+        # Or with items list:
+        timeline(items=[
+            {"title": "v1.0", "description": "Initial release", "date": "2024-01-01"},
+        ])
+    """
+    component = Component(
+        type="Timeline",
+        props={"items": items, "alternate": alternate, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+def timeline_item(
+    title: str,
+    description: str | None = None,
+    date: str | None = None,
+    icon: str | None = None,
+    color: Literal["primary", "success", "warning", "danger"] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Individual timeline entry. Must be used inside timeline().
+
+    Example:
+        timeline_item("v1.0", "Initial release", date="2024-01-01", color="success")
+    """
+    return _add_to_current_container(
+        Component(
+            type="TimelineItem",
+            props={
+                "title": title,
+                "description": description,
+                "date": date,
+                "icon": icon,
+                "color": color,
+                **props,
+            },
+        )
+    )
+
+
+def video(
+    src: str,
+    title: str = "",
+    width: int | str | None = None,
+    height: int | str | None = None,
+    aspect: str = "16/9",
+    poster: str | None = None,
+    autoplay: bool = False,
+    controls: bool = True,
+    loop: bool = False,
+    muted: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Video embed with auto-detection for YouTube, Vimeo, or direct files.
+
+    Example:
+        video("https://youtube.com/watch?v=abc123", title="Demo")
+        video("intro.mp4", poster="thumb.jpg", controls=True)
+    """
+    return _add_to_current_container(
+        Component(
+            type="Video",
+            props={
+                "src": src,
+                "title": title,
+                "width": width,
+                "height": height,
+                "aspect": aspect,
+                "poster": poster,
+                "autoplay": autoplay,
+                "controls": controls,
+                "loop": loop,
+                "muted": muted,
+                **props,
+            },
+        )
+    )
+
+
+def diff(
+    old_code: str,
+    new_code: str,
+    language: str = "",
+    mode: Literal["unified", "side-by-side"] = "unified",
+    **props: Any,
+) -> Component:
+    """
+    Code diff comparison view.
+
+    Example:
+        diff("def foo():\\n    pass", "def foo():\\n    return 1", language="python")
+    """
+    return _add_to_current_container(
+        Component(
+            type="Diff",
+            props={
+                "old_code": old_code,
+                "new_code": new_code,
+                "language": language,
+                "mode": mode,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1022,6 +1599,10 @@ __all__ = [
     "row",
     "col",
     "grid",
+    "container",
+    "stack",
+    "split",
+    "hero",
     "card",
     "sidebar",
     "tabs",
@@ -1036,6 +1617,9 @@ __all__ = [
     # Typography
     "title",
     "text",
+    "html",
+    "raw_html",
+    "markdown",
     "code",
     "divider",
     "spacer",
@@ -1056,6 +1640,23 @@ __all__ = [
     "date_picker",
     "chat",
     "file_upload",
+    # Content
+    "accordion",
+    "accordion_item",
+    "steps",
+    "step",
+    "file_tree",
+    "link_card",
+    # General UI
+    "modal",
+    "tooltip",
+    "breadcrumb",
+    "image",
+    # Nice-to-Have
+    "timeline",
+    "timeline_item",
+    "video",
+    "diff",
     # Toast
     "toast",
 ]

@@ -30,6 +30,13 @@ from .server.ui import (
     _current_container,
 )
 from .server.ui import (
+    # Content components
+    accordion as _accordion,
+)
+from .server.ui import (
+    accordion_item as _accordion_item,
+)
+from .server.ui import (
     alert as _alert,
 )
 from .server.ui import (
@@ -38,6 +45,9 @@ from .server.ui import (
 )
 from .server.ui import (
     badge as _badge,
+)
+from .server.ui import (
+    breadcrumb as _breadcrumb,
 )
 from .server.ui import (
     # Form components
@@ -59,10 +69,19 @@ from .server.ui import (
     col as _col,
 )
 from .server.ui import (
+    container as _container,
+)
+from .server.ui import (
     date_picker as _date_picker,
 )
 from .server.ui import (
+    diff as _diff,
+)
+from .server.ui import (
     divider as _divider,
+)
+from .server.ui import (
+    file_tree as _file_tree,
 )
 from .server.ui import (
     file_upload as _file_upload,
@@ -71,7 +90,13 @@ from .server.ui import (
     grid as _grid,
 )
 from .server.ui import (
+    hero as _hero,
+)
+from .server.ui import (
     html as _html,
+)
+from .server.ui import (
+    image as _image,
 )
 from .server.ui import (
     input_field as _input_field,
@@ -80,8 +105,18 @@ from .server.ui import (
     json_view as _json_view,
 )
 from .server.ui import (
+    link_card as _link_card,
+)
+from .server.ui import (
+    markdown as _markdown,
+)
+from .server.ui import (
     # Data display
     metric as _metric,
+)
+from .server.ui import (
+    # General UI components
+    modal as _modal,
 )
 from .server.ui import (
     nav_group as _nav_group,
@@ -97,6 +132,9 @@ from .server.ui import (
 )
 from .server.ui import (
     progress as _progress,
+)
+from .server.ui import (
+    raw_html as _raw_html,
 )
 from .server.ui import (
     # Layout components (context managers)
@@ -118,6 +156,18 @@ from .server.ui import (
     spacer as _spacer,
 )
 from .server.ui import (
+    split as _split,
+)
+from .server.ui import (
+    stack as _stack,
+)
+from .server.ui import (
+    step as _step,
+)
+from .server.ui import (
+    steps as _steps,
+)
+from .server.ui import (
     switch as _switch,
 )
 from .server.ui import (
@@ -136,12 +186,25 @@ from .server.ui import (
     textarea as _textarea,
 )
 from .server.ui import (
+    # Nice-to-Have components
+    timeline as _timeline,
+)
+from .server.ui import (
+    timeline_item as _timeline_item,
+)
+from .server.ui import (
     # Typography (leaf components)
     title as _title,
 )
 from .server.ui import (
     # Toast
     toast as _toast,
+)
+from .server.ui import (
+    tooltip as _tooltip,
+)
+from .server.ui import (
+    video as _video,
 )
 
 T = TypeVar("T")
@@ -491,6 +554,117 @@ def tab(
         yield comp
 
 
+@contextmanager
+def container(
+    size: Literal["sm", "md", "lg", "xl", "full"] = "lg",
+    padding: bool = True,
+    center: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Centered max-width content wrapper.
+
+    Example:
+        with c.container(size="md"):
+            c.title("Welcome")
+            c.text("Centered content.")
+    """
+    _ensure_context()
+    with _container(size=size, padding=padding, center=center, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def stack(
+    direction: Literal["vertical", "horizontal"] = "vertical",
+    gap: int = 4,
+    divider: bool = False,
+    align: Literal["start", "center", "end", "stretch"] | None = None,
+    justify: Literal["start", "center", "end", "between", "around"] | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Stack layout with optional dividers between items.
+
+    Example:
+        with c.stack(divider=True):
+            c.text("Item 1")
+            c.text("Item 2")
+    """
+    _ensure_context()
+    with _stack(
+        direction=direction,
+        gap=gap,
+        divider=divider,
+        align=align,
+        justify=justify,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def split(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    default_size: int = 50,
+    min_size: int = 20,
+    max_size: int = 80,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Two-pane resizable layout with draggable divider.
+
+    Example:
+        with c.split(default_size=40):
+            with c.col():
+                c.code(source, language="python")
+            with c.col():
+                c.text("Output")
+    """
+    _ensure_context()
+    with _split(
+        direction=direction,
+        default_size=default_size,
+        min_size=min_size,
+        max_size=max_size,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def hero(
+    title: str | None = None,
+    subtitle: str | None = None,
+    background: str | None = None,
+    image: str | None = None,
+    height: str = "400px",
+    align: Literal["center", "left", "right"] = "center",
+    gradient: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Full-width hero/banner section.
+
+    Example:
+        with c.hero(title="My App", subtitle="Build amazing things",
+                     gradient="135deg, #667eea, #764ba2"):
+            c.button("Get Started")
+    """
+    _ensure_context()
+    with _hero(
+        title=title,
+        subtitle=subtitle,
+        background=background,
+        image=image,
+        height=height,
+        align=align,
+        gradient=gradient,
+        **props,
+    ) as comp:
+        yield comp
+
+
 # =============================================================================
 # Admin Layout Components
 # =============================================================================
@@ -756,9 +930,40 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
 
 
 def html(content: str, **props: Any) -> Component:
-    """Render raw HTML content."""
+    """
+    Render pre-rendered HTML with prose styling.
+
+    Applies full prose typography. For raw HTML without styling, use raw_html().
+    For rendering markdown source, use markdown().
+    """
     _ensure_context()
     return _html(content, **props)
+
+
+def raw_html(content: str, **props: Any) -> Component:
+    """
+    Render raw HTML with zero styling.
+
+    For embedding widgets, iframes, or custom HTML that manages its own styling.
+    """
+    _ensure_context()
+    return _raw_html(content, **props)
+
+
+def markdown(content: str, toc: bool = False, **props: Any) -> Component:
+    """
+    Render markdown with full prose styling.
+
+    Features: prose typography, code blocks with copy, GFM tables/task lists,
+    callout blocks ([!NOTE], [!WARNING], [!TIP]), mermaid diagrams,
+    KaTeX math, auto-linking, and optional table of contents.
+
+    Example:
+        c.markdown("# Hello\\n\\nThis is **bold** text.")
+        c.markdown(doc_content, toc=True)
+    """
+    _ensure_context()
+    return _markdown(content, toc=toc, **props)
 
 
 def code(content: str, language: str = "python", **props: Any) -> Component:
@@ -1143,6 +1348,309 @@ file_upload = upload
 
 
 # =============================================================================
+# Content Components
+# =============================================================================
+
+
+@contextmanager
+def accordion(
+    title: str | None = None,
+    items: list[dict[str, Any]] | None = None,
+    mode: Literal["multiple", "single"] = "multiple",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Collapsible accordion sections.
+
+    Example:
+        with c.accordion(mode="single"):
+            with c.accordion_item("FAQ 1"):
+                c.text("Answer 1")
+    """
+    _ensure_context()
+    with _accordion(title=title, items=items, mode=mode, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def accordion_item(
+    title: str,
+    default_open: bool = False,
+    icon: str | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """Individual accordion item."""
+    _ensure_context()
+    with _accordion_item(title=title, default_open=default_open, icon=icon, **props) as comp:
+        yield comp
+
+
+@contextmanager
+def steps(
+    direction: Literal["horizontal", "vertical"] = "horizontal",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Step-by-step guide container.
+
+    Example:
+        with c.steps():
+            c.step("Sign Up", status="complete")
+            c.step("Verify", status="active")
+            c.step("Done", status="pending")
+    """
+    _ensure_context()
+    with _steps(direction=direction, **props) as comp:
+        yield comp
+
+
+def step(
+    title: str,
+    description: str | None = None,
+    status: Literal["pending", "active", "complete", "error"] = "pending",
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """Individual step within steps()."""
+    _ensure_context()
+    return _step(title=title, description=description, status=status, icon=icon, **props)
+
+
+def file_tree(
+    data: dict[str, Any] | str,
+    highlight: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    File/directory tree display.
+
+    Example:
+        c.file_tree({"src": {"main.py": None}, "README.md": None})
+    """
+    _ensure_context()
+    return _file_tree(data=data, highlight=highlight, **props)
+
+
+def link_card(
+    title: str,
+    description: str | None = None,
+    href: str | None = None,
+    icon: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Clickable navigation card.
+
+    Example:
+        c.link_card("Getting Started", description="Learn the basics", href="/docs", icon="book")
+    """
+    _ensure_context()
+    return _link_card(title=title, description=description, href=href, icon=icon, **props)
+
+
+# =============================================================================
+# General UI Components
+# =============================================================================
+
+
+@contextmanager
+def modal(
+    title: str | None = None,
+    signal: Signal[bool] | None = None,
+    size: Literal["sm", "md", "lg", "full"] = "md",
+    close_on_backdrop: bool = True,
+    close_on_escape: bool = True,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Modal dialog overlay.
+
+    Example:
+        show = c.signal(False, name="show_modal")
+        with c.modal(title="Confirm", signal=show):
+            c.text("Are you sure?")
+            c.button("Yes", on_click="confirm")
+    """
+    _ensure_context()
+    with _modal(
+        title=title,
+        signal=signal,
+        size=size,
+        close_on_backdrop=close_on_backdrop,
+        close_on_escape=close_on_escape,
+        **props,
+    ) as comp:
+        yield comp
+
+
+@contextmanager
+def tooltip(
+    text: str,
+    position: Literal["top", "bottom", "left", "right"] = "top",
+    delay: int = 200,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Tooltip wrapper.
+
+    Example:
+        with c.tooltip("Click to submit"):
+            c.button("Submit")
+    """
+    _ensure_context()
+    with _tooltip(text=text, position=position, delay=delay, **props) as comp:
+        yield comp
+
+
+def breadcrumb(
+    items: list[dict[str, Any]],
+    separator: str = "/",
+    **props: Any,
+) -> Component:
+    """
+    Breadcrumb navigation.
+
+    Example:
+        c.breadcrumb([{"label": "Home", "href": "/"}, {"label": "Docs"}, {"label": "API"}])
+    """
+    _ensure_context()
+    return _breadcrumb(items=items, separator=separator, **props)
+
+
+def image(
+    src: str,
+    alt: str = "",
+    caption: str | None = None,
+    width: int | str | None = None,
+    height: int | str | None = None,
+    lightbox: bool = False,
+    lazy: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Image with optional caption and lightbox.
+
+    Example:
+        c.image("photo.jpg", caption="Figure 1", lightbox=True, width=300)
+    """
+    _ensure_context()
+    return _image(
+        src=src,
+        alt=alt,
+        caption=caption,
+        width=width,
+        height=height,
+        lightbox=lightbox,
+        lazy=lazy,
+        **props,
+    )
+
+
+# =============================================================================
+# Nice-to-Have Components
+# =============================================================================
+
+
+@contextmanager
+def timeline(
+    items: list[dict[str, Any]] | None = None,
+    alternate: bool = False,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Vertical timeline for changelogs, events, history.
+
+    Example:
+        with c.timeline():
+            c.timeline_item("v1.0", "Initial release", date="2024-01-01")
+
+        # Or with items:
+        c.timeline(items=[{"title": "v1.0", "description": "Release", "date": "2024-01-01"}])
+    """
+    _ensure_context()
+    with _timeline(items=items, alternate=alternate, **props) as comp:
+        yield comp
+
+
+def timeline_item(
+    title: str,
+    description: str | None = None,
+    date: str | None = None,
+    icon: str | None = None,
+    color: Literal["primary", "success", "warning", "danger"] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Individual timeline entry. Must be used inside c.timeline().
+
+    Example:
+        c.timeline_item("v1.0", "Initial release", date="2024-01-01", color="success")
+    """
+    _ensure_context()
+    return _timeline_item(
+        title=title,
+        description=description,
+        date=date,
+        icon=icon,
+        color=color,
+        **props,
+    )
+
+
+def video(
+    src: str,
+    title: str = "",
+    width: int | str | None = None,
+    height: int | str | None = None,
+    aspect: str = "16/9",
+    poster: str | None = None,
+    autoplay: bool = False,
+    controls: bool = True,
+    loop: bool = False,
+    muted: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Video embed (YouTube, Vimeo, or direct file).
+
+    Example:
+        c.video("https://youtube.com/watch?v=abc123", title="Demo")
+        c.video("intro.mp4", poster="thumb.jpg")
+    """
+    _ensure_context()
+    return _video(
+        src=src,
+        title=title,
+        width=width,
+        height=height,
+        aspect=aspect,
+        poster=poster,
+        autoplay=autoplay,
+        controls=controls,
+        loop=loop,
+        muted=muted,
+        **props,
+    )
+
+
+def diff(
+    old_code: str,
+    new_code: str,
+    language: str = "",
+    mode: Literal["unified", "side-by-side"] = "unified",
+    **props: Any,
+) -> Component:
+    """
+    Code diff comparison.
+
+    Example:
+        c.diff("def foo():\\n    pass", "def foo():\\n    return 1", language="python")
+    """
+    _ensure_context()
+    return _diff(old_code=old_code, new_code=new_code, language=language, mode=mode, **props)
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1388,6 +1896,10 @@ __all__ = [
     "row",
     "col",
     "grid",
+    "container",
+    "stack",
+    "split",
+    "hero",
     "card",
     "sidebar",
     "tabs",
@@ -1403,6 +1915,9 @@ __all__ = [
     # Typography
     "title",
     "text",
+    "html",
+    "raw_html",
+    "markdown",
     "code",
     "divider",
     "spacer",
@@ -1429,6 +1944,23 @@ __all__ = [
     "chat",
     "upload",
     "file_upload",
+    # Content
+    "accordion",
+    "accordion_item",
+    "steps",
+    "step",
+    "file_tree",
+    "link_card",
+    # General UI
+    "modal",
+    "tooltip",
+    "breadcrumb",
+    "image",
+    # Nice-to-Have
+    "timeline",
+    "timeline_item",
+    "video",
+    "diff",
     # Toast
     "toast",
     # Charts

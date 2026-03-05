@@ -1,0 +1,75 @@
+// Accordion component
+
+.c-accordion {
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+  overflow: hidden;
+}
+
+.c-accordion-item {
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.c-accordion-header {
+  display: flex;
+  align-items: center;
+  gap: @space-2;
+  width: 100%;
+  padding: @space-3 @space-4;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: @font-size-base;
+  font-weight: @font-weight-medium;
+  cursor: pointer;
+  text-align: left;
+  transition: background @transition-fast;
+
+  &:hover {
+    background: var(--hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    border-radius: @radius-sm;
+  }
+}
+
+.c-accordion-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.c-accordion-title {
+  flex: 1;
+}
+
+.c-accordion-chevron {
+  font-size: @font-size-xs;
+  color: var(--text-secondary);
+  transition: transform @transition-fast;
+  display: inline-block;
+
+  &--open {
+    transform: rotate(90deg);
+  }
+}
+
+.c-accordion-content {
+  padding: @space-3 @space-4;
+  color: var(--text-secondary);
+  font-size: @font-size-base;
+  border-top: 1px solid var(--border);
+  animation: accordionIn @transition-fast;
+}
+
+@keyframes accordionIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

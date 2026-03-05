@@ -1,0 +1,74 @@
+// LinkCard component
+
+.c-link-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: @space-4;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: @radius-md;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: all @transition-fast;
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--hover);
+    transform: translateY(-1px);
+    box-shadow: @shadow-sm;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.c-link-card-body {
+  display: flex;
+  align-items: center;
+  gap: @space-3;
+  min-width: 0;
+}
+
+.c-link-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: @radius-sm;
+  background: var(--primary-bg);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.c-link-card-text {
+  min-width: 0;
+}
+
+.c-link-card-title {
+  font-size: @font-size-base;
+  font-weight: @font-weight-semibold;
+  color: var(--text-primary);
+}
+
+.c-link-card-description {
+  font-size: @font-size-sm;
+  color: var(--text-secondary);
+  margin-top: @space-1;
+}
+
+.c-link-card-arrow {
+  font-size: @font-size-lg;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: transform @transition-fast;
+
+  .c-link-card:hover & {
+    transform: translateX(4px);
+    color: var(--primary);
+  }
+}
