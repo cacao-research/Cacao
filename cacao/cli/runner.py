@@ -35,15 +35,16 @@ def find_app_instance(module: Any) -> Any:
     # First, check for simple mode (global app from cacao module)
     try:
         import cacao
+
         if cacao.is_simple_mode():
             return cacao.get_app()
     except (ImportError, AttributeError):
         pass
 
     # Second, try to find 'app' variable
-    if hasattr(module, 'app'):
-        app = getattr(module, 'app')
-        if hasattr(app, 'run') and hasattr(app, '_pages'):
+    if hasattr(module, "app"):
+        app = getattr(module, "app")
+        if hasattr(app, "run") and hasattr(app, "_pages"):
             return app
 
     # Third, search for any App instance
@@ -83,6 +84,7 @@ def main() -> None:
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

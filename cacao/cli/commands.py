@@ -14,8 +14,9 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # ANSI color codes
 BROWN = "\033[38;5;130m"
@@ -32,6 +33,7 @@ RESET = "\033[0m"
 def _get_logo() -> str:
     """Get the ASCII art logo with the current version."""
     from cacao import __version__
+
     return f"""{BROWN}
    ______
   / ____/___ _________ _____
@@ -39,6 +41,7 @@ def _get_logo() -> str:
 / /___/ /_/ / /__/ /_/ / /_/ /
 \\____/\\__,_/\\___/\\__,_/\\____/{RESET}  {DIM}v{__version__}{RESET}
 """
+
 
 # Historic chocolate years (sorted) - used as default ports
 # Each year represents a milestone in chocolate history
@@ -93,7 +96,7 @@ def is_port_available(host: str, port: int) -> bool:
             s.settimeout(0.1)
             s.bind((host, port))
             return True
-    except (OSError, socket.error):
+    except OSError:
         return False
 
 
@@ -229,15 +232,16 @@ def find_app_instance(module: Any) -> Any:
     # First, check for simple mode (global app from cacao module)
     try:
         import cacao
+
         if cacao.is_simple_mode():
             return cacao.get_app()
     except (ImportError, AttributeError):
         pass
 
     # Second, try to find 'app' variable
-    if hasattr(module, 'app'):
-        app = getattr(module, 'app')
-        if hasattr(app, 'run') and hasattr(app, '_pages'):
+    if hasattr(module, "app"):
+        app = getattr(module, "app")
+        if hasattr(app, "run") and hasattr(app, "_pages"):
             return app
 
     # Third, search for any App instance
@@ -265,14 +269,17 @@ def run_with_reload(app_path: Path, host: str, port: int, verbose: bool) -> None
     try:
         import watchfiles
     except ImportError:
-        print(f"{YELLOW}Warning: watchfiles not installed. Install with: pip install watchfiles{RESET}")
+        print(
+            f"{YELLOW}Warning: watchfiles not installed. "
+            f"Install with: pip install watchfiles{RESET}"
+        )
         print(f"{DIM}Running without hot reload...{RESET}")
         run_without_reload(app_path, host, port, verbose)
         return
 
     app_dir = app_path.parent.resolve()
 
-    def run_app() -> subprocess.Popen:
+    def run_app() -> subprocess.Popen[bytes]:
         """Start the app in a subprocess."""
         env = os.environ.copy()
         env["CACAO_APP_FILE"] = str(app_path.resolve())
@@ -292,7 +299,7 @@ def run_with_reload(app_path: Path, host: str, port: int, verbose: bool) -> None
 
     try:
         # Watch for changes
-        for changes in watchfiles.watch(app_dir, watch_filter=lambda _, path: path.endswith('.py')):
+        for changes in watchfiles.watch(app_dir, watch_filter=lambda _, path: path.endswith(".py")):
             changed_files = [str(c[1]) for c in changes]
 
             # Print reload message
@@ -354,17 +361,15 @@ def run_command(args: list[str]) -> None:
     # Default port is the first chocolate year (1502 - Columbus encounters cacao)
     default_port = CHOCOLATE_YEARS[0]
 
-    parser = argparse.ArgumentParser(
-        prog="cacao run",
-        description="Run a Cacao v2 application"
-    )
+    parser = argparse.ArgumentParser(prog="cacao run", description="Run a Cacao v2 application")
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
     parser.add_argument(
-        "--port", "-p",
+        "--port",
+        "-p",
         type=int,
         default=default_port,
-        help=f"Port to listen on (default: {default_port}, historic chocolate years)"
+        help=f"Port to listen on (default: {default_port}, historic chocolate years)",
     )
     parser.add_argument("--no-reload", action="store_true", help="Disable hot reload")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
@@ -413,6 +418,7 @@ def run_command(args: list[str]) -> None:
         print(f"{RED}Error: {e}{RESET}")
         if parsed_args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 
@@ -424,12 +430,16 @@ def create_command(args: list[str]) -> None:
     Usage: cacao create [name] [--template <template>]
     """
     parser = argparse.ArgumentParser(
-        prog="cacao create",
-        description="Create a new Cacao v2 project"
+        prog="cacao create", description="Create a new Cacao v2 project"
     )
     parser.add_argument("name", nargs="?", help="Project name")
-    parser.add_argument("-t", "--template", choices=["minimal", "counter", "dashboard"],
-                        default="minimal", help="Template to use")
+    parser.add_argument(
+        "-t",
+        "--template",
+        choices=["minimal", "counter", "dashboard"],
+        default="minimal",
+        help="Template to use",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     parsed_args = parser.parse_args(args)
@@ -449,8 +459,12 @@ def create_command(args: list[str]) -> None:
 
     # Validate project name
     import re
-    if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', project_name):
-        print(f"{RED}Error: Project name can only contain letters, numbers, hyphens, and underscores{RESET}")
+
+    if not re.match(r"^[a-zA-Z][a-zA-Z0-9_-]*$", project_name):
+        print(
+            f"{RED}Error: Project name can only contain letters, "
+            f"numbers, hyphens, and underscores{RESET}"
+        )
         sys.exit(1)
 
     project_path = Path.cwd() / project_name
@@ -477,7 +491,7 @@ def create_command(args: list[str]) -> None:
         requirements.write_text("cacao\nuvicorn\nwatchfiles\n", encoding="utf-8")
 
         print(f"\n{GREEN}Project created successfully!{RESET}")
-        print(f"\nNext steps:")
+        print("\nNext steps:")
         print(f"  {CYAN}cd {project_name}{RESET}")
         print(f"  {CYAN}pip install -r requirements.txt{RESET}")
         print(f"  {CYAN}cacao run app.py{RESET}")
@@ -487,6 +501,7 @@ def create_command(args: list[str]) -> None:
         # Clean up on failure
         if project_path.exists():
             import shutil
+
             shutil.rmtree(project_path)
         sys.exit(1)
 
@@ -598,12 +613,13 @@ def build_command(args: list[str]) -> None:
     import shutil
 
     parser = argparse.ArgumentParser(
-        prog="cacao build",
-        description="Build a static Cacao application"
+        prog="cacao build", description="Build a static Cacao application"
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument("-o", "--output", default="dist", help="Output directory (default: dist)")
-    parser.add_argument("--base-path", default="", help="Base path for deployment (e.g., /my-repo for GitHub Pages)")
+    parser.add_argument(
+        "--base-path", default="", help="Base path for deployment (e.g., /my-repo for GitHub Pages)"
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     parsed_args = parser.parse_args(args)
@@ -632,10 +648,11 @@ def build_command(args: list[str]) -> None:
         if parsed_args.verbose:
             print(f"  Loading {app_path.name}...")
 
-        module = load_app_module(app_path)
+        load_app_module(app_path)
 
         # Get the export data using cacao.export_static()
         import cacao
+
         export_data = cacao.export_static()
 
         if parsed_args.verbose:
@@ -654,7 +671,9 @@ def build_command(args: list[str]) -> None:
     frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 
     if not frontend_dist.exists():
-        print(f"{RED}Error: Frontend not built. Run 'npm run build' in cacao/frontend first.{RESET}")
+        print(
+            f"{RED}Error: Frontend not built. Run 'npm run build' in cacao/frontend first.{RESET}"
+        )
         sys.exit(1)
 
     # Copy CSS and JS
@@ -662,7 +681,7 @@ def build_command(args: list[str]) -> None:
     shutil.copy(frontend_dist / "cacao.js", output_dir / "cacao.js")
 
     if parsed_args.verbose:
-        print(f"  Copied cacao.css and cacao.js (includes built-in handlers)")
+        print("  Copied cacao.css and cacao.js (includes built-in handlers)")
 
     # Generate index.html
     metadata = export_data.get("metadata", {})
@@ -671,10 +690,12 @@ def build_command(args: list[str]) -> None:
     branding = metadata.get("branding")
 
     # Serialize pages data
-    pages_json = json.dumps({
-        "pages": export_data.get("pages", {}),
-        "metadata": metadata,
-    })
+    pages_json = json.dumps(
+        {
+            "pages": export_data.get("pages", {}),
+            "metadata": metadata,
+        }
+    )
     signals_json = json.dumps(export_data.get("signals", {}))
 
     # Build the HTML
@@ -689,7 +710,11 @@ def build_command(args: list[str]) -> None:
         if isinstance(branding, str):
             branding_html = f'\n    <div class="cacao-branding">{branding}</div>'
         else:
-            branding_html = '\n    <div class="cacao-branding">Built with <a href="https://github.com/cacao-research/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
+            branding_html = (
+                '\n    <div class="cacao-branding">'
+                'Built with <a href="https://github.com/cacao-research/Cacao"'
+                ' target="_blank"><strong>Cacao</strong></a> &#x1F90E;</div>'
+            )
 
     html_content = f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
@@ -698,7 +723,8 @@ def build_command(args: list[str]) -> None:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <link rel="stylesheet" href="{asset_prefix}/cacao.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -739,12 +765,12 @@ def build_command(args: list[str]) -> None:
 
     print(f"{GREEN}Build complete!{RESET}")
     print(f"\nOutput: {output_dir.resolve()}")
-    print(f"  - index.html")
-    print(f"  - 404.html (for SPA routing)")
-    print(f"  - cacao.css")
-    print(f"  - cacao.js (includes built-in handlers)")
+    print("  - index.html")
+    print("  - 404.html (for SPA routing)")
+    print("  - cacao.css")
+    print("  - cacao.js (includes built-in handlers)")
     print()
-    print(f"To preview locally:")
+    print("To preview locally:")
     print(f"  {CYAN}python -m http.server -d {output_dir}{RESET}")
     print()
 
@@ -752,6 +778,7 @@ def build_command(args: list[str]) -> None:
 def version_command(args: list[str]) -> None:
     """Show version information."""
     from cacao import __version__
+
     print(f"Cacao v{__version__}")
     print(f"Python: {sys.version}")
 
@@ -769,16 +796,19 @@ def help_command(args: list[str]) -> None:
     print(f"  {CYAN}help{RESET}             Show this help message")
     print()
     print("Examples:")
-    print(f"  cacao run app.py              Run app with hot reload (default port: 1502)")
-    print(f"  cacao run app.py --port 1847  Run on port 1847 (year of first chocolate bar)")
-    print(f"  cacao run app.py --no-reload  Run without hot reload")
-    print(f"  cacao create my-dashboard     Create a new project")
+    print("  cacao run app.py              Run app with hot reload (default port: 1502)")
+    print("  cacao run app.py --port 1847  Run on port 1847 (year of first chocolate bar)")
+    print("  cacao run app.py --no-reload  Run without hot reload")
+    print("  cacao create my-dashboard     Create a new project")
     print()
     print(f"  {BOLD}Static builds:{RESET}")
-    print(f"  cacao build app.py                     Build static site to dist/")
-    print(f"  cacao build app.py --base-path /repo   Set base path for GitHub Pages")
+    print("  cacao build app.py                     Build static site to dist/")
+    print("  cacao build app.py --base-path /repo   Set base path for GitHub Pages")
     print()
-    print(f"{DIM}Ports are historic chocolate years (1502-1936). If in use, auto-increments to next year.{RESET}")
+    print(
+        f"{DIM}Ports are historic chocolate years (1502-1936). "
+        f"If in use, auto-increments to next year.{RESET}"
+    )
     print()
 
 
@@ -816,7 +846,7 @@ def run_cli() -> None:
         handler(args)
     else:
         print(f"{RED}Unknown command: {command}{RESET}")
-        print(f"Run 'cacao help' for usage information")
+        print("Run 'cacao help' for usage information")
         sys.exit(1)
 
 

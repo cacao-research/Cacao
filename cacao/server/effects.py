@@ -8,9 +8,9 @@ external API calls.
 
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Callable, Any, TYPE_CHECKING, Awaitable
-from functools import wraps
 import asyncio
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from .log import get_logger
 
@@ -44,12 +44,12 @@ class Effect:
             await db.save("count", value)
     """
 
-    _all_effects: list["Effect"] = []
+    _all_effects: list[Effect] = []
 
     def __init__(
         self,
-        callback: Callable[["Session", Any], Any | Awaitable[Any]],
-        signals: list["Signal[Any]"],
+        callback: Callable[[Session, Any], Any | Awaitable[Any]],
+        signals: list[Signal[Any]],
         *,
         name: str | None = None,
         run_immediately: bool = False,
@@ -102,7 +102,7 @@ class Effect:
         # Import here to avoid circular import
         from .session import SessionManager
 
-        session = SessionManager.get_session(session_id)
+        session = SessionManager.get(session_id)
         if session is None:
             return
 
@@ -127,10 +127,10 @@ class Effect:
     @classmethod
     def on(
         cls,
-        *signals: "Signal[Any]",
+        *signals: Signal[Any],
         name: str | None = None,
         run_immediately: bool = False,
-    ) -> Callable[[Callable[["Session", Any], Any]], "Effect"]:
+    ) -> Callable[[Callable[[Session, Any], Any]], Effect]:
         """
         Decorator to create an effect from a function.
 
@@ -144,9 +144,11 @@ class Effect:
             def on_count_change(session, value):
                 print(f"Count is now {value}")
         """
-        def decorator(fn: Callable[["Session", Any], Any]) -> Effect:
+
+        def decorator(fn: Callable[[Session, Any], Any]) -> Effect:
             effect_name = name or fn.__name__
             return cls(fn, list(signals), name=effect_name, run_immediately=run_immediately)
+
         return decorator
 
     @classmethod
@@ -170,8 +172,8 @@ class Watch(Generic[T]):
 
     def __init__(
         self,
-        signal: "Signal[T]",
-        callback: Callable[["Session", T, T], Any | Awaitable[Any]],
+        signal: Signal[T],
+        callback: Callable[[Session, T, T], Any | Awaitable[Any]],
         *,
         immediate: bool = False,
     ) -> None:
@@ -193,7 +195,7 @@ class Watch(Generic[T]):
         """Handle signal change."""
         from .session import SessionManager
 
-        session = SessionManager.get_session(session_id)
+        session = SessionManager.get(session_id)
         if session is None:
             return
 
@@ -215,9 +217,9 @@ class Watch(Generic[T]):
 
 
 def effect(
-    *signals: "Signal[Any]",
+    *signals: Signal[Any],
     name: str | None = None,
-) -> Callable[[Callable[["Session", Any], Any]], Effect]:
+) -> Callable[[Callable[[Session, Any], Any]], Effect]:
     """
     Shorthand decorator for creating effects.
 

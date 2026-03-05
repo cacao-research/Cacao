@@ -8,9 +8,10 @@ them with registered handlers.
 
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Callable, Any, Awaitable, TYPE_CHECKING
-from dataclasses import dataclass
 import asyncio
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from .session import Session
@@ -37,8 +38,8 @@ class Event(Generic[T]):
     name: str
     data: T
 
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Event[dict[str, Any]]":
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> Event[dict[str, Any]]:
         """
         Create an Event from a dictionary.
 
@@ -48,7 +49,7 @@ class Event(Generic[T]):
         Returns:
             The Event instance
         """
-        return cls(
+        return Event(
             name=d.get("name", ""),
             data=d.get("data", {}),
         )
@@ -114,7 +115,7 @@ class EventRegistry:
 
     async def dispatch(
         self,
-        session: "Session",
+        session: Session,
         event: Event[dict[str, Any]],
     ) -> None:
         """

@@ -7,12 +7,13 @@ decorators for registering event handlers and manages the server lifecycle.
 
 from __future__ import annotations
 
-from typing import Callable, Any, Awaitable, TypeVar
+from collections.abc import Awaitable, Callable
 from functools import wraps
+from typing import Any, TypeVar
 
-from .signal import Signal
+from .events import EventHandler, EventRegistry
 from .session import Session, SessionManager
-from .events import EventRegistry, EventHandler
+from .signal import Signal
 
 T = TypeVar("T")
 
@@ -47,9 +48,7 @@ class App:
         self._routes: dict[str, Callable[[Session], dict[str, Any]]] = {}
         self._server: Any = None
 
-    def on(
-        self, event_name: str
-    ) -> Callable[[Callable[..., Awaitable[None]]], EventHandler]:
+    def on(self, event_name: str) -> Callable[[Callable[..., Awaitable[None]]], EventHandler]:
         """
         Decorator to register an event handler.
 
@@ -67,9 +66,7 @@ class App:
                 count.set(session, count.get(session) + 1)
         """
 
-        def decorator(
-            func: Callable[..., Awaitable[None]]
-        ) -> EventHandler:
+        def decorator(func: Callable[..., Awaitable[None]]) -> EventHandler:
             @wraps(func)
             async def wrapper(session: Session, data: dict[str, Any]) -> None:
                 await func(session, data)
@@ -100,7 +97,7 @@ class App:
         """
 
         def decorator(
-            func: Callable[[Session], dict[str, Any]]
+            func: Callable[[Session], dict[str, Any]],
         ) -> Callable[[Session], dict[str, Any]]:
             self._routes[path] = func
             return func
@@ -148,9 +145,7 @@ class App:
         # Default: return all signals
         return Signal.get_all_signals().copy()
 
-    async def handle_event(
-        self, session: Session, event_name: str, data: dict[str, Any]
-    ) -> None:
+    async def handle_event(self, session: Session, event_name: str, data: dict[str, Any]) -> None:
         """
         Handle an incoming event from a client.
 

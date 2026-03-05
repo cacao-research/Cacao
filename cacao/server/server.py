@@ -8,23 +8,23 @@ WebSocket connections, dispatches events, and syncs state to clients.
 from __future__ import annotations
 
 import json
-import asyncio
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from starlette.applications import Starlette
-from starlette.routing import Route, WebSocketRoute, Mount
-from starlette.responses import HTMLResponse, JSONResponse
-from starlette.websockets import WebSocket, WebSocketDisconnect
-from starlette.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import HTMLResponse, JSONResponse
+from starlette.routing import Mount, Route, WebSocketRoute
+from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from .signal import Signal
-from .session import Session
 from .log import get_logger, get_uvicorn_log_config
+from .session import Session
+from .signal import Signal
 
 if TYPE_CHECKING:
-    from .ui import App
+    from .app import App
 
 logger = get_logger("cacao.server")
 
@@ -32,7 +32,7 @@ logger = get_logger("cacao.server")
 FRONTEND_DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 
 
-def create_server(app: "App") -> Starlette:
+def create_server(app: App) -> Starlette:
     """
     Create a Starlette server for the Cacao app.
 
@@ -58,9 +58,9 @@ def create_server(app: "App") -> Starlette:
             await session.send_init(initial_state)
 
             # Set up signal subscription to push updates
-            unsubscribers: list[callable] = []
+            unsubscribers: list[Callable[..., Any]] = []
 
-            def create_subscriber(signal_name: str) -> callable:
+            def create_subscriber(signal_name: str) -> Callable[[str, Any], None]:
                 def on_change(session_id: str, value: Any) -> None:
                     if session_id == session.id:
                         session.queue_update(signal_name, value)
@@ -107,10 +107,12 @@ def create_server(app: "App") -> Starlette:
 
     async def health_handler(request: Any) -> JSONResponse:
         """Health check endpoint."""
-        return JSONResponse({
-            "status": "ok",
-            "sessions": app.sessions.count,
-        })
+        return JSONResponse(
+            {
+                "status": "ok",
+                "sessions": app.sessions.count,
+            }
+        )
 
     async def pages_handler(request: Any) -> JSONResponse:
         """Return the component tree for all pages."""
@@ -126,10 +128,12 @@ def create_server(app: "App") -> Starlette:
             "theme": getattr(app, "theme", "dark"),
         }
 
-        return JSONResponse({
-            "pages": pages,
-            "metadata": metadata,
-        })
+        return JSONResponse(
+            {
+                "pages": pages,
+                "metadata": metadata,
+            }
+        )
 
     async def index_handler(request: Any) -> HTMLResponse:
         """Serve the dashboard UI."""
@@ -184,7 +188,7 @@ def _get_all_signal_values(session: Session) -> dict[str, Any]:
 
 
 def run_server(
-    app: "App",
+    app: App,
     *,
     host: str = "0.0.0.0",
     port: int = 1502,  # 1502: Columbus encounters cacao beans in Honduras
@@ -205,7 +209,10 @@ def run_server(
 
     log_config = get_uvicorn_log_config(debug=app.debug)
     logger.info(
-        "Listening on http://%s:%d", host, port, extra={"label": "ready"},
+        "Listening on http://%s:%d",
+        host,
+        port,
+        extra={"label": "ready"},
     )
 
     uvicorn.run(
@@ -224,7 +231,10 @@ def _get_branding_html(branding: bool | str | None) -> str:
     if isinstance(branding, str):
         content = branding
     else:
-        content = 'Built with <a href="https://github.com/cacao-research/Cacao" target="_blank"><strong>Cacao</strong></a> &#x1F90E;'
+        content = (
+            'Built with <a href="https://github.com/cacao-research/Cacao"'
+            ' target="_blank"><strong>Cacao</strong></a> &#x1F90E;'
+        )
     return f'\n    <div class="cacao-branding">{content}</div>'
 
 
@@ -238,7 +248,8 @@ def _get_dashboard_html(title: str, theme: str, branding: bool | str | None = No
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <link rel="stylesheet" href="/static/cacao.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

@@ -7,11 +7,10 @@ enabling state to survive server restarts.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar, Generic
-from abc import ABC, abstractmethod
-import json
 import asyncio
+import json
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
 from .log import get_logger
 
@@ -102,7 +101,7 @@ class FileStorage:
             return None
         try:
             return json.loads(path.read_text())
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return None
 
     async def set(self, key: str, value: Any) -> None:
@@ -142,7 +141,7 @@ class Persist(Generic[T]):
 
     def __init__(
         self,
-        signal: "Signal[T]",
+        signal: Signal[T],
         storage: StorageBackend,
         *,
         key_prefix: str = "",
@@ -174,7 +173,7 @@ class Persist(Generic[T]):
         self._unsubscribe = signal.subscribe(self._on_change)
 
     @property
-    def signal(self) -> "Signal[T]":
+    def signal(self) -> Signal[T]:
         """The underlying signal."""
         return self._signal
 
@@ -207,7 +206,7 @@ class Persist(Generic[T]):
         finally:
             self._pending_saves.pop(session_id, None)
 
-    async def restore(self, session: "Session") -> T | None:
+    async def restore(self, session: Session) -> T | None:
         """
         Restore a signal's value from storage for a session.
 
@@ -221,14 +220,16 @@ class Persist(Generic[T]):
             key = self._storage_key(session.id)
             stored = await self._storage.get(key)
             if stored is not None:
-                value = self._deserialize(stored)
+                value: T = self._deserialize(stored)
                 self._signal.set(session, value)
                 return value
         except Exception as e:
-            _logger.error("Restore error for %s: %s", self._signal.name, e, extra={"label": "persist"})
+            _logger.error(
+                "Restore error for %s: %s", self._signal.name, e, extra={"label": "persist"}
+            )
         return None
 
-    async def delete(self, session: "Session") -> None:
+    async def delete(self, session: Session) -> None:
         """
         Delete persisted data for a session.
 
@@ -239,7 +240,9 @@ class Persist(Generic[T]):
             key = self._storage_key(session.id)
             await self._storage.delete(key)
         except Exception as e:
-            _logger.error("Delete error for %s: %s", self._signal.name, e, extra={"label": "persist"})
+            _logger.error(
+                "Delete error for %s: %s", self._signal.name, e, extra={"label": "persist"}
+            )
 
     def dispose(self) -> None:
         """Stop persisting and cancel pending saves."""
@@ -281,7 +284,7 @@ class PersistManager:
 
     def add(
         self,
-        signal: "Signal[Any]",
+        signal: Signal[Any],
         *,
         debounce_ms: int = 500,
     ) -> Persist[Any]:
@@ -304,7 +307,7 @@ class PersistManager:
         self._persists[signal.name] = persist
         return persist
 
-    async def restore_all(self, session: "Session") -> dict[str, Any]:
+    async def restore_all(self, session: Session) -> dict[str, Any]:
         """
         Restore all persisted signals for a session.
 
@@ -321,7 +324,7 @@ class PersistManager:
                 restored[name] = value
         return restored
 
-    async def delete_all(self, session: "Session") -> None:
+    async def delete_all(self, session: Session) -> None:
         """
         Delete all persisted data for a session.
 

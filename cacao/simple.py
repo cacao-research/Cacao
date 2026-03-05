@@ -17,57 +17,131 @@ For more control, use the full API from cacao.server.ui.
 
 from __future__ import annotations
 
-from typing import Any, Literal, Callable, TypeVar
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
+from typing import Any, Literal, TypeVar
 
-from .server.signal import Signal, Computed
+from .server.signal import Computed, Signal
 from .server.ui import (
     App as _App,
+)
+from .server.ui import (
     Component,
-    # Layout components (context managers)
-    row as _row,
-    col as _col,
-    grid as _grid,
-    card as _card,
-    sidebar as _sidebar,
-    tabs as _tabs,
-    tab as _tab,
+    _current_container,
+)
+from .server.ui import (
+    alert as _alert,
+)
+from .server.ui import (
     # Admin layout components
     app_shell as _app_shell,
-    nav_sidebar as _nav_sidebar,
-    nav_group as _nav_group,
-    nav_item as _nav_item,
-    shell_content as _shell_content,
-    nav_panel as _nav_panel,
-    # Typography (leaf components)
-    title as _title,
-    text as _text,
-    code as _code,
-    divider as _divider,
-    spacer as _spacer,
-    # Data display
-    metric as _metric,
-    table as _table,
-    json_view as _json_view,
-    progress as _progress,
+)
+from .server.ui import (
     badge as _badge,
-    alert as _alert,
+)
+from .server.ui import (
     # Form components
     button as _button,
-    input_field as _input_field,
-    textarea as _textarea,
-    select as _select,
-    checkbox as _checkbox,
-    switch as _switch,
-    slider as _slider,
-    date_picker as _date_picker,
+)
+from .server.ui import (
+    card as _card,
+)
+from .server.ui import (
     chat as _chat,
+)
+from .server.ui import (
+    checkbox as _checkbox,
+)
+from .server.ui import (
+    code as _code,
+)
+from .server.ui import (
+    col as _col,
+)
+from .server.ui import (
+    date_picker as _date_picker,
+)
+from .server.ui import (
+    divider as _divider,
+)
+from .server.ui import (
     file_upload as _file_upload,
+)
+from .server.ui import (
+    grid as _grid,
+)
+from .server.ui import (
+    html as _html,
+)
+from .server.ui import (
+    input_field as _input_field,
+)
+from .server.ui import (
+    json_view as _json_view,
+)
+from .server.ui import (
+    # Data display
+    metric as _metric,
+)
+from .server.ui import (
+    nav_group as _nav_group,
+)
+from .server.ui import (
+    nav_item as _nav_item,
+)
+from .server.ui import (
+    nav_panel as _nav_panel,
+)
+from .server.ui import (
+    nav_sidebar as _nav_sidebar,
+)
+from .server.ui import (
+    progress as _progress,
+)
+from .server.ui import (
+    # Layout components (context managers)
+    row as _row,
+)
+from .server.ui import (
+    select as _select,
+)
+from .server.ui import (
+    shell_content as _shell_content,
+)
+from .server.ui import (
+    sidebar as _sidebar,
+)
+from .server.ui import (
+    slider as _slider,
+)
+from .server.ui import (
+    spacer as _spacer,
+)
+from .server.ui import (
+    switch as _switch,
+)
+from .server.ui import (
+    tab as _tab,
+)
+from .server.ui import (
+    table as _table,
+)
+from .server.ui import (
+    tabs as _tabs,
+)
+from .server.ui import (
+    text as _text,
+)
+from .server.ui import (
+    textarea as _textarea,
+)
+from .server.ui import (
+    # Typography (leaf components)
+    title as _title,
+)
+from .server.ui import (
     # Toast
     toast as _toast,
-    # Internal
-    _current_container,
-    _component_stack,
 )
 
 T = TypeVar("T")
@@ -131,6 +205,7 @@ def _ensure_context() -> None:
 # Configuration
 # =============================================================================
 
+
 def config(
     *,
     title: str | None = None,
@@ -192,6 +267,7 @@ def config(
 # Signals (State Management)
 # =============================================================================
 
+
 def signal(default: T, *, name: str) -> Signal[T]:
     """
     Create a reactive signal.
@@ -231,7 +307,8 @@ def computed(func: Callable[..., T], *, name: str | None = None) -> Computed[T]:
 # Event Handlers
 # =============================================================================
 
-def on(event_name: str):
+
+def on(event_name: str) -> Callable[..., Any]:
     """
     Decorator to register an event handler.
 
@@ -270,8 +347,9 @@ def bind(event_name: str, sig: Signal[T]) -> None:
 # Pages (Multi-page apps)
 # =============================================================================
 
+
 @contextmanager
-def page(path: str = "/"):
+def page(path: str = "/") -> Generator[None, None, None]:
     """
     Define a page at the given path.
 
@@ -304,6 +382,7 @@ def page(path: str = "/"):
 # Layout Components
 # =============================================================================
 
+
 @contextmanager
 def row(
     gap: int = 4,
@@ -311,7 +390,7 @@ def row(
     justify: Literal["start", "center", "end", "between", "around"] = "start",
     wrap: bool = False,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Horizontal row layout.
 
@@ -331,7 +410,7 @@ def col(
     gap: int = 4,
     align: Literal["start", "center", "end", "stretch"] = "stretch",
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Vertical column layout.
 
@@ -348,7 +427,7 @@ def col(
 
 
 @contextmanager
-def grid(cols: int = 12, gap: int = 4, **props: Any):
+def grid(cols: int = 12, gap: int = 4, **props: Any) -> Generator[Component, None, None]:
     """CSS Grid layout."""
     _ensure_context()
     with _grid(cols=cols, gap=gap, **props) as comp:
@@ -356,7 +435,9 @@ def grid(cols: int = 12, gap: int = 4, **props: Any):
 
 
 @contextmanager
-def card(title: str | None = None, subtitle: str | None = None, **props: Any):
+def card(
+    title: str | None = None, subtitle: str | None = None, **props: Any
+) -> Generator[Component, None, None]:
     """
     Card container.
 
@@ -370,7 +451,7 @@ def card(title: str | None = None, subtitle: str | None = None, **props: Any):
 
 
 @contextmanager
-def sidebar(**props: Any):
+def sidebar(**props: Any) -> Generator[Component, None, None]:
     """
     Sidebar container.
 
@@ -384,7 +465,7 @@ def sidebar(**props: Any):
 
 
 @contextmanager
-def tabs(default: str | None = None, **props: Any):
+def tabs(default: str | None = None, **props: Any) -> Generator[Component, None, None]:
     """
     Tab container.
 
@@ -401,7 +482,9 @@ def tabs(default: str | None = None, **props: Any):
 
 
 @contextmanager
-def tab(key: str, label: str, icon: str | None = None, **props: Any):
+def tab(
+    key: str, label: str, icon: str | None = None, **props: Any
+) -> Generator[Component, None, None]:
     """Individual tab within tabs()."""
     _ensure_context()
     with _tab(key=key, label=label, icon=icon, **props) as comp:
@@ -412,6 +495,7 @@ def tab(key: str, label: str, icon: str | None = None, **props: Any):
 # Admin Layout Components
 # =============================================================================
 
+
 @contextmanager
 def app_shell(
     brand: str | None = None,
@@ -420,7 +504,7 @@ def app_shell(
     theme_dark: str | None = None,
     theme_light: str | None = None,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Admin-style application shell with sidebar navigation.
 
@@ -443,15 +527,18 @@ def app_shell(
     """
     _ensure_context()
     with _app_shell(
-        brand=brand, logo=logo, default=default,
-        theme_dark=theme_dark, theme_light=theme_light,
+        brand=brand,
+        logo=logo,
+        default=default,
+        theme_dark=theme_dark,
+        theme_light=theme_light,
         **props,
     ) as comp:
         yield comp
 
 
 @contextmanager
-def nav_sidebar(**props: Any):
+def nav_sidebar(**props: Any) -> Generator[Component, None, None]:
     """Navigation sidebar for app_shell."""
     _ensure_context()
     with _nav_sidebar(**props) as comp:
@@ -464,7 +551,7 @@ def nav_group(
     icon: str | None = None,
     default_open: bool = True,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Collapsible navigation group.
 
@@ -483,7 +570,7 @@ def nav_item(
     icon: str | None = None,
     badge: str | None = None,
     **props: Any,
-):
+) -> Component:
     """
     Navigation item.
 
@@ -495,7 +582,7 @@ def nav_item(
 
 
 @contextmanager
-def shell_content(**props: Any):
+def shell_content(**props: Any) -> Generator[Component, None, None]:
     """Main content area of app_shell."""
     _ensure_context()
     with _shell_content(**props) as comp:
@@ -503,7 +590,7 @@ def shell_content(**props: Any):
 
 
 @contextmanager
-def nav_panel(key: str, **props: Any):
+def nav_panel(key: str, **props: Any) -> Generator[Component, None, None]:
     """
     Content panel that shows when the nav_item with matching key is active.
 
@@ -521,6 +608,7 @@ def nav_panel(key: str, **props: Any):
 # Layout Presets
 # =============================================================================
 
+
 class _LayoutHelper:
     """Helper object returned by layout() for accessing sub-regions."""
 
@@ -529,14 +617,14 @@ class _LayoutHelper:
         self._kwargs = kwargs
 
     @contextmanager
-    def side(self):
+    def side(self) -> Generator[None, None, None]:
         """Sidebar region of a sidebar/split layout."""
         width = self._kwargs.get("sidebar_width", "300px")
         with col(gap=4, width=width):
             yield
 
     @contextmanager
-    def main(self):
+    def main(self) -> Generator[None, None, None]:
         """Main content region."""
         with col(gap=0):
             yield
@@ -550,17 +638,19 @@ class _LayoutHelper:
         try:
             return int(parts[0]), int(parts[1])
         except ValueError:
-            raise ValueError(f"Invalid ratio '{ratio}': both parts must be integers (e.g. '1:1', '2:1')")
+            raise ValueError(
+                f"Invalid ratio '{ratio}': both parts must be integers (e.g. '1:1', '2:1')"
+            )
 
     @contextmanager
-    def left(self):
+    def left(self) -> Generator[None, None, None]:
         """Left pane of a split layout."""
         left_flex, _ = self._parse_ratio()
         with col(gap=4, flex=str(left_flex)):
             yield
 
     @contextmanager
-    def right(self):
+    def right(self) -> Generator[None, None, None]:
         """Right pane of a split layout."""
         _, right_flex = self._parse_ratio()
         with col(gap=4, flex=str(right_flex)):
@@ -577,7 +667,7 @@ def layout(
     height: str = "calc(100vh - 4rem)",
     gap: int = 4,
     **props: Any,
-):
+) -> Generator[_LayoutHelper, None, None]:
     """
     Pre-built layout preset for common patterns.
 
@@ -640,6 +730,7 @@ def layout(
 # Typography Components
 # =============================================================================
 
+
 def title(text: str, level: int = 1, **props: Any) -> Component:
     """
     Title/heading.
@@ -664,6 +755,12 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
     return _text(content, size=size, color=color, **props)
 
 
+def html(content: str, **props: Any) -> Component:
+    """Render raw HTML content."""
+    _ensure_context()
+    return _html(content, **props)
+
+
 def code(content: str, language: str = "python", **props: Any) -> Component:
     """Syntax-highlighted code block."""
     _ensure_context()
@@ -686,6 +783,7 @@ def spacer(size: int = 4, **props: Any) -> Component:
 # Data Display Components
 # =============================================================================
 
+
 def metric(
     label: str,
     value: Any,
@@ -703,8 +801,13 @@ def metric(
     """
     _ensure_context()
     return _metric(
-        label=label, value=value, trend=trend, trend_direction=trend_direction,
-        prefix=prefix, suffix=suffix, **props
+        label=label,
+        value=value,
+        trend=trend,
+        trend_direction=trend_direction,
+        prefix=prefix,
+        suffix=suffix,
+        **props,
     )
 
 
@@ -725,8 +828,13 @@ def table(
     """
     _ensure_context()
     return _table(
-        data=data, columns=columns, searchable=searchable,
-        sortable=sortable, paginate=paginate, page_size=page_size, **props
+        data=data,
+        columns=columns,
+        searchable=searchable,
+        sortable=sortable,
+        paginate=paginate,
+        page_size=page_size,
+        **props,
     )
 
 
@@ -756,8 +864,12 @@ def progress(
     """Progress bar."""
     _ensure_context()
     return _progress(
-        value=value, max_value=max_value, label=label,
-        show_value=show_value, variant=variant, **props
+        value=value,
+        max_value=max_value,
+        label=label,
+        show_value=show_value,
+        variant=variant,
+        **props,
     )
 
 
@@ -787,6 +899,7 @@ def alert(
 # Form Components
 # =============================================================================
 
+
 def button(
     label: str,
     on_click: Callable[[], Any] | str | None = None,
@@ -806,8 +919,14 @@ def button(
     """
     _ensure_context()
     return _button(
-        label=label, on_click=on_click, variant=variant, size=size,
-        disabled=disabled, loading=loading, icon=icon, **props
+        label=label,
+        on_click=on_click,
+        variant=variant,
+        size=size,
+        disabled=disabled,
+        loading=loading,
+        icon=icon,
+        **props,
     )
 
 
@@ -828,8 +947,7 @@ def input(
     """
     _ensure_context()
     return _input_field(
-        label=label, signal=signal, placeholder=placeholder,
-        type=type, disabled=disabled, **props
+        label=label, signal=signal, placeholder=placeholder, type=type, disabled=disabled, **props
     )
 
 
@@ -854,8 +972,7 @@ def textarea(
     """
     _ensure_context()
     return _textarea(
-        label=label, signal=signal, placeholder=placeholder,
-        rows=rows, disabled=disabled, **props
+        label=label, signal=signal, placeholder=placeholder, rows=rows, disabled=disabled, **props
     )
 
 
@@ -875,8 +992,12 @@ def select(
     """
     _ensure_context()
     return _select(
-        label=label, options=options, signal=signal,
-        placeholder=placeholder, disabled=disabled, **props
+        label=label,
+        options=options,
+        signal=signal,
+        placeholder=placeholder,
+        disabled=disabled,
+        **props,
     )
 
 
@@ -890,8 +1011,7 @@ def checkbox(
     """Checkbox."""
     _ensure_context()
     return _checkbox(
-        label=label, signal=signal, description=description,
-        disabled=disabled, **props
+        label=label, signal=signal, description=description, disabled=disabled, **props
     )
 
 
@@ -924,8 +1044,13 @@ def slider(
     """
     _ensure_context()
     return _slider(
-        label=label, signal=signal, min_value=min, max_value=max,
-        step=step, disabled=disabled, **props
+        label=label,
+        signal=signal,
+        min_value=min,
+        max_value=max,
+        step=step,
+        disabled=disabled,
+        **props,
     )
 
 
@@ -945,8 +1070,7 @@ def date(
     """
     _ensure_context()
     return _date_picker(
-        label=label, signal=signal, placeholder=placeholder,
-        disabled=disabled, **props
+        label=label, signal=signal, placeholder=placeholder, disabled=disabled, **props
     )
 
 
@@ -955,9 +1079,9 @@ date_picker = date
 
 
 def chat(
-    signal: Signal[list] | None = None,
-    on_send: Callable | str | None = None,
-    on_clear: Callable | str | None = None,
+    signal: Signal[list[Any]] | None = None,
+    on_send: Callable[..., Any] | str | None = None,
+    on_clear: Callable[..., Any] | str | None = None,
     placeholder: str = "Type a message...",
     title: str | None = None,
     height: str = "500px",
@@ -986,9 +1110,14 @@ def chat(
     """
     _ensure_context()
     return _chat(
-        signal=signal, on_send=on_send, on_clear=on_clear,
-        placeholder=placeholder, title=title, height=height,
-        show_clear=show_clear, **props
+        signal=signal,
+        on_send=on_send,
+        on_clear=on_clear,
+        placeholder=placeholder,
+        title=title,
+        height=height,
+        show_clear=show_clear,
+        **props,
     )
 
 
@@ -1006,10 +1135,7 @@ def upload(
         c.upload("Upload CSV", accept=".csv")
     """
     _ensure_context()
-    return _file_upload(
-        label=label, on_upload=on_upload, accept=accept,
-        multiple=multiple, **props
-    )
+    return _file_upload(label=label, on_upload=on_upload, accept=accept, multiple=multiple, **props)
 
 
 # Alias
@@ -1019,6 +1145,7 @@ file_upload = upload
 # =============================================================================
 # Toast Notifications
 # =============================================================================
+
 
 def toast(
     message: str,
@@ -1042,74 +1169,84 @@ def toast(
 # Charts (re-export from chart module)
 # =============================================================================
 
-def _lazy_chart_import():
+
+def _lazy_chart_import() -> Any:
     """Lazy import chart functions to avoid circular imports."""
     from .server import chart as _chart_module
+
     return _chart_module
 
 
-def line(data, x: str, y: str | list[str], **props):
+def line(data: Any, x: str, y: str | list[str], **props: Any) -> Component:
     """Line chart."""
     _ensure_context()
-    return _lazy_chart_import().line(data, x=x, y=y, **props)
+    result: Component = _lazy_chart_import().line(data, x=x, y=y, **props)
+    return result
 
 
-def bar(data, x: str, y: str | list[str], **props):
+def bar(data: Any, x: str, y: str | list[str], **props: Any) -> Component:
     """Bar chart."""
     _ensure_context()
-    return _lazy_chart_import().bar(data, x=x, y=y, **props)
+    result: Component = _lazy_chart_import().bar(data, x=x, y=y, **props)
+    return result
 
 
-def pie(data, values: str, names: str, **props):
+def pie(data: Any, values: str, names: str, **props: Any) -> Component:
     """Pie chart."""
     _ensure_context()
-    return _lazy_chart_import().pie(data, values=values, names=names, **props)
+    result: Component = _lazy_chart_import().pie(data, values=values, names=names, **props)
+    return result
 
 
-def area(data, x: str, y: str | list[str], **props):
+def area(data: Any, x: str, y: str | list[str], **props: Any) -> Component:
     """Area chart."""
     _ensure_context()
-    return _lazy_chart_import().area(data, x=x, y=y, **props)
+    result: Component = _lazy_chart_import().area(data, x=x, y=y, **props)
+    return result
 
 
-def scatter(data, x: str, y: str, **props):
+def scatter(data: Any, x: str, y: str, **props: Any) -> Component:
     """Scatter chart."""
     _ensure_context()
-    return _lazy_chart_import().scatter(data, x=x, y=y, **props)
+    result: Component = _lazy_chart_import().scatter(data, x=x, y=y, **props)
+    return result
 
 
-def gauge(value: float, **props):
+def gauge(value: float, **props: Any) -> Component:
     """Gauge chart."""
     _ensure_context()
-    return _lazy_chart_import().gauge(value, **props)
+    result: Component = _lazy_chart_import().gauge(value, **props)
+    return result
 
 
 # =============================================================================
 # Data Utilities (re-export from data module)
 # =============================================================================
 
-def _lazy_data_import():
+
+def _lazy_data_import() -> Any:
     """Lazy import data functions."""
     from .server import data as _data_module
+
     return _data_module
 
 
-def load_csv(path: str):
+def load_csv(path: str) -> Any:
     """Load data from CSV file."""
     return _lazy_data_import().load_csv(path)
 
 
-def load_json(path: str):
+def load_json(path: str) -> Any:
     """Load data from JSON file."""
     return _lazy_data_import().load_json(path)
 
 
-def sample_sales_data():
+def sample_sales_data() -> Any:
     """Get sample sales data for demos."""
     return _lazy_data_import().sample_sales_data()
 
 
-def sample_users_data():
+def sample_users_data() -> Any:
     """Get sample users data for demos."""
     return _lazy_data_import().sample_users_data()
 
@@ -1117,6 +1254,7 @@ def sample_users_data():
 # =============================================================================
 # App Control
 # =============================================================================
+
 
 def run(
     *,
@@ -1181,7 +1319,7 @@ def reset() -> None:
     }
 
 
-def export_static() -> dict:
+def export_static() -> dict[str, Any]:
     """
     Export the app configuration for static builds.
 
@@ -1216,6 +1354,7 @@ def export_static() -> dict:
 
     # Get signal defaults
     from .server.signal import Signal
+
     signals = {}
     for name, signal in Signal.get_all_signals().items():
         if hasattr(signal, "_default"):

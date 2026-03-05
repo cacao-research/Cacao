@@ -13,8 +13,7 @@ Example:
 
 from __future__ import annotations
 
-from typing import Any, Literal
-from dataclasses import dataclass, field
+from typing import Any
 
 # Import from ui module to use same component system
 from .ui import Component, _add_to_current_container
@@ -23,8 +22,9 @@ from .ui import Component, _add_to_current_container
 def _normalize_data(data: Any) -> list[dict[str, Any]]:
     """Convert various data formats to list of dicts."""
     # Pandas DataFrame
-    if hasattr(data, 'to_dict'):
-        return data.to_dict('records')
+    if hasattr(data, "to_dict"):
+        result: list[dict[str, Any]] = data.to_dict("records")
+        return result
     # Already a list
     if isinstance(data, list):
         return data
@@ -60,21 +60,23 @@ def line(
     normalized_data = _normalize_data(data)
     y_fields = [y] if isinstance(y, str) else y
 
-    return _add_to_current_container(Component(
-        type="LineChart",
-        props={
-            "data": normalized_data,
-            "xField": x,
-            "yFields": y_fields,
-            "title": title,
-            "color": color,
-            "smooth": smooth,
-            "area": area,
-            "stacked": stacked,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="LineChart",
+            props={
+                "data": normalized_data,
+                "xField": x,
+                "yFields": y_fields,
+                "title": title,
+                "color": color,
+                "smooth": smooth,
+                "area": area,
+                "stacked": stacked,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def bar(
@@ -101,21 +103,23 @@ def bar(
     normalized_data = _normalize_data(data)
     y_fields = [y] if isinstance(y, str) else y
 
-    return _add_to_current_container(Component(
-        type="BarChart",
-        props={
-            "data": normalized_data,
-            "xField": x,
-            "yFields": y_fields,
-            "title": title,
-            "color": color,
-            "horizontal": horizontal,
-            "stacked": stacked,
-            "grouped": grouped,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="BarChart",
+            props={
+                "data": normalized_data,
+                "xField": x,
+                "yFields": y_fields,
+                "title": title,
+                "color": color,
+                "horizontal": horizontal,
+                "stacked": stacked,
+                "grouped": grouped,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def pie(
@@ -140,20 +144,22 @@ def pie(
     """
     normalized_data = _normalize_data(data)
 
-    return _add_to_current_container(Component(
-        type="PieChart",
-        props={
-            "data": normalized_data,
-            "valueField": values,
-            "nameField": names,
-            "title": title,
-            "donut": donut,
-            "showLabels": show_labels,
-            "showLegend": show_legend,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="PieChart",
+            props={
+                "data": normalized_data,
+                "valueField": values,
+                "nameField": names,
+                "title": title,
+                "donut": donut,
+                "showLabels": show_labels,
+                "showLegend": show_legend,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def scatter(
@@ -177,19 +183,21 @@ def scatter(
     """
     normalized_data = _normalize_data(data)
 
-    return _add_to_current_container(Component(
-        type="ScatterChart",
-        props={
-            "data": normalized_data,
-            "xField": x,
-            "yField": y,
-            "sizeField": size,
-            "colorField": color,
-            "title": title,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="ScatterChart",
+            props={
+                "data": normalized_data,
+                "xField": x,
+                "yField": y,
+                "sizeField": size,
+                "colorField": color,
+                "title": title,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def area(
@@ -215,20 +223,22 @@ def area(
     normalized_data = _normalize_data(data)
     y_fields = [y] if isinstance(y, str) else y
 
-    return _add_to_current_container(Component(
-        type="AreaChart",
-        props={
-            "data": normalized_data,
-            "xField": x,
-            "yFields": y_fields,
-            "title": title,
-            "color": color,
-            "stacked": stacked,
-            "gradient": gradient,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="AreaChart",
+            props={
+                "data": normalized_data,
+                "xField": x,
+                "yFields": y_fields,
+                "title": title,
+                "color": color,
+                "stacked": stacked,
+                "gradient": gradient,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def gauge(
@@ -247,19 +257,21 @@ def gauge(
     Example:
         gauge(75, title="Completion", format="{value}%")
     """
-    return _add_to_current_container(Component(
-        type="GaugeChart",
-        props={
-            "value": value,
-            "maxValue": max_value,
-            "title": title,
-            "color": color,
-            "showValue": show_value,
-            "format": format,
-            "size": size,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="GaugeChart",
+            props={
+                "value": value,
+                "maxValue": max_value,
+                "title": title,
+                "color": color,
+                "showValue": show_value,
+                "format": format,
+                "size": size,
+                **props,
+            },
+        )
+    )
 
 
 def heatmap(
@@ -281,20 +293,22 @@ def heatmap(
     """
     normalized_data = _normalize_data(data)
 
-    return _add_to_current_container(Component(
-        type="HeatmapChart",
-        props={
-            "data": normalized_data,
-            "xField": x,
-            "yField": y,
-            "valueField": value,
-            "title": title,
-            "colorScale": color_scale,
-            "showValues": show_values,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="HeatmapChart",
+            props={
+                "data": normalized_data,
+                "xField": x,
+                "yField": y,
+                "valueField": value,
+                "title": title,
+                "colorScale": color_scale,
+                "showValues": show_values,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def funnel(
@@ -314,18 +328,20 @@ def funnel(
     """
     normalized_data = _normalize_data(data)
 
-    return _add_to_current_container(Component(
-        type="FunnelChart",
-        props={
-            "data": normalized_data,
-            "valueField": values,
-            "nameField": names,
-            "title": title,
-            "showLabels": show_labels,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="FunnelChart",
+            props={
+                "data": normalized_data,
+                "valueField": values,
+                "nameField": names,
+                "title": title,
+                "showLabels": show_labels,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def radar(
@@ -346,18 +362,20 @@ def radar(
     normalized_data = _normalize_data(data)
     value_fields = [values] if isinstance(values, str) else values
 
-    return _add_to_current_container(Component(
-        type="RadarChart",
-        props={
-            "data": normalized_data,
-            "categoryField": categories,
-            "valueFields": value_fields,
-            "title": title,
-            "fill": fill,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="RadarChart",
+            props={
+                "data": normalized_data,
+                "categoryField": categories,
+                "valueFields": value_fields,
+                "title": title,
+                "fill": fill,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 def treemap(
@@ -377,22 +395,26 @@ def treemap(
     """
     normalized_data = _normalize_data(data)
 
-    return _add_to_current_container(Component(
-        type="TreemapChart",
-        props={
-            "data": normalized_data,
-            "valueField": values,
-            "nameField": names,
-            "parentField": parent,
-            "title": title,
-            "height": height,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="TreemapChart",
+            props={
+                "data": normalized_data,
+                "valueField": values,
+                "nameField": names,
+                "parentField": parent,
+                "title": title,
+                "height": height,
+                **props,
+            },
+        )
+    )
 
 
 # Convenience alias
-donut = lambda *args, **kwargs: pie(*args, donut=True, **kwargs)
+def donut(*args: Any, **kwargs: Any) -> Component:
+    kwargs["donut"] = True
+    return pie(*args, **kwargs)
 
 
 __all__ = [

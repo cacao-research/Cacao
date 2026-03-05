@@ -15,9 +15,10 @@ Example:
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
-from pathlib import Path
 import json
+from collections.abc import Callable, Iterator
+from pathlib import Path
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -38,8 +39,8 @@ class DataFrame:
             data: List of dicts, dict of lists, or pandas DataFrame
         """
         # Handle pandas DataFrame
-        if hasattr(data, 'to_dict'):
-            self._data = data.to_dict('records')
+        if hasattr(data, "to_dict"):
+            self._data = data.to_dict("records")
             self._pandas = data
         # Handle dict of lists (columnar format)
         elif isinstance(data, dict) and data:
@@ -68,7 +69,7 @@ class DataFrame:
     def __len__(self) -> int:
         return len(self._data)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[dict[str, Any] | Any]:
         return iter(self._data)
 
     def __getitem__(self, key: str | int | slice) -> Any:
@@ -86,7 +87,7 @@ class DataFrame:
             return {col: [row[col] for row in self._data] for col in self.columns}
         return self._data
 
-    def filter(self, condition: Callable[[dict[str, Any]], bool]) -> "DataFrame":
+    def filter(self, condition: Callable[[dict[str, Any]], bool]) -> DataFrame:
         """
         Filter rows by condition.
 
@@ -95,26 +96,25 @@ class DataFrame:
         """
         return DataFrame([row for row in self._data if condition(row)])
 
-    def select(self, *columns: str) -> "DataFrame":
+    def select(self, *columns: str) -> DataFrame:
         """
         Select specific columns.
 
         Example:
             df.select("name", "email")
         """
-        return DataFrame([{col: row[col] for col in columns if col in row}
-                         for row in self._data])
+        return DataFrame([{col: row[col] for col in columns if col in row} for row in self._data])
 
-    def sort(self, column: str, reverse: bool = False) -> "DataFrame":
+    def sort(self, column: str, reverse: bool = False) -> DataFrame:
         """
         Sort by column.
 
         Example:
             df.sort("date", reverse=True)
         """
-        return DataFrame(sorted(self._data, key=lambda x: x.get(column), reverse=reverse))
+        return DataFrame(sorted(self._data, key=lambda x: x.get(column, ""), reverse=reverse))
 
-    def limit(self, n: int) -> "DataFrame":
+    def limit(self, n: int) -> DataFrame:
         """
         Limit to first n rows.
 
@@ -123,15 +123,15 @@ class DataFrame:
         """
         return DataFrame(self._data[:n])
 
-    def head(self, n: int = 5) -> "DataFrame":
+    def head(self, n: int = 5) -> DataFrame:
         """Get first n rows."""
         return self.limit(n)
 
-    def tail(self, n: int = 5) -> "DataFrame":
+    def tail(self, n: int = 5) -> DataFrame:
         """Get last n rows."""
         return DataFrame(self._data[-n:])
 
-    def map(self, column: str, fn: Callable[[Any], Any]) -> "DataFrame":
+    def map(self, column: str, fn: Callable[[Any], Any]) -> DataFrame:
         """
         Apply function to column.
 
@@ -140,7 +140,7 @@ class DataFrame:
         """
         return DataFrame([{**row, column: fn(row[column])} for row in self._data])
 
-    def add_column(self, name: str, fn: Callable[[dict[str, Any]], Any]) -> "DataFrame":
+    def add_column(self, name: str, fn: Callable[[dict[str, Any]], Any]) -> DataFrame:
         """
         Add computed column.
 
@@ -149,7 +149,7 @@ class DataFrame:
         """
         return DataFrame([{**row, name: fn(row)} for row in self._data])
 
-    def group_by(self, column: str) -> dict[Any, "DataFrame"]:
+    def group_by(self, column: str) -> dict[Any, DataFrame]:
         """
         Group by column value.
 
@@ -188,7 +188,7 @@ class DataFrame:
 
     def sum(self, column: str) -> float:
         """Sum column values."""
-        return sum(row[column] for row in self._data if column in row)
+        return float(sum(row[column] for row in self._data if column in row))
 
     def mean(self, column: str) -> float:
         """Average column values."""
@@ -269,7 +269,8 @@ def load_parquet(path: str | Path) -> DataFrame:
         df = load_parquet("data/large_data.parquet")
     """
     try:
-        import pandas as pd
+        import pandas as pd  # type: ignore[import-untyped]
+
         df = pd.read_parquet(path)
         return DataFrame(df)
     except ImportError:
@@ -325,13 +326,15 @@ def sample_sales_data(n: int = 100) -> DataFrame:
     base_date = datetime.now() - timedelta(days=n)
 
     for i in range(n):
-        data.append({
-            "date": (base_date + timedelta(days=i)).strftime("%Y-%m-%d"),
-            "revenue": random.randint(1000, 10000),
-            "orders": random.randint(10, 100),
-            "category": random.choice(categories),
-            "profit": random.randint(100, 2000),
-        })
+        data.append(
+            {
+                "date": (base_date + timedelta(days=i)).strftime("%Y-%m-%d"),
+                "revenue": random.randint(1000, 10000),
+                "orders": random.randint(10, 100),
+                "category": random.choice(categories),
+                "profit": random.randint(100, 2000),
+            }
+        )
 
     return DataFrame(data)
 
@@ -348,14 +351,16 @@ def sample_users_data(n: int = 50) -> DataFrame:
     data = []
     for i in range(n):
         name = random.choice(names) + str(i)
-        data.append({
-            "id": i + 1,
-            "name": name,
-            "email": f"{name.lower()}@{random.choice(domains)}",
-            "role": random.choice(roles),
-            "status": random.choice(statuses),
-            "created": f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d}",
-        })
+        data.append(
+            {
+                "id": i + 1,
+                "name": name,
+                "email": f"{name.lower()}@{random.choice(domains)}",
+                "role": random.choice(roles),
+                "status": random.choice(statuses),
+                "created": f"2024-{random.randint(1, 12):02d}-{random.randint(1, 28):02d}",
+            }
+        )
 
     return DataFrame(data)
 
