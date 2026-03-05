@@ -181,6 +181,19 @@ from .server.ui import (
 from .server.ui import (
     image as _image,
 )
+from .server.ui import (
+    # Nice-to-Have components
+    timeline as _timeline,
+)
+from .server.ui import (
+    timeline_item as _timeline_item,
+)
+from .server.ui import (
+    video as _video,
+)
+from .server.ui import (
+    diff as _diff,
+)
 
 T = TypeVar("T")
 
@@ -1405,6 +1418,96 @@ def image(
 
 
 # =============================================================================
+# Nice-to-Have Components
+# =============================================================================
+
+
+@contextmanager
+def timeline(
+    items: list[dict[str, Any]] | None = None,
+    alternate: bool = False,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Vertical timeline for changelogs, events, history.
+
+    Example:
+        with c.timeline():
+            c.timeline_item("v1.0", "Initial release", date="2024-01-01")
+
+        # Or with items:
+        c.timeline(items=[{"title": "v1.0", "description": "Release", "date": "2024-01-01"}])
+    """
+    _ensure_context()
+    with _timeline(items=items, alternate=alternate, **props) as comp:
+        yield comp
+
+
+def timeline_item(
+    title: str,
+    description: str | None = None,
+    date: str | None = None,
+    icon: str | None = None,
+    color: Literal["primary", "success", "warning", "danger"] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Individual timeline entry. Must be used inside c.timeline().
+
+    Example:
+        c.timeline_item("v1.0", "Initial release", date="2024-01-01", color="success")
+    """
+    _ensure_context()
+    return _timeline_item(
+        title=title, description=description, date=date, icon=icon, color=color, **props,
+    )
+
+
+def video(
+    src: str,
+    title: str = "",
+    width: int | str | None = None,
+    height: int | str | None = None,
+    aspect: str = "16/9",
+    poster: str | None = None,
+    autoplay: bool = False,
+    controls: bool = True,
+    loop: bool = False,
+    muted: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Video embed (YouTube, Vimeo, or direct file).
+
+    Example:
+        c.video("https://youtube.com/watch?v=abc123", title="Demo")
+        c.video("intro.mp4", poster="thumb.jpg")
+    """
+    _ensure_context()
+    return _video(
+        src=src, title=title, width=width, height=height, aspect=aspect,
+        poster=poster, autoplay=autoplay, controls=controls, loop=loop, muted=muted, **props,
+    )
+
+
+def diff(
+    old_code: str,
+    new_code: str,
+    language: str = "",
+    mode: Literal["unified", "side-by-side"] = "unified",
+    **props: Any,
+) -> Component:
+    """
+    Code diff comparison.
+
+    Example:
+        c.diff("def foo():\\n    pass", "def foo():\\n    return 1", language="python")
+    """
+    _ensure_context()
+    return _diff(old_code=old_code, new_code=new_code, language=language, mode=mode, **props)
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1706,6 +1809,11 @@ __all__ = [
     "tooltip",
     "breadcrumb",
     "image",
+    # Nice-to-Have
+    "timeline",
+    "timeline_item",
+    "video",
+    "diff",
     # Toast
     "toast",
     # Charts

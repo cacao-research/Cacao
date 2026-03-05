@@ -14,3 +14,6 @@ export { Modal } from './Modal.js';
 export { Tooltip } from './Tooltip.js';
 export { Breadcrumb } from './Breadcrumb.js';
 export { Image } from './Image.js';
+export { Timeline, TimelineItem } from './Timeline.js';
+export { Video } from './Video.js';
+export { Diff } from './Diff.js';

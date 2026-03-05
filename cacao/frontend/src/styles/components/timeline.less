@@ -1,0 +1,141 @@
+// Timeline component
+
+.c-timeline {
+  position: relative;
+  padding-left: @space-8;
+}
+
+.c-timeline-item {
+  position: relative;
+  display: flex;
+  gap: @space-3;
+  padding-bottom: @space-6;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .c-timeline-line::before {
+      display: none;
+    }
+  }
+}
+
+.c-timeline-line {
+  position: absolute;
+  left: -@space-8;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: @space-8;
+
+  // Vertical line
+  &::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: calc(100% + @space-6 - 24px);
+    background: var(--border);
+  }
+}
+
+.c-timeline-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: @radius-full;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: @font-size-xs;
+  color: var(--text-secondary);
+  z-index: 1;
+  flex-shrink: 0;
+
+  &--primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+
+  &--success {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+
+  &--warning {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: white;
+  }
+
+  &--danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+  }
+}
+
+.c-timeline-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.c-timeline-header {
+  display: flex;
+  align-items: baseline;
+  gap: @space-2;
+  flex-wrap: wrap;
+}
+
+.c-timeline-title {
+  font-weight: @font-weight-semibold;
+  color: var(--text-primary);
+  font-size: @font-size-base;
+}
+
+.c-timeline-date {
+  font-size: @font-size-sm;
+  color: var(--text-muted);
+}
+
+.c-timeline-description {
+  margin-top: @space-1;
+  color: var(--text-secondary);
+  font-size: @font-size-base;
+}
+
+.c-timeline-body {
+  margin-top: @space-2;
+}
+
+// Alternate layout (zigzag)
+.c-timeline--alternate {
+  padding-left: 0;
+  max-width: 800px;
+
+  .c-timeline-item {
+    padding-left: calc(50% + @space-4);
+
+    &:nth-child(even) {
+      flex-direction: row-reverse;
+      padding-left: 0;
+      padding-right: calc(50% + @space-4);
+      text-align: right;
+
+      .c-timeline-header {
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .c-timeline-line {
+    left: calc(50% - 12px);
+  }
+}
