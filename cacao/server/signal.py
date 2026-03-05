@@ -8,9 +8,10 @@ apps work correctly by default.
 
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Callable, Any, TYPE_CHECKING
-from weakref import WeakSet
 import asyncio
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from weakref import WeakSet
 
 if TYPE_CHECKING:
     from .session import Session
@@ -34,7 +35,7 @@ class Signal(Generic[T]):
         count.set(session, current + 1)
     """
 
-    _all_signals: dict[str, "Signal[Any]"] = {}
+    _all_signals: dict[str, Signal[Any]] = {}
 
     def __init__(self, default: T, *, name: str | None = None) -> None:
         """
@@ -67,7 +68,7 @@ class Signal(Generic[T]):
         """The default value for new sessions."""
         return self._default
 
-    def get(self, session: "Session") -> T:
+    def get(self, session: Session) -> T:
         """
         Get the current value for a session.
 
@@ -79,7 +80,7 @@ class Signal(Generic[T]):
         """
         return self._values.get(session.id, self._default)
 
-    def set(self, session: "Session", value: T) -> None:
+    def set(self, session: Session, value: T) -> None:
         """
         Set the value for a session and notify subscribers.
 
@@ -103,7 +104,7 @@ class Signal(Generic[T]):
             except Exception:
                 pass  # Don't let subscriber errors break the signal
 
-    def update(self, session: "Session", updater: Callable[[T], T]) -> T:
+    def update(self, session: Session, updater: Callable[[T], T]) -> T:
         """
         Update the value using a function.
 
@@ -136,7 +137,7 @@ class Signal(Generic[T]):
 
         return unsubscribe
 
-    def clear_session(self, session: "Session") -> None:
+    def clear_session(self, session: Session) -> None:
         """
         Clear the value for a session (revert to default).
 
@@ -145,7 +146,7 @@ class Signal(Generic[T]):
         """
         self._values.pop(session.id, None)
 
-    def get_all_for_session(self, session: "Session") -> dict[str, Any]:
+    def get_all_for_session(self, session: Session) -> dict[str, Any]:
         """
         Get all signal values for a session.
 
@@ -158,18 +159,15 @@ class Signal(Generic[T]):
         Returns:
             A dict mapping signal names to their values
         """
-        return {
-            name: signal.get(session)
-            for name, signal in Signal._all_signals.items()
-        }
+        return {name: signal.get(session) for name, signal in Signal._all_signals.items()}
 
     @classmethod
-    def get_all_signals(cls) -> dict[str, "Signal[Any]"]:
+    def get_all_signals(cls) -> dict[str, Signal[Any]]:
         """Get all registered signals."""
         return cls._all_signals.copy()
 
     @classmethod
-    def clear_all_for_session(cls, session: "Session") -> None:
+    def clear_all_for_session(cls, session: Session) -> None:
         """Clear all signal values for a session."""
         for signal in cls._all_signals.values():
             signal.clear_session(session)
@@ -189,7 +187,7 @@ class Computed(Generic[T]):
 
     def __init__(
         self,
-        compute: Callable[["Session"], T],
+        compute: Callable[[Session], T],
         *,
         name: str | None = None,
         dependencies: list[Signal[Any]] | None = None,
@@ -226,7 +224,7 @@ class Computed(Generic[T]):
         """Invalidate cached value when dependency changes."""
         self._cache.pop(session_id, None)
 
-    def get(self, session: "Session") -> T:
+    def get(self, session: Session) -> T:
         """
         Get the computed value for a session.
 
@@ -242,6 +240,6 @@ class Computed(Generic[T]):
             self._cache[session.id] = self._compute(session)
         return self._cache[session.id]
 
-    def clear_session(self, session: "Session") -> None:
+    def clear_session(self, session: Session) -> None:
         """Clear the cached value for a session."""
         self._cache.pop(session.id, None)

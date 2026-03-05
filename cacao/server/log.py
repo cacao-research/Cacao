@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Any
 
 # ANSI helpers (same palette as cli/commands.py)
 BROWN = "\033[38;5;130m"
@@ -27,6 +28,7 @@ _LABEL_WIDTH = 8
 # ---------------------------------------------------------------------------
 # Filters
 # ---------------------------------------------------------------------------
+
 
 class UvicornStartupFilter(logging.Filter):
     """Suppress uvicorn lifecycle messages that the banner already covers."""
@@ -46,6 +48,7 @@ class UvicornStartupFilter(logging.Filter):
 # ---------------------------------------------------------------------------
 # Formatters
 # ---------------------------------------------------------------------------
+
 
 class CacaoFormatter(logging.Formatter):
     """Format general logs as ``  HH:MM:SS  label   message``."""
@@ -78,11 +81,7 @@ class CacaoAccessFormatter(logging.Formatter):
         # Uvicorn access log args: (client, method, path, http_ver, status)
         if record.args and isinstance(record.args, tuple) and len(record.args) >= 5:
             _client, method, path, _http_ver, status = record.args[:5]
-            return (
-                f"  {DIM}{ts}{RESET}  "
-                f"{BROWN}{method:<{_LABEL_WIDTH}}{RESET}"
-                f"{path} {status}"
-            )
+            return f"  {DIM}{ts}{RESET}  {BROWN}{method:<{_LABEL_WIDTH}}{RESET}{path} {status}"
 
         # Fallback for unexpected format
         msg = record.getMessage()
@@ -93,7 +92,8 @@ class CacaoAccessFormatter(logging.Formatter):
 # Log config for uvicorn
 # ---------------------------------------------------------------------------
 
-def get_uvicorn_log_config(debug: bool = False) -> dict:
+
+def get_uvicorn_log_config(debug: bool = False) -> dict[str, Any]:
     """Return a ``logging.config.dictConfig`` dict for ``uvicorn.run(log_config=...)``.
 
     Wires both :class:`CacaoFormatter` and :class:`CacaoAccessFormatter`,
@@ -159,6 +159,7 @@ def get_uvicorn_log_config(debug: bool = False) -> dict:
 # ---------------------------------------------------------------------------
 # Public helper
 # ---------------------------------------------------------------------------
+
 
 def _ensure_cacao_handler() -> None:
     """Attach a default handler to the ``cacao`` root logger if none exists.

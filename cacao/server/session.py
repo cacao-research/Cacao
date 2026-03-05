@@ -8,11 +8,11 @@ when the connection closes.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import asyncio
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-import uuid
-import asyncio
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from starlette.websockets import WebSocket
@@ -34,7 +34,7 @@ class Session:
     """
 
     id: str
-    websocket: "WebSocket | None" = None
+    websocket: WebSocket | None = None
     created_at: datetime = field(default_factory=datetime.now)
     metadata: dict[str, Any] = field(default_factory=dict)
     _pending_updates: dict[str, Any] = field(default_factory=dict)
@@ -58,10 +58,12 @@ class Session:
         if self.websocket is None:
             return
 
-        await self.websocket.send_json({
-            "type": "update",
-            "changes": state,
-        })
+        await self.websocket.send_json(
+            {
+                "type": "update",
+                "changes": state,
+            }
+        )
 
     async def send_init(self, state: dict[str, Any]) -> None:
         """
@@ -73,11 +75,13 @@ class Session:
         if self.websocket is None:
             return
 
-        await self.websocket.send_json({
-            "type": "init",
-            "state": state,
-            "sessionId": self.id,
-        })
+        await self.websocket.send_json(
+            {
+                "type": "init",
+                "state": state,
+                "sessionId": self.id,
+            }
+        )
 
     async def send_toast(
         self,
@@ -96,12 +100,14 @@ class Session:
         if self.websocket is None:
             return
 
-        await self.websocket.send_json({
-            "type": "toast",
-            "message": message,
-            "variant": variant,
-            "duration": duration,
-        })
+        await self.websocket.send_json(
+            {
+                "type": "toast",
+                "message": message,
+                "variant": variant,
+                "duration": duration,
+            }
+        )
 
     async def send_chat_delta(self, signal_name: str, delta: str) -> None:
         """
@@ -116,11 +122,13 @@ class Session:
         if self.websocket is None:
             return
 
-        await self.websocket.send_json({
-            "type": "chat_delta",
-            "signal": signal_name,
-            "delta": delta,
-        })
+        await self.websocket.send_json(
+            {
+                "type": "chat_delta",
+                "signal": signal_name,
+                "delta": delta,
+            }
+        )
 
     async def send_chat_done(self, signal_name: str) -> None:
         """
@@ -134,10 +142,18 @@ class Session:
         if self.websocket is None:
             return
 
-        await self.websocket.send_json({
-            "type": "chat_done",
-            "signal": signal_name,
-        })
+        await self.websocket.send_json(
+            {
+                "type": "chat_done",
+                "signal": signal_name,
+            }
+        )
+
+    async def send(self, message: dict[str, Any]) -> None:
+        """Send an arbitrary JSON message to the client."""
+        if self.websocket is None:
+            return
+        await self.websocket.send_json(message)
 
     def queue_update(self, key: str, value: Any) -> None:
         """
@@ -174,10 +190,14 @@ class SessionManager:
     methods for session lifecycle management.
     """
 
+    # Class-level registry so effects can look up sessions without
+    # holding a reference to a specific manager instance.
+    _all_sessions: dict[str, Session] = {}
+
     def __init__(self) -> None:
         self._sessions: dict[str, Session] = {}
 
-    def create(self, websocket: "WebSocket | None" = None) -> Session:
+    def create(self, websocket: WebSocket | None = None) -> Session:
         """
         Create a new session.
 
@@ -190,11 +210,16 @@ class SessionManager:
         session_id = str(uuid.uuid4())
         session = Session(id=session_id, websocket=websocket)
         self._sessions[session_id] = session
+        SessionManager._all_sessions[session_id] = session
         return session
 
-    def get(self, session_id: str) -> Session | None:
+    @classmethod
+    def get(cls, session_id: str) -> Session | None:
         """
         Get a session by ID.
+
+        Works both as a classmethod (for cross-module lookups) and
+        on instances (backwards compatible).
 
         Args:
             session_id: The session ID to look up
@@ -202,7 +227,7 @@ class SessionManager:
         Returns:
             The Session if found, None otherwise
         """
-        return self._sessions.get(session_id)
+        return cls._all_sessions.get(session_id)
 
     def remove(self, session_id: str) -> Session | None:
         """
@@ -217,9 +242,11 @@ class SessionManager:
             The removed Session if found, None otherwise
         """
         session = self._sessions.pop(session_id, None)
+        SessionManager._all_sessions.pop(session_id, None)
         if session is not None:
             # Clean up signal values for this session
             from .signal import Signal
+
             Signal.clear_all_for_session(session)
         return session
 
@@ -260,9 +287,11 @@ class SessionManager:
             variant: One of 'info', 'success', 'warning', 'error'
             duration: Auto-dismiss time in milliseconds
         """
-        await self.broadcast({
-            "type": "toast",
-            "message": message,
-            "variant": variant,
-            "duration": duration,
-        })
+        await self.broadcast(
+            {
+                "type": "toast",
+                "message": message,
+                "variant": variant,
+                "duration": duration,
+            }
+        )

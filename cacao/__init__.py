@@ -21,24 +21,27 @@ Full API (for advanced usage):
 
 # Import everything from the simple module for easy access
 # This uses wildcard import to automatically pick up all exports
-from .simple import *
-
 # Also expose the full server module for advanced usage
-from . import server
+from . import server as server  # noqa: F401
+from .server.session import Session as Session  # noqa: F401
 
 # Keep App accessible at top level for those who want it
-from .server.ui import App
-from .server.session import Session
+from .server.ui import App as App  # noqa: F401
+from .simple import *  # noqa: F403
 
 # Re-export for explicit access
-from .simple import (
-    Signal,
-    Computed,
-)
+from .simple import Computed as Computed  # noqa: F401
+from .simple import Signal as Signal  # noqa: F401
 
 try:
     from importlib.metadata import version as _get_version
+
     __version__: str = _get_version("cacao")
 except Exception:
     from pathlib import Path as _Path
-    __version__ = (_Path(__file__).resolve().parent / "VERSION").read_text().strip() if (_Path(__file__).resolve().parent / "VERSION").exists() else "0.0.0"
+
+    __version__ = (
+        (_Path(__file__).resolve().parent / "VERSION").read_text().strip()
+        if (_Path(__file__).resolve().parent / "VERSION").exists()
+        else "0.0.0"
+    )

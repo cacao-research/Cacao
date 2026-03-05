@@ -8,11 +8,11 @@ rate limiting, validation, and more.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Awaitable, TypeVar
-from dataclasses import dataclass, field
-from functools import wraps
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
     from .session import Session
@@ -29,7 +29,7 @@ class EventContext:
     or stop processing.
     """
 
-    session: "Session"
+    session: Session
     event_name: str
     data: dict[str, Any]
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -99,6 +99,7 @@ class MiddlewareChain:
             def decorator(fn: MiddlewareFunc) -> MiddlewareFunc:
                 self._middleware.append(fn)
                 return fn
+
             return decorator
 
         self._middleware.append(middleware)
@@ -166,6 +167,7 @@ def logging_middleware(
     """
     if log_fn is None:
         from .log import get_logger
+
         _mw_logger = get_logger("cacao.middleware")
 
         def log_fn(msg: str) -> None:
@@ -228,11 +230,13 @@ def rate_limit_middleware(
             ctx.metadata["rate_limited"] = True
             ctx.stop()
             # Send error to client
-            await ctx.session.send({
-                "type": "error",
-                "message": "Rate limit exceeded",
-                "code": "RATE_LIMIT",
-            })
+            await ctx.session.send(
+                {
+                    "type": "error",
+                    "message": "Rate limit exceeded",
+                    "code": "RATE_LIMIT",
+                }
+            )
             return
 
         # Record this request
@@ -255,6 +259,7 @@ def validation_middleware(
     Returns:
         Middleware function
     """
+
     async def middleware(
         ctx: EventContext,
         next: Callable[[EventContext], Awaitable[None]],
@@ -265,11 +270,13 @@ def validation_middleware(
             if result is not True:
                 error_msg = result if isinstance(result, str) else "Validation failed"
                 ctx.stop()
-                await ctx.session.send({
-                    "type": "error",
-                    "message": error_msg,
-                    "code": "VALIDATION_ERROR",
-                })
+                await ctx.session.send(
+                    {
+                        "type": "error",
+                        "message": error_msg,
+                        "code": "VALIDATION_ERROR",
+                    }
+                )
                 return
 
         await next(ctx)
@@ -278,7 +285,7 @@ def validation_middleware(
 
 
 def auth_middleware(
-    check_auth: Callable[["Session"], bool | Awaitable[bool]],
+    check_auth: Callable[[Session], bool | Awaitable[bool]],
     public_events: set[str] | None = None,
 ) -> MiddlewareFunc:
     """
@@ -309,11 +316,13 @@ def auth_middleware(
 
         if not result:
             ctx.stop()
-            await ctx.session.send({
-                "type": "error",
-                "message": "Authentication required",
-                "code": "AUTH_REQUIRED",
-            })
+            await ctx.session.send(
+                {
+                    "type": "error",
+                    "message": "Authentication required",
+                    "code": "AUTH_REQUIRED",
+                }
+            )
             return
 
         await next(ctx)
@@ -333,6 +342,7 @@ def transform_middleware(
     Returns:
         Middleware function
     """
+
     async def middleware(
         ctx: EventContext,
         next: Callable[[EventContext], Awaitable[None]],
@@ -356,6 +366,7 @@ def timeout_middleware(timeout_seconds: float = 30.0) -> MiddlewareFunc:
     Returns:
         Middleware function
     """
+
     async def middleware(
         ctx: EventContext,
         next: Callable[[EventContext], Awaitable[None]],
@@ -363,10 +374,12 @@ def timeout_middleware(timeout_seconds: float = 30.0) -> MiddlewareFunc:
         try:
             await asyncio.wait_for(next(ctx), timeout=timeout_seconds)
         except asyncio.TimeoutError:
-            await ctx.session.send({
-                "type": "error",
-                "message": "Request timed out",
-                "code": "TIMEOUT",
-            })
+            await ctx.session.send(
+                {
+                    "type": "error",
+                    "message": "Request timed out",
+                    "code": "TIMEOUT",
+                }
+            )
 
     return middleware

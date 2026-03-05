@@ -21,21 +21,20 @@ Example:
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar, Generic, Literal, overload
-from dataclasses import dataclass, field
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
-import json
-import asyncio
+from dataclasses import dataclass, field
+from typing import Any, Literal, TypeVar
 
-from .signal import Signal
 from .app import App as BaseApp
+from .signal import Signal
 
 T = TypeVar("T")
 
 # Context variable to track the current component tree
-_current_container: ContextVar[list["Component"]] = ContextVar("current_container", default=[])
-_component_stack: ContextVar[list[list["Component"]]] = ContextVar("component_stack", default=[])
+_current_container: ContextVar[list[Component]] = ContextVar("current_container", default=[])
+_component_stack: ContextVar[list[list[Component]]] = ContextVar("component_stack", default=[])
 
 
 @dataclass
@@ -44,11 +43,11 @@ class Component:
 
     type: str
     props: dict[str, Any] = field(default_factory=dict)
-    children: list["Component"] = field(default_factory=list)
+    children: list[Component] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dict."""
-        result = {
+        result: dict[str, Any] = {
             "type": self.type,
             "props": self._serialize_props(self.props),
         }
@@ -78,7 +77,7 @@ def _add_to_current_container(component: Component) -> Component:
 
 
 @contextmanager
-def _container_context(component: Component):
+def _container_context(component: Component) -> Generator[Component, None, None]:
     """Context manager that makes component the current container."""
     # Save current container to stack
     stack = _component_stack.get()
@@ -110,6 +109,7 @@ def _container_context(component: Component):
 # Layout Components
 # =============================================================================
 
+
 @contextmanager
 def row(
     gap: int = 4,
@@ -117,7 +117,7 @@ def row(
     justify: Literal["start", "center", "end", "between", "around"] = "start",
     wrap: bool = False,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Horizontal row layout.
 
@@ -127,8 +127,7 @@ def row(
             metric("Revenue", "$5k")
     """
     component = Component(
-        type="Row",
-        props={"gap": gap, "align": align, "justify": justify, "wrap": wrap, **props}
+        type="Row", props={"gap": gap, "align": align, "justify": justify, "wrap": wrap, **props}
     )
     with _container_context(component):
         yield component
@@ -140,7 +139,7 @@ def col(
     gap: int = 4,
     align: Literal["start", "center", "end", "stretch"] = "stretch",
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Vertical column layout.
 
@@ -151,10 +150,7 @@ def col(
             with col(span=4):
                 sidebar_content()
     """
-    component = Component(
-        type="Col",
-        props={"span": span, "gap": gap, "align": align, **props}
-    )
+    component = Component(type="Col", props={"span": span, "gap": gap, "align": align, **props})
     with _container_context(component):
         yield component
 
@@ -164,7 +160,7 @@ def grid(
     cols: int = 12,
     gap: int = 4,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     CSS Grid layout.
 
@@ -174,10 +170,7 @@ def grid(
             card("Card 2")
             card("Card 3")
     """
-    component = Component(
-        type="Grid",
-        props={"cols": cols, "gap": gap, **props}
-    )
+    component = Component(type="Grid", props={"cols": cols, "gap": gap, **props})
     with _container_context(component):
         yield component
 
@@ -187,7 +180,7 @@ def card(
     title: str | None = None,
     subtitle: str | None = None,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Card container.
 
@@ -196,16 +189,13 @@ def card(
             metric("Active", 234)
             metric("New", 45)
     """
-    component = Component(
-        type="Card",
-        props={"title": title, "subtitle": subtitle, **props}
-    )
+    component = Component(type="Card", props={"title": title, "subtitle": subtitle, **props})
     with _container_context(component):
         yield component
 
 
 @contextmanager
-def sidebar(**props: Any):
+def sidebar(**props: Any) -> Generator[Component, None, None]:
     """
     Sidebar container.
 
@@ -214,16 +204,13 @@ def sidebar(**props: Any):
             select("Category", options=["All", "Tech", "Finance"])
             date_picker("Date Range")
     """
-    component = Component(
-        type="Sidebar",
-        props=props
-    )
+    component = Component(type="Sidebar", props=props)
     with _container_context(component):
         yield component
 
 
 @contextmanager
-def tabs(default: str | None = None, **props: Any):
+def tabs(default: str | None = None, **props: Any) -> Generator[Component, None, None]:
     """
     Tab container.
 
@@ -234,25 +221,21 @@ def tabs(default: str | None = None, **props: Any):
             with tab("details", "Details"):
                 details_content()
     """
-    component = Component(
-        type="Tabs",
-        props={"default": default, **props}
-    )
+    component = Component(type="Tabs", props={"default": default, **props})
     with _container_context(component):
         yield component
 
 
 @contextmanager
-def tab(key: str, label: str, icon: str | None = None, **props: Any):
+def tab(
+    key: str, label: str, icon: str | None = None, **props: Any
+) -> Generator[Component, None, None]:
     """
     Individual tab.
 
     Must be used inside a tabs() context.
     """
-    component = Component(
-        type="Tab",
-        props={"tabKey": key, "label": label, "icon": icon, **props}
-    )
+    component = Component(type="Tab", props={"tabKey": key, "label": label, "icon": icon, **props})
     with _container_context(component):
         yield component
 
@@ -260,6 +243,7 @@ def tab(key: str, label: str, icon: str | None = None, **props: Any):
 # =============================================================================
 # Admin Layout Components
 # =============================================================================
+
 
 @contextmanager
 def app_shell(
@@ -269,7 +253,7 @@ def app_shell(
     theme_dark: str | None = None,
     theme_light: str | None = None,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Admin-style application shell with sidebar navigation.
 
@@ -294,26 +278,26 @@ def app_shell(
     component = Component(
         type="AppShell",
         props={
-            "brand": brand, "logo": logo, "default": default,
-            "themeDark": theme_dark, "themeLight": theme_light,
+            "brand": brand,
+            "logo": logo,
+            "default": default,
+            "themeDark": theme_dark,
+            "themeLight": theme_light,
             **props,
-        }
+        },
     )
     with _container_context(component):
         yield component
 
 
 @contextmanager
-def nav_sidebar(**props: Any):
+def nav_sidebar(**props: Any) -> Generator[Component, None, None]:
     """
     Navigation sidebar for app_shell.
 
     Contains nav_group and nav_item components.
     """
-    component = Component(
-        type="NavSidebar",
-        props=props
-    )
+    component = Component(type="NavSidebar", props=props)
     with _container_context(component):
         yield component
 
@@ -324,7 +308,7 @@ def nav_group(
     icon: str | None = None,
     default_open: bool = True,
     **props: Any,
-):
+) -> Generator[Component, None, None]:
     """
     Collapsible navigation group.
 
@@ -336,8 +320,7 @@ def nav_group(
             nav_item("URL", key="url")
     """
     component = Component(
-        type="NavGroup",
-        props={"label": label, "icon": icon, "defaultOpen": default_open, **props}
+        type="NavGroup", props={"label": label, "icon": icon, "defaultOpen": default_open, **props}
     )
     with _container_context(component):
         yield component
@@ -356,29 +339,28 @@ def nav_item(
     Example:
         nav_item("Base64 Encoder", key="base64", icon="code")
     """
-    return _add_to_current_container(Component(
-        type="NavItem",
-        props={"label": label, "itemKey": key, "icon": icon, "badge": badge, **props}
-    ))
+    return _add_to_current_container(
+        Component(
+            type="NavItem",
+            props={"label": label, "itemKey": key, "icon": icon, "badge": badge, **props},
+        )
+    )
 
 
 @contextmanager
-def shell_content(**props: Any):
+def shell_content(**props: Any) -> Generator[Component, None, None]:
     """
     Main content area of app_shell.
 
     This is where the active tool/page content is rendered.
     """
-    component = Component(
-        type="ShellContent",
-        props=props
-    )
+    component = Component(type="ShellContent", props=props)
     with _container_context(component):
         yield component
 
 
 @contextmanager
-def nav_panel(key: str, **props: Any):
+def nav_panel(key: str, **props: Any) -> Generator[Component, None, None]:
     """
     Content panel that shows when the nav_item with matching key is active.
 
@@ -391,10 +373,7 @@ def nav_panel(key: str, **props: Any):
             with nav_panel("settings"):
                 title("Settings")
     """
-    component = Component(
-        type="NavPanel",
-        props={"panelKey": key, **props}
-    )
+    component = Component(type="NavPanel", props={"panelKey": key, **props})
     with _container_context(component):
         yield component
 
@@ -403,6 +382,7 @@ def nav_panel(key: str, **props: Any):
 # Typography Components
 # =============================================================================
 
+
 def title(text: str, level: int = 1, **props: Any) -> Component:
     """
     Title/heading text.
@@ -410,10 +390,9 @@ def title(text: str, level: int = 1, **props: Any) -> Component:
     Example:
         title("Dashboard", level=1)
     """
-    return _add_to_current_container(Component(
-        type="Title",
-        props={"text": text, "level": level, **props}
-    ))
+    return _add_to_current_container(
+        Component(type="Title", props={"text": text, "level": level, **props})
+    )
 
 
 def text(content: str, size: str = "md", color: str | None = None, **props: Any) -> Component:
@@ -423,10 +402,19 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
     Example:
         text("Welcome to the dashboard", size="lg")
     """
-    return _add_to_current_container(Component(
-        type="Text",
-        props={"content": content, "size": size, "color": color, **props}
-    ))
+    return _add_to_current_container(
+        Component(type="Text", props={"content": content, "size": size, "color": color, **props})
+    )
+
+
+def html(content: str, **props: Any) -> Component:
+    """
+    Render raw HTML content.
+
+    Example:
+        html("<h1>Hello</h1><p>World</p>")
+    """
+    return _add_to_current_container(Component(type="Html", props={"content": content, **props}))
 
 
 def code(content: str, language: str = "python", **props: Any) -> Component:
@@ -436,10 +424,9 @@ def code(content: str, language: str = "python", **props: Any) -> Component:
     Example:
         code("print('Hello')", language="python")
     """
-    return _add_to_current_container(Component(
-        type="Code",
-        props={"content": content, "language": language, **props}
-    ))
+    return _add_to_current_container(
+        Component(type="Code", props={"content": content, "language": language, **props})
+    )
 
 
 def divider(**props: Any) -> Component:
@@ -449,15 +436,13 @@ def divider(**props: Any) -> Component:
 
 def spacer(size: int = 4, **props: Any) -> Component:
     """Vertical spacer."""
-    return _add_to_current_container(Component(
-        type="Spacer",
-        props={"size": size, **props}
-    ))
+    return _add_to_current_container(Component(type="Spacer", props={"size": size, **props}))
 
 
 # =============================================================================
 # Data Display Components
 # =============================================================================
+
 
 def metric(
     label: str,
@@ -474,18 +459,20 @@ def metric(
     Example:
         metric("Revenue", "$45,231", trend="+20.1%", trend_direction="up")
     """
-    return _add_to_current_container(Component(
-        type="Metric",
-        props={
-            "label": label,
-            "value": value,
-            "trend": trend,
-            "trendDirection": trend_direction,
-            "prefix": prefix,
-            "suffix": suffix,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Metric",
+            props={
+                "label": label,
+                "value": value,
+                "trend": trend,
+                "trendDirection": trend_direction,
+                "prefix": prefix,
+                "suffix": suffix,
+                **props,
+            },
+        )
+    )
 
 
 def table(
@@ -504,21 +491,23 @@ def table(
         table(users, columns=["name", "email", "role"], searchable=True)
     """
     # Convert data if it's a pandas DataFrame
-    if hasattr(data, 'to_dict'):
-        data = data.to_dict('records')
+    if hasattr(data, "to_dict"):
+        data = data.to_dict("records")
 
-    return _add_to_current_container(Component(
-        type="Table",
-        props={
-            "data": data,
-            "columns": columns,
-            "searchable": searchable,
-            "sortable": sortable,
-            "paginate": paginate,
-            "pageSize": page_size,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Table",
+            props={
+                "data": data,
+                "columns": columns,
+                "searchable": searchable,
+                "sortable": sortable,
+                "paginate": paginate,
+                "pageSize": page_size,
+                **props,
+            },
+        )
+    )
 
 
 def json_view(data: Any, expanded: bool = True, **props: Any) -> Component:
@@ -528,10 +517,9 @@ def json_view(data: Any, expanded: bool = True, **props: Any) -> Component:
     Example:
         json_view({"name": "John", "age": 30})
     """
-    return _add_to_current_container(Component(
-        type="JsonView",
-        props={"data": data, "expanded": expanded, **props}
-    ))
+    return _add_to_current_container(
+        Component(type="JsonView", props={"data": data, "expanded": expanded, **props})
+    )
 
 
 def progress(
@@ -548,17 +536,19 @@ def progress(
     Example:
         progress(75, label="Completion")
     """
-    return _add_to_current_container(Component(
-        type="Progress",
-        props={
-            "value": value,
-            "max": max_value,
-            "label": label,
-            "showValue": show_value,
-            "variant": variant,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Progress",
+            props={
+                "value": value,
+                "max": max_value,
+                "label": label,
+                "showValue": show_value,
+                "variant": variant,
+                **props,
+            },
+        )
+    )
 
 
 def badge(
@@ -572,10 +562,9 @@ def badge(
     Example:
         badge("Active", color="success")
     """
-    return _add_to_current_container(Component(
-        type="Badge",
-        props={"text": text, "color": color, **props}
-    ))
+    return _add_to_current_container(
+        Component(type="Badge", props={"text": text, "color": color, **props})
+    )
 
 
 def alert(
@@ -591,19 +580,28 @@ def alert(
     Example:
         alert("Operation completed", type="success")
     """
-    return _add_to_current_container(Component(
-        type="Alert",
-        props={"message": message, "type": type, "title": title, "dismissible": dismissible, **props}
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Alert",
+            props={
+                "message": message,
+                "type": type,
+                "title": title,
+                "dismissible": dismissible,
+                **props,
+            },
+        )
+    )
 
 
 # =============================================================================
 # Form Components
 # =============================================================================
 
+
 def button(
     label: str,
-    on_click: Callable[[], Any] | None = None,
+    on_click: Callable[[], Any] | str | None = None,
     variant: Literal["primary", "secondary", "danger", "ghost", "outline"] = "primary",
     size: Literal["sm", "md", "lg"] = "md",
     disabled: bool = False,
@@ -617,19 +615,21 @@ def button(
     Example:
         button("Submit", on_click=handle_submit, variant="primary")
     """
-    return _add_to_current_container(Component(
-        type="Button",
-        props={
-            "label": label,
-            "on_click": on_click,
-            "variant": variant,
-            "size": size,
-            "disabled": disabled,
-            "loading": loading,
-            "icon": icon,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Button",
+            props={
+                "label": label,
+                "on_click": on_click,
+                "variant": variant,
+                "size": size,
+                "disabled": disabled,
+                "loading": loading,
+                "icon": icon,
+                **props,
+            },
+        )
+    )
 
 
 def input_field(
@@ -647,17 +647,19 @@ def input_field(
         name = app.signal("", name="name")
         input_field("Name", signal=name, placeholder="Enter your name")
     """
-    return _add_to_current_container(Component(
-        type="Input",
-        props={
-            "label": label,
-            "signal": signal,
-            "placeholder": placeholder,
-            "type": type,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Input",
+            props={
+                "label": label,
+                "signal": signal,
+                "placeholder": placeholder,
+                "type": type,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def textarea(
@@ -675,17 +677,19 @@ def textarea(
         content = app.signal("", name="content")
         textarea("Description", signal=content, rows=6)
     """
-    return _add_to_current_container(Component(
-        type="Textarea",
-        props={
-            "label": label,
-            "signal": signal,
-            "placeholder": placeholder,
-            "rows": rows,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Textarea",
+            props={
+                "label": label,
+                "signal": signal,
+                "placeholder": placeholder,
+                "rows": rows,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def select(
@@ -707,17 +711,19 @@ def select(
     if options and isinstance(options[0], str):
         options = [{"label": o, "value": o} for o in options]
 
-    return _add_to_current_container(Component(
-        type="Select",
-        props={
-            "label": label,
-            "options": options,
-            "signal": signal,
-            "placeholder": placeholder,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Select",
+            props={
+                "label": label,
+                "options": options,
+                "signal": signal,
+                "placeholder": placeholder,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def checkbox(
@@ -734,16 +740,18 @@ def checkbox(
         agree = app.signal(False, name="agree")
         checkbox("I agree to terms", signal=agree)
     """
-    return _add_to_current_container(Component(
-        type="Checkbox",
-        props={
-            "label": label,
-            "signal": signal,
-            "description": description,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Checkbox",
+            props={
+                "label": label,
+                "signal": signal,
+                "description": description,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def switch(
@@ -759,15 +767,11 @@ def switch(
         dark_mode = app.signal(True, name="dark_mode")
         switch("Dark Mode", signal=dark_mode)
     """
-    return _add_to_current_container(Component(
-        type="Switch",
-        props={
-            "label": label,
-            "signal": signal,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Switch", props={"label": label, "signal": signal, "disabled": disabled, **props}
+        )
+    )
 
 
 def slider(
@@ -786,18 +790,20 @@ def slider(
         volume = app.signal(50, name="volume")
         slider("Volume", signal=volume, min_value=0, max_value=100)
     """
-    return _add_to_current_container(Component(
-        type="Slider",
-        props={
-            "label": label,
-            "signal": signal,
-            "min": min_value,
-            "max": max_value,
-            "step": step,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Slider",
+            props={
+                "label": label,
+                "signal": signal,
+                "min": min_value,
+                "max": max_value,
+                "step": step,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def date_picker(
@@ -814,22 +820,24 @@ def date_picker(
         start_date = app.signal("", name="start_date")
         date_picker("Start Date", signal=start_date)
     """
-    return _add_to_current_container(Component(
-        type="DatePicker",
-        props={
-            "label": label,
-            "signal": signal,
-            "placeholder": placeholder,
-            "disabled": disabled,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="DatePicker",
+            props={
+                "label": label,
+                "signal": signal,
+                "placeholder": placeholder,
+                "disabled": disabled,
+                **props,
+            },
+        )
+    )
 
 
 def chat(
-    signal: Signal[list] | None = None,
-    on_send: Callable | None = None,
-    on_clear: Callable | None = None,
+    signal: Signal[list[Any]] | None = None,
+    on_send: Callable[..., Any] | str | None = None,
+    on_clear: Callable[..., Any] | str | None = None,
     placeholder: str = "Type a message...",
     title: str | None = None,
     height: str = "500px",
@@ -848,19 +856,21 @@ def chat(
         messages = app.signal([], name="chat_messages")
         chat(signal=messages, on_send=handle_send, title="AI Chat")
     """
-    return _add_to_current_container(Component(
-        type="Chat",
-        props={
-            "signal": signal,
-            "on_send": on_send,
-            "on_clear": on_clear,
-            "placeholder": placeholder,
-            "title": title,
-            "height": height,
-            "show_clear": show_clear,
-            **props,
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="Chat",
+            props={
+                "signal": signal,
+                "on_send": on_send,
+                "on_clear": on_clear,
+                "placeholder": placeholder,
+                "title": title,
+                "height": height,
+                "show_clear": show_clear,
+                **props,
+            },
+        )
+    )
 
 
 def file_upload(
@@ -876,21 +886,24 @@ def file_upload(
     Example:
         file_upload("Upload CSV", on_upload=handle_file, accept=".csv")
     """
-    return _add_to_current_container(Component(
-        type="FileUpload",
-        props={
-            "label": label,
-            "on_upload": on_upload,
-            "accept": accept,
-            "multiple": multiple,
-            **props
-        }
-    ))
+    return _add_to_current_container(
+        Component(
+            type="FileUpload",
+            props={
+                "label": label,
+                "on_upload": on_upload,
+                "accept": accept,
+                "multiple": multiple,
+                **props,
+            },
+        )
+    )
 
 
 # =============================================================================
 # Toast Notifications
 # =============================================================================
+
 
 def toast(
     message: str,
@@ -919,6 +932,7 @@ def toast(
 # =============================================================================
 # Application Class
 # =============================================================================
+
 
 class App(BaseApp):
     """
@@ -963,7 +977,7 @@ class App(BaseApp):
         return Signal(default, name=name)
 
     @contextmanager
-    def page(self, path: str = "/"):
+    def page(self, path: str = "/") -> Generator[None, None, None]:
         """
         Define a page at the given path.
 
@@ -993,8 +1007,7 @@ class App(BaseApp):
 
     def get_all_pages(self) -> dict[str, list[dict[str, Any]]]:
         """Get all pages as JSON-serializable data."""
-        return {path: [c.to_dict() for c in components]
-                for path, components in self._pages.items()}
+        return {path: [c.to_dict() for c in components] for path, components in self._pages.items()}
 
 
 # =============================================================================

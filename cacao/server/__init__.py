@@ -17,28 +17,25 @@ Fluent UI (Streamlit-like API):
     - data: Data loading and manipulation
 """
 
-from .signal import Signal, Computed
-from .session import Session, SessionManager
-from .events import Event, EventRegistry
+# Fluent UI imports
+from . import chart, data, ui
 from .app import App
-from .effects import Effect, Watch, effect
 from .batch import Batch, batch, batch_updates
-from .persist import Persist, PersistManager, MemoryStorage, FileStorage
+from .effects import Effect, Watch, effect
+from .events import Event, EventRegistry
 from .middleware import (
-    MiddlewareChain,
     EventContext,
+    MiddlewareChain,
+    auth_middleware,
     logging_middleware,
     rate_limit_middleware,
-    validation_middleware,
-    auth_middleware,
-    transform_middleware,
     timeout_middleware,
+    transform_middleware,
+    validation_middleware,
 )
-
-# Fluent UI imports
-from . import ui
-from . import chart
-from . import data
+from .persist import FileStorage, MemoryStorage, Persist, PersistManager
+from .session import Session, SessionManager
+from .signal import Computed, Signal
 
 __all__ = [
     # Core
@@ -79,8 +76,10 @@ __all__ = [
 
 try:
     from importlib.metadata import version as _get_version
+
     __version__: str = _get_version("cacao")
 except Exception:
     from pathlib import Path as _Path
+
     _vf = _Path(__file__).resolve().parent.parent / "VERSION"
     __version__ = _vf.read_text().strip() if _vf.exists() else "0.0.0"

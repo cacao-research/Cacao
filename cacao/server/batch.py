@@ -7,16 +7,17 @@ network message, improving performance and ensuring atomic updates.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
-from contextlib import contextmanager
 import asyncio
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .session import Session
     from .signal import Signal
 
 # Thread-local storage for batch context
-_batch_context: dict[str, "BatchContext"] = {}
+_batch_context: dict[str, BatchContext] = {}
 
 
 class BatchContext:
@@ -26,7 +27,7 @@ class BatchContext:
     Collects updates and sends them as a single message when the batch ends.
     """
 
-    def __init__(self, session: "Session") -> None:
+    def __init__(self, session: Session) -> None:
         self.session = session
         self.updates: dict[str, Any] = {}
         self._original_send: Callable[..., Any] | None = None
@@ -42,10 +43,7 @@ class BatchContext:
 
         message = {
             "type": "batch",
-            "changes": [
-                {"key": name, "value": value}
-                for name, value in self.updates.items()
-            ],
+            "changes": [{"key": name, "value": value} for name, value in self.updates.items()],
         }
 
         await self.session.send(message)
@@ -53,7 +51,7 @@ class BatchContext:
 
 
 @contextmanager
-def batch(session: "Session"):
+def batch(session: Session) -> Generator[BatchContext, None, None]:
     """
     Context manager for batching signal updates.
 
@@ -106,7 +104,7 @@ class Batch:
         await b.commit()
     """
 
-    def __init__(self, session: "Session") -> None:
+    def __init__(self, session: Session) -> None:
         """
         Create a new batch.
 
@@ -117,7 +115,7 @@ class Batch:
         self.updates: dict[str, Any] = {}
         self._committed = False
 
-    def set(self, signal: "Signal[Any]", value: Any) -> "Batch":
+    def set(self, signal: Signal[Any], value: Any) -> Batch:
         """
         Add a signal update to the batch.
 
@@ -136,7 +134,7 @@ class Batch:
         signal._values[self.session.id] = value
         return self
 
-    def update(self, signal: "Signal[Any]", updater: Callable[[Any], Any]) -> "Batch":
+    def update(self, signal: Signal[Any], updater: Callable[[Any], Any]) -> Batch:
         """
         Add a signal update using an updater function.
 
@@ -164,10 +162,7 @@ class Batch:
 
         message = {
             "type": "batch",
-            "changes": [
-                {"key": name, "value": value}
-                for name, value in self.updates.items()
-            ],
+            "changes": [{"key": name, "value": value} for name, value in self.updates.items()],
         }
 
         await self.session.send(message)
@@ -182,8 +177,8 @@ class Batch:
 
 
 async def batch_updates(
-    session: "Session",
-    updates: dict["Signal[Any]", Any],
+    session: Session,
+    updates: dict[Signal[Any], Any],
 ) -> None:
     """
     Helper function to batch multiple updates at once.
