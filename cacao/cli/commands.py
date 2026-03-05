@@ -698,7 +698,7 @@ def build_command(args: list[str]) -> None:
         if hasattr(app_instance, "get_used_categories"):
             categories = app_instance.get_used_categories()
             if parsed_args.verbose:
-                cats = ', '.join(sorted(categories)) if categories else 'none'
+                cats = ", ".join(sorted(categories)) if categories else "none"
                 print(f"  Component categories: {cats}")
     except Exception:
         pass  # Fall back to full bundle
@@ -781,7 +781,8 @@ def build_command(args: list[str]) -> None:
     needs_charts = categories is None or "charts" in (categories or set())
     chartjs_tag = (
         '\n    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>'
-        if needs_charts else ""
+        if needs_charts
+        else ""
     )
 
     html_content = f'''<!DOCTYPE html>
@@ -810,7 +811,7 @@ def build_command(args: list[str]) -> None:
 
     <script src="{asset_prefix}/cacao.js"></script>
 
-    {f'<script>{extra_scripts}</script>' if extra_scripts else ''}
+    {f"<script>{extra_scripts}</script>" if extra_scripts else ""}
 
     <script>
     // Initialize static mode and mount (handlers are built into cacao.js)

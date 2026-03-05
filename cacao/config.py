@@ -2,6 +2,7 @@
 
 Reads app-level settings from cacao.yaml / cacao.yml files.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

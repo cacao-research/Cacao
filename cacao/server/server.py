@@ -268,7 +268,8 @@ def _get_dashboard_html(
     needs_charts = categories is None or "charts" in (categories or set())
     chartjs_tag = (
         '\n    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>'
-        if needs_charts else ""
+        if needs_charts
+        else ""
     )
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
