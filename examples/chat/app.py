@@ -110,7 +110,7 @@ async def handle_send(session: Session, event: dict) -> None:
         model = model_name.get(session)
         sys_prompt = system_prompt.get(session)
 
-        if conv is None or conv._model_name != model:
+        if conv is None or conv.model_name != model:
             driver = get_async_driver_for_model(model, api_key=key)
             conv = AsyncConversation(
                 driver=driver,
@@ -118,8 +118,8 @@ async def handle_send(session: Session, event: dict) -> None:
                 system_prompt=sys_prompt,
             )
             _conversations[session.id] = conv
-        elif conv._system_prompt != sys_prompt:
-            conv._system_prompt = sys_prompt
+        elif conv.system_prompt != sys_prompt:
+            conv.system_prompt = sys_prompt
 
         # Stream the response
         full_response = ""
