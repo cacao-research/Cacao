@@ -8,7 +8,10 @@
     "watch": "node build.js --watch"
   },
   "devDependencies": {
-    "less": "^4.2.0",
-    "esbuild": "^0.20.0"
+    "esbuild": "^0.20.0",
+    "less": "^4.2.0"
+  },
+  "dependencies": {
+    "marked": "^17.0.4"
   }
 }

@@ -409,12 +409,55 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
 
 def html(content: str, **props: Any) -> Component:
     """
-    Render raw HTML content.
+    Render pre-rendered HTML with prose styling.
+
+    Applies full prose typography (headings, lists, tables, code blocks).
+    For raw HTML injection without styling, use raw_html().
+    For rendering markdown source, use markdown().
 
     Example:
         html("<h1>Hello</h1><p>World</p>")
     """
     return _add_to_current_container(Component(type="Html", props={"content": content, **props}))
+
+
+def raw_html(content: str, **props: Any) -> Component:
+    """
+    Render raw HTML content with zero styling.
+
+    Use for embedding widgets, iframes, or custom HTML that manages its own styling.
+
+    Example:
+        raw_html('<iframe src="https://example.com"></iframe>')
+    """
+    return _add_to_current_container(Component(type="RawHtml", props={"content": content, **props}))
+
+
+def markdown(content: str, toc: bool = False, **props: Any) -> Component:
+    """
+    Render markdown content with full prose styling.
+
+    Parses raw markdown on the frontend and renders with:
+    - Prose typography (headings, paragraphs, lists, blockquotes)
+    - Code blocks with syntax highlighting and copy button
+    - GFM tables, task lists, strikethrough
+    - Callout blocks ([!NOTE], [!WARNING], [!TIP], [!IMPORTANT], [!CAUTION])
+    - Mermaid diagrams (fenced code blocks with ``mermaid`` language)
+    - KaTeX math ($inline$ and $$block$$)
+    - Auto-linking URLs
+    - Image sizing via ![alt|WxH](url)
+
+    Args:
+        content: Raw markdown string.
+        toc: If True, generates a floating sidebar table of contents from headings.
+
+    Example:
+        markdown("# Hello\\n\\nThis is **bold** text.")
+        markdown(doc_content, toc=True)
+    """
+    return _add_to_current_container(
+        Component(type="Markdown", props={"content": content, "toc": toc, **props})
+    )
 
 
 def code(content: str, language: str = "python", **props: Any) -> Component:
@@ -1036,6 +1079,9 @@ __all__ = [
     # Typography
     "title",
     "text",
+    "html",
+    "raw_html",
+    "markdown",
     "code",
     "divider",
     "spacer",

@@ -80,6 +80,9 @@ from .server.ui import (
     json_view as _json_view,
 )
 from .server.ui import (
+    markdown as _markdown,
+)
+from .server.ui import (
     # Data display
     metric as _metric,
 )
@@ -97,6 +100,9 @@ from .server.ui import (
 )
 from .server.ui import (
     progress as _progress,
+)
+from .server.ui import (
+    raw_html as _raw_html,
 )
 from .server.ui import (
     # Layout components (context managers)
@@ -756,9 +762,40 @@ def text(content: str, size: str = "md", color: str | None = None, **props: Any)
 
 
 def html(content: str, **props: Any) -> Component:
-    """Render raw HTML content."""
+    """
+    Render pre-rendered HTML with prose styling.
+
+    Applies full prose typography. For raw HTML without styling, use raw_html().
+    For rendering markdown source, use markdown().
+    """
     _ensure_context()
     return _html(content, **props)
+
+
+def raw_html(content: str, **props: Any) -> Component:
+    """
+    Render raw HTML with zero styling.
+
+    For embedding widgets, iframes, or custom HTML that manages its own styling.
+    """
+    _ensure_context()
+    return _raw_html(content, **props)
+
+
+def markdown(content: str, toc: bool = False, **props: Any) -> Component:
+    """
+    Render markdown with full prose styling.
+
+    Features: prose typography, code blocks with copy, GFM tables/task lists,
+    callout blocks ([!NOTE], [!WARNING], [!TIP]), mermaid diagrams,
+    KaTeX math, auto-linking, and optional table of contents.
+
+    Example:
+        c.markdown("# Hello\\n\\nThis is **bold** text.")
+        c.markdown(doc_content, toc=True)
+    """
+    _ensure_context()
+    return _markdown(content, toc=toc, **props)
 
 
 def code(content: str, language: str = "python", **props: Any) -> Component:
@@ -1403,6 +1440,9 @@ __all__ = [
     # Typography
     "title",
     "text",
+    "html",
+    "raw_html",
+    "markdown",
     "code",
     "divider",
     "spacer",
