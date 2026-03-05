@@ -36,4 +36,9 @@ from .simple import (
     Computed,
 )
 
-__version__ = "2.0.0"
+try:
+    from importlib.metadata import version as _get_version
+    __version__: str = _get_version("cacao")
+except Exception:
+    from pathlib import Path as _Path
+    __version__ = (_Path(__file__).resolve().parent / "VERSION").read_text().strip() if (_Path(__file__).resolve().parent / "VERSION").exists() else "0.0.0"

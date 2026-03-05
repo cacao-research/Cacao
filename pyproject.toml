@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cacao"
-version = "2.0.0"
+dynamic = ["version"]
 description = "High-performance reactive web framework for Python. Build dashboards, internal tools, and data apps with a Streamlit-like API but 10x faster."
 readme = "README.md"
 license = "MIT"
@@ -61,17 +61,23 @@ Documentation = "https://github.com/cacao-research/Cacao#readme"
 Repository = "https://github.com/cacao-research/Cacao"
 Issues = "https://github.com/cacao-research/Cacao/issues"
 
+[tool.hatch.version]
+path = "VERSION"
+pattern = "(?P<version>.+)"
+
 [tool.hatch.build.targets.wheel]
 packages = ["cacao"]
 
 [tool.hatch.build.targets.sdist]
 include = [
+    "VERSION",
     "cacao/**/*.py",
     "cacao/frontend/dist/**/*",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]
 "cacao/frontend/dist" = "cacao/frontend/dist"
+"VERSION" = "cacao/VERSION"
 
 [tool.ruff]
 target-version = "py310"
