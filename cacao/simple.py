@@ -33,6 +33,12 @@ from .server.ui import (
     Component,
     _current_container,
 )
+from .server.ui import (
+    col as _ui_col,
+)
+from .server.ui import (
+    row as _ui_row,
+)
 
 T = TypeVar("T")
 
@@ -184,9 +190,9 @@ def config(
         if title is not None:
             _global_app.title = title
         if theme is not None:
-            _global_app.theme = theme
+            _global_app.theme = theme  # type: ignore[assignment]
         if branding is not None:
-            _global_app.branding = branding
+            _global_app.branding = branding  # type: ignore[assignment]
 
 
 # =============================================================================
@@ -320,13 +326,13 @@ class _LayoutHelper:
     def side(self) -> Generator[None, None, None]:
         """Sidebar region of a sidebar/split layout."""
         width = self._kwargs.get("sidebar_width", "300px")
-        with col(gap=4, width=width):
+        with _ui_col(gap=4, width=width):
             yield
 
     @contextmanager
     def main(self) -> Generator[None, None, None]:
         """Main content region."""
-        with col(gap=0):
+        with _ui_col(gap=0):
             yield
 
     def _parse_ratio(self) -> tuple[int, int]:
@@ -346,14 +352,14 @@ class _LayoutHelper:
     def left(self) -> Generator[None, None, None]:
         """Left pane of a split layout."""
         left_flex, _ = self._parse_ratio()
-        with col(gap=4, flex=str(left_flex)):
+        with _ui_col(gap=4, flex=str(left_flex)):
             yield
 
     @contextmanager
     def right(self) -> Generator[None, None, None]:
         """Right pane of a split layout."""
         _, right_flex = self._parse_ratio()
-        with col(gap=4, flex=str(right_flex)):
+        with _ui_col(gap=4, flex=str(right_flex)):
             yield
 
 
@@ -380,7 +386,7 @@ def layout(
     helper = _LayoutHelper(preset, sidebar_width=sidebar_width, ratio=ratio)
 
     if preset == "sidebar":
-        with row(gap=gap, align="start", wrap=False, **props):
+        with _ui_row(gap=gap, align="start", wrap=False, **props):
             yield helper
     elif preset == "centered":
         from .server.ui import container as _container
@@ -388,7 +394,7 @@ def layout(
         with _container(size="md", **props):
             yield helper
     elif preset == "split":
-        with row(gap=gap, align="stretch", wrap=False, **props):
+        with _ui_row(gap=gap, align="stretch", wrap=False, **props):
             yield helper
     elif preset == "dashboard":
         from .server.ui import grid as _grid
@@ -396,7 +402,7 @@ def layout(
         with _grid(cols=12, gap=gap, **props):
             yield helper
     else:
-        with row(gap=gap, **props):
+        with _ui_row(gap=gap, **props):
             yield helper
 
 
@@ -724,9 +730,17 @@ def export_static() -> dict[str, Any]:
         Dict with pages, static_handlers, and static_scripts.
     """
     app = _get_app()
-    result = app.export_static()
-    result["static_handlers"] = dict(_static_handlers)
-    result["static_scripts"] = list(_static_scripts)
+    result: dict[str, Any] = {
+        "pages": app.get_all_pages(),
+        "metadata": {
+            "title": app.title,
+            "theme": app.theme,
+            "branding": app.branding,
+        },
+        "signals": {s.name: s.default for s in Signal.get_all_signals().values()},
+        "static_handlers": dict(_static_handlers),
+        "static_scripts": list(_static_scripts),
+    }
     return result
 
 
@@ -800,10 +814,10 @@ for _name, _fn in inspect.getmembers(_ui_module, inspect.isfunction):
 
     if _is_cm:
         # Create a context manager wrapper
-        def _make_cm_wrapper(fn):
+        def _make_cm_wrapper(fn: Callable[..., Any]) -> Callable[..., Any]:
             @contextmanager
             @wraps(fn)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Generator[Any, None, None]:
                 _ensure_context()
                 with fn(*args, **kwargs) as comp:
                     yield comp
@@ -813,9 +827,9 @@ for _name, _fn in inspect.getmembers(_ui_module, inspect.isfunction):
         setattr(_this_module, _name, _make_cm_wrapper(_fn))
     else:
         # Create a plain function wrapper
-        def _make_wrapper(fn):
+        def _make_wrapper(fn: Callable[..., Any]) -> Callable[..., Any]:
             @wraps(fn)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 _ensure_context()
                 return fn(*args, **kwargs)
 
