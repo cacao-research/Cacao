@@ -587,15 +587,37 @@ def markdown(content: str, toc: bool = False, **props: Any) -> Component:
     )
 
 
-def code(content: str, language: str = "python", **props: Any) -> Component:
+def code(
+    content: str,
+    language: str = "python",
+    line_numbers: bool = False,
+    highlight_lines: str | list[int] | None = None,
+    **props: Any,
+) -> Component:
     """
-    Syntax-highlighted code block.
+    Syntax-highlighted code block with copy button, line numbers, and language badge.
+
+    Args:
+        content: The code string to display
+        language: Programming language for syntax highlighting
+        line_numbers: Show line numbers (auto-enabled for >10 lines)
+        highlight_lines: Lines to highlight, e.g. "1,3,5-8" or [1, 3, 5]
 
     Example:
-        code("print('Hello')", language="python")
+        code("print('Hello')", language="python", line_numbers=True)
+        code(long_code, highlight_lines="5-10,15")
     """
     return _add_to_current_container(
-        Component(type="Code", props={"content": content, "language": language, **props})
+        Component(
+            type="Code",
+            props={
+                "content": content,
+                "language": language,
+                "line_numbers": line_numbers,
+                "highlight_lines": highlight_lines,
+                **props,
+            },
+        )
     )
 
 
@@ -1546,6 +1568,81 @@ def diff(
 
 
 # =============================================================================
+# Search & Deep Linking
+# =============================================================================
+
+
+def search_input(
+    placeholder: str = "Search...",
+    signal: Signal[str] | None = None,
+    debounce: int = 300,
+    size: Literal["sm", "md", "lg"] = "md",
+    clearable: bool = True,
+    on_search: Callable[..., Any] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Search input with debounce, clear button, and signal binding.
+
+    Ideal for filtering lists, tables, or documentation content.
+
+    Args:
+        placeholder: Placeholder text
+        signal: Signal to bind the search value to
+        debounce: Debounce delay in ms before emitting value
+        size: Input size variant
+        clearable: Show clear button when value is non-empty
+        on_search: Event handler called with search value
+
+    Example:
+        query = app.signal("", name="query")
+        search_input("Search docs...", signal=query)
+    """
+    return _add_to_current_container(
+        Component(
+            type="SearchInput",
+            props={
+                "placeholder": placeholder,
+                "signal": signal,
+                "debounce": debounce,
+                "size": size,
+                "clearable": clearable,
+                "on_search": on_search,
+                **props,
+            },
+        )
+    )
+
+
+def anchor(
+    id: str,
+    offset: int = 0,
+    **props: Any,
+) -> Component:
+    """
+    Invisible anchor point for deep linking.
+
+    Creates a target that can be scrolled to via URL hash (#id).
+    Auto-scrolls on page load if the hash matches.
+
+    Args:
+        id: Unique anchor identifier (used in URL as #id)
+        offset: Pixel offset from top when scrolling (for fixed headers)
+
+    Example:
+        anchor("api-users")
+        title("Users API")
+        # Link to this with href="#api-users"
+    """
+    return _add_to_current_container(
+        Component(
+            type="Anchor",
+            props={"id": id, "offset": offset, **props},
+        )
+    )
+
+
+# =============================================================================
 # Toast Notifications
 # =============================================================================
 
@@ -1722,6 +1819,7 @@ _DISPLAY_TYPES = {
     "TimelineItem",
     "Video",
     "Diff",
+    "Anchor",
 }
 _FORM_TYPES = {
     "Button",
@@ -1736,6 +1834,7 @@ _FORM_TYPES = {
     "Chat",
     "Tabs",
     "Tab",
+    "SearchInput",
 }
 _CHART_TYPES = {
     "LineChart",
@@ -1842,6 +1941,9 @@ __all__ = [
     "timeline_item",
     "video",
     "diff",
+    # Search & Deep Linking
+    "search_input",
+    "anchor",
     # Toast
     "toast",
 ]

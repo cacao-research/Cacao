@@ -1,5 +1,6 @@
 export { Accordion, AccordionItem } from './Accordion.js';
 export { Alert } from './Alert.js';
+export { Anchor } from './Anchor.js';
 export { Badge } from './Badge.js';
 export { Breadcrumb } from './Breadcrumb.js';
 export { Card } from './Card.js';

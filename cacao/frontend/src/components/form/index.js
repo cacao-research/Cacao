@@ -4,6 +4,7 @@ export { Checkbox } from './Checkbox.js';
 export { DatePicker } from './DatePicker.js';
 export { FileUpload } from './FileUpload.js';
 export { Input } from './Input.js';
+export { SearchInput } from './SearchInput.js';
 export { Select } from './Select.js';
 export { Slider } from './Slider.js';
 export { Switch } from './Switch.js';

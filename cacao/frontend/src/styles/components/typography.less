@@ -49,6 +49,18 @@
   }
 }
 
+.c-code-lang {
+  position: absolute;
+  top: @space-2;
+  left: @space-3;
+  font-size: @font-size-xs;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+  opacity: 0.6;
+}
+
 .c-code-copy {
   position: absolute;
   top: @space-2;
@@ -71,6 +83,46 @@
     color: var(--text-primary);
     background: var(--bg-tertiary);
   }
+}
+
+// Line numbers table
+.c-code-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: @space-3; // space for language label
+}
+
+.c-code-line {
+  &--highlight {
+    background: rgba(var(--primary-rgb, 99, 102, 241), 0.08);
+  }
+}
+
+.c-code-line-number {
+  user-select: none;
+  text-align: right;
+  padding-right: @space-4;
+  color: var(--text-muted);
+  opacity: 0.4;
+  white-space: nowrap;
+  width: 1%;
+  vertical-align: top;
+}
+
+.c-code-line-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// Syntax highlighting tokens
+.c-code-token {
+  &--keyword { color: var(--primary, #818cf8); }
+  &--string { color: var(--success, #34d399); }
+  &--comment { color: var(--text-muted); font-style: italic; }
+  &--number { color: var(--warning, #fbbf24); }
+  &--builtin { color: var(--info, #38bdf8); }
+  &--decorator { color: var(--warning, #fbbf24); }
+  &--operator { color: var(--text-secondary); }
 }
 
 @media (max-width: @breakpoint-md) {
