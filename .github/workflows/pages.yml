@@ -36,14 +36,14 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Cacao
-        run: pip install -e .
-
       - name: Build frontend
         run: |
           cd cacao/frontend
           npm ci
           npm run build
+
+      - name: Install Cacao
+        run: pip install -e .
 
       - name: Build showcase
         run: python showcase/build.py --base-path /Cacao -o dist
