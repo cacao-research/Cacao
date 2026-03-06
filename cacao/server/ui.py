@@ -1229,9 +1229,7 @@ def subnav_group(
     **props: Any,
 ) -> Component:
     """Group header within a subnav."""
-    return _add_to_current_container(
-        Component(type="SubNavGroup", props={"label": label, **props})
-    )
+    return _add_to_current_container(Component(type="SubNavGroup", props={"label": label, **props}))
 
 
 def subnav_item(
