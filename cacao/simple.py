@@ -168,6 +168,15 @@ from .server.ui import (
     steps as _steps,
 )
 from .server.ui import (
+    subnav as _subnav,
+)
+from .server.ui import (
+    subnav_group as _subnav_group,
+)
+from .server.ui import (
+    subnav_item as _subnav_item,
+)
+from .server.ui import (
     switch as _switch,
 )
 from .server.ui import (
@@ -1487,6 +1496,62 @@ def file_tree(
     return _file_tree(data=data, highlight=highlight, **props)
 
 
+@contextmanager
+def subnav(
+    searchable: bool = False,
+    placeholder: str = "Search...",
+    **props: Any,
+):
+    """
+    Scrollable sidebar navigation with groups, search, and badges.
+
+    Example:
+        with c.subnav(searchable=True):
+            c.subnav_group("Models")
+            c.subnav_item("User", badge="3", target="section_user")
+            c.subnav_item("/users", tag="GET", tag_color="success", target="ep_users")
+    """
+    _ensure_context()
+    with _subnav(searchable=searchable, placeholder=placeholder, **props) as comp:
+        yield comp
+
+
+def subnav_group(
+    label: str,
+    **props: Any,
+) -> Component:
+    """Group header within a subnav."""
+    _ensure_context()
+    return _subnav_group(label=label, **props)
+
+
+def subnav_item(
+    label: str,
+    badge: str | None = None,
+    tag: str | None = None,
+    tag_color: str | None = None,
+    target: str | None = None,
+    href: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Navigation item within a subnav.
+
+    Args:
+        label: Display text
+        badge: Optional count/badge on the right side
+        tag: Optional colored tag on the left (e.g. HTTP method)
+        tag_color: Tag color variant: success, info, warning, danger, primary
+        target: Element ID to scroll into view on click
+        href: URL to navigate to (alternative to target)
+    """
+    _ensure_context()
+    return _subnav_item(
+        label=label, badge=badge, tag=tag, tag_color=tag_color,
+        target=target, href=href, **props,
+    )
+
+
 def link_card(
     title: str,
     description: str | None = None,
@@ -2083,6 +2148,9 @@ __all__ = [
     "steps",
     "step",
     "file_tree",
+    "subnav",
+    "subnav_group",
+    "subnav_item",
     "link_card",
     # General UI
     "modal",

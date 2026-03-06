@@ -17,3 +17,4 @@ export { Image } from './Image.js';
 export { Timeline, TimelineItem } from './Timeline.js';
 export { Video } from './Video.js';
 export { Diff } from './Diff.js';
+export { SubNav, SubNavItem, SubNavGroup } from './SubNav.js';
