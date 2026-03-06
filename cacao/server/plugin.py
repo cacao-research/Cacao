@@ -72,6 +72,11 @@ class Plugin:
         """Add middleware that intercepts/transforms events."""
         self.middleware.append(handler)
 
+    def register_component(self, name: str, js_url: str) -> None:
+        """Register a custom component with its JS file URL."""
+        self.metadata.setdefault("js_urls", []).append(js_url)
+        self.metadata.setdefault("components", []).append(name)
+
 
 class PluginRegistry:
     """Central registry for all Cacao plugins."""
@@ -168,3 +173,73 @@ _registry = PluginRegistry()
 def get_registry() -> PluginRegistry:
     """Get the global plugin registry."""
     return _registry
+
+
+# =============================================================================
+# Event Bus (IPC / Cross-Plugin Messaging)
+# =============================================================================
+
+
+class EventBus:
+    """Server-side event bus for inter-plugin communication."""
+
+    def __init__(self) -> None:
+        self._listeners: dict[str, list[Callable[..., Any]]] = {}
+
+    def emit(self, topic: str, data: Any = None) -> None:
+        """Emit an event to all listeners on a topic."""
+        for handler in self._listeners.get(topic, []):
+            try:
+                result = handler(data)
+                # If handler is async, we can't await here in sync context
+                # Log a warning — callers should use emit_async for async handlers
+                if hasattr(result, "__await__"):
+                    import asyncio
+
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(result)
+                    except RuntimeError:
+                        logger.warning(
+                            "Async handler on topic '%s' called from sync context", topic
+                        )
+            except Exception:
+                logger.exception("Error in event bus handler for topic '%s'", topic)
+
+    async def emit_async(self, topic: str, data: Any = None) -> None:
+        """Emit an event, awaiting any async handlers."""
+        for handler in self._listeners.get(topic, []):
+            try:
+                result = handler(data)
+                if hasattr(result, "__await__"):
+                    await result
+            except Exception:
+                logger.exception("Error in event bus handler for topic '%s'", topic)
+
+    def listen(self, topic: str, handler: Callable[..., Any]) -> Callable[[], None]:
+        """Listen for events on a topic. Returns an unlisten function."""
+        self._listeners.setdefault(topic, []).append(handler)
+
+        def unlisten() -> None:
+            try:
+                self._listeners[topic].remove(handler)
+            except (KeyError, ValueError):
+                pass
+
+        return unlisten
+
+    def unlisten(self, topic: str, handler: Callable[..., Any]) -> None:
+        """Remove a specific handler from a topic."""
+        try:
+            self._listeners[topic].remove(handler)
+        except (KeyError, ValueError):
+            pass
+
+
+# Global event bus instance
+_event_bus = EventBus()
+
+
+def get_event_bus() -> EventBus:
+    """Get the global event bus for inter-plugin messaging."""
+    return _event_bus

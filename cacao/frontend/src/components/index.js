@@ -7,10 +7,11 @@ import { COLORS } from './core/constants.js';
 import { formatValue } from './core/utils.js';
 import { ChartWrapper } from './core/ChartWrapper.js';
 import { initStaticMode, isStaticMode, staticSignals, staticDispatcher } from './core/static-runtime.js';
-import { initShortcuts } from './core/shortcuts.js';
+import { initShortcuts, registerShortcut, getShortcuts } from './core/shortcuts.js';
 import { initTheme, setTheme, toggleTheme } from './core/ThemeToggle.js';
 import { showToast } from './core/Toast.js';
 import { openCommandPalette, registerCommand } from './core/CommandPalette.js';
+import { PanelManager } from './core/PanelManager.js';
 
 import * as layout from './layout/index.js';
 import * as display from './display/index.js';
@@ -49,6 +50,23 @@ window.Cacao = {
   toggleTheme,
   openCommandPalette,
   registerCommand,
+  // Shortcuts
+  registerShortcut,
+  getShortcuts,
+  // Theme registration (for plugins)
+  registerTheme(name, vars) {
+    const root = document.documentElement;
+    const style = document.createElement('style');
+    const props = Object.entries(vars).map(([k, v]) => `--${k}: ${v};`).join('\n  ');
+    style.textContent = `[data-theme="${name}"] {\n  ${props}\n}`;
+    document.head.appendChild(style);
+  },
+  // Custom component registration (for plugins)
+  registerComponent(name, renderFn) {
+    renderers[name] = renderFn;
+  },
+  // Panel manager
+  panelManager: PanelManager,
 };
 
 // Mount app (defer if in static mode to allow initialization first)

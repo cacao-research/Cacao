@@ -149,6 +149,42 @@ class Session:
             }
         )
 
+    @property
+    def authenticated(self) -> bool:
+        """Whether this session is authenticated."""
+        return bool(self.metadata.get("authenticated", False))
+
+    @property
+    def user(self) -> Any:
+        """Get the authenticated user for this session."""
+        return self.metadata.get("user")
+
+    @property
+    def permissions(self) -> set[str]:
+        """Get permissions for this session's user."""
+        user = self.user
+        if user and hasattr(user, "permissions"):
+            return set(user.permissions)
+        return set()
+
+    async def send_notification(
+        self,
+        message: str,
+        title: str = "",
+        variant: str = "info",
+    ) -> None:
+        """Send a persistent notification to the client."""
+        if self.websocket is None:
+            return
+        await self.websocket.send_json(
+            {
+                "type": "notification",
+                "title": title,
+                "message": message,
+                "variant": variant,
+            }
+        )
+
     async def send(self, message: dict[str, Any]) -> None:
         """Send an arbitrary JSON message to the client."""
         if self.websocket is None:

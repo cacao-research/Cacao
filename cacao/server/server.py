@@ -20,6 +20,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from .log import get_logger, get_uvicorn_log_config
+from .plugin import get_registry
 from .session import Session
 from .signal import Signal
 
@@ -49,13 +50,31 @@ def create_server(app: App) -> Starlette:
 
         # Create session for this connection
         session = app.sessions.create(websocket)
+        await get_registry().run_hook("on_session_start", session)
 
         logger.debug("Session %s connected", session.id, extra={"label": "ws"})
 
         try:
+            # Check auth requirement
+            from .auth import get_auth_provider
+
+            auth_provider = get_auth_provider()
+            if auth_provider and not session.metadata.get("authenticated"):
+                await session.send({"type": "auth_required"})
+
             # Send initial state
             initial_state = _get_all_signal_values(session)
             await session.send_init(initial_state)
+
+            # Send registered keyboard shortcuts
+            shortcuts = getattr(app, "_shortcuts", [])
+            if shortcuts:
+                await session.send(
+                    {
+                        "type": "register_shortcuts",
+                        "shortcuts": shortcuts,
+                    }
+                )
 
             # Set up signal subscription to push updates
             unsubscribers: list[Callable[..., Any]] = []
@@ -101,6 +120,7 @@ def create_server(app: App) -> Starlette:
             for unsub in unsubscribers:
                 unsub()
 
+            await get_registry().run_hook("on_session_end", session)
             app.sessions.remove(session.id)
 
             logger.debug("Session %s disconnected", session.id, extra={"label": "ws"})
@@ -128,12 +148,66 @@ def create_server(app: App) -> Starlette:
             "theme": getattr(app, "theme", "dark"),
         }
 
+        # Get plugin slot content
+        registry = get_registry()
+        slots: dict[str, list[dict[str, Any]]] = {}
+        for slot_name in ("header", "footer", "sidebar", "head"):
+            renderers = registry.get_slot_renderers(slot_name)
+            if renderers:
+                slot_content: list[dict[str, Any]] = []
+                for renderer in renderers:
+                    try:
+                        result = renderer()
+                        if hasattr(result, "__await__"):
+                            result = await result
+                        # Result should be a Component or dict
+                        if hasattr(result, "to_dict"):
+                            slot_content.append(result.to_dict())
+                        elif isinstance(result, dict):
+                            slot_content.append(result)
+                        elif isinstance(result, str):
+                            slot_content.append({"type": "RawHtml", "props": {"html": result}})
+                    except Exception:
+                        logger.exception("Error in slot renderer for '%s'", slot_name)
+                if slot_content:
+                    slots[slot_name] = slot_content
+
         return JSONResponse(
             {
                 "pages": pages,
                 "metadata": metadata,
+                "slots": slots,
             }
         )
+
+    async def auth_login_handler(request: Any) -> JSONResponse:
+        """Handle login requests."""
+        from .auth import get_auth_provider
+
+        provider = get_auth_provider()
+        if not provider:
+            return JSONResponse(
+                {"success": False, "message": "Auth not configured"}, status_code=400
+            )
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "message": "Invalid request"}, status_code=400)
+
+        user = await provider.authenticate(body)
+        if user:
+            token = ""
+            if hasattr(provider, "create_token"):
+                token = provider.create_token(user)
+            return JSONResponse(
+                {
+                    "success": True,
+                    "token": token,
+                    "user": {"username": user.username, "permissions": list(user.permissions)},
+                }
+            )
+        return JSONResponse({"success": False, "message": "Invalid credentials"}, status_code=401)
 
     async def index_handler(request: Any) -> HTMLResponse:
         """Serve the dashboard UI."""
@@ -147,7 +221,18 @@ def create_server(app: App) -> Starlette:
         if hasattr(app, "get_used_categories"):
             categories = app.get_used_categories()
 
-        html = _get_dashboard_html(title, theme, branding, categories=categories)
+        # Gather custom themes and plugin scripts
+        custom_themes = getattr(app, "_custom_themes", {})
+        plugin_scripts = _get_plugin_scripts()
+
+        html = _get_dashboard_html(
+            title,
+            theme,
+            branding,
+            categories=categories,
+            custom_themes=custom_themes,
+            plugin_scripts=plugin_scripts,
+        )
         return HTMLResponse(html)
 
     # Set up routes
@@ -157,11 +242,22 @@ def create_server(app: App) -> Starlette:
     routes = [
         Route("/health", health_handler),
         Route("/api/pages", pages_handler),
+        Route("/api/auth/login", auth_login_handler, methods=["POST"]),
         WebSocketRoute("/ws", websocket_handler),
         Mount("/static", StaticFiles(directory=str(FRONTEND_DIST_DIR)), name="static"),
-        Route("/", index_handler),
-        Route("/{path:path}", index_handler),  # Catch-all for SPA routing
     ]
+
+    # Mount plugin static files directory if it exists
+    plugins_dir = Path.cwd() / "plugins"
+    if plugins_dir.is_dir():
+        routes.append(Mount("/plugins", StaticFiles(directory=str(plugins_dir)), name="plugins"))
+
+    routes.extend(
+        [
+            Route("/", index_handler),
+            Route("/{path:path}", index_handler),  # Catch-all for SPA routing
+        ]
+    )
 
     # Create Starlette app
     starlette_app = Starlette(
@@ -256,11 +352,35 @@ def _get_css_links(categories: set[str] | None) -> str:
     return '    <link rel="stylesheet" href="/static/cacao.css">'
 
 
+def _get_plugin_scripts() -> list[str]:
+    """Get JS URLs registered by plugins for custom components."""
+    registry = get_registry()
+    scripts: list[str] = []
+    for plugin in registry.all().values():
+        for url in plugin.metadata.get("js_urls", []):
+            scripts.append(url)
+    return scripts
+
+
+def _get_custom_theme_css(themes: dict[str, dict[str, str]]) -> str:
+    """Generate CSS for custom themes."""
+    if not themes:
+        return ""
+    parts = []
+    for name, variables in themes.items():
+        props = "\n".join(f"    --{k}: {v};" for k, v in variables.items())
+        parts.append(f'  [data-theme="{name}"] {{\n{props}\n  }}')
+    css = "\n".join(parts)
+    return f"\n    <style>\n{css}\n    </style>"
+
+
 def _get_dashboard_html(
     title: str,
     theme: str,
     branding: bool | str | None = None,
     categories: set[str] | None = None,
+    custom_themes: dict[str, dict[str, str]] | None = None,
+    plugin_scripts: list[str] | None = None,
 ) -> str:
     """Generate the dashboard HTML that links to external CSS and JS."""
     branding_html = _get_branding_html(branding)
@@ -271,6 +391,10 @@ def _get_dashboard_html(
         if needs_charts
         else ""
     )
+    theme_css = _get_custom_theme_css(custom_themes or {})
+    plugin_script_tags = ""
+    for url in plugin_scripts or []:
+        plugin_script_tags += f'\n    <script src="{url}"></script>'
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
@@ -281,10 +405,10 @@ def _get_dashboard_html(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>{chartjs_tag}
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>{chartjs_tag}{theme_css}
 </head>
 <body>
     <div id="root"><div class="loading">Loading...</div></div>{branding_html}
-    <script src="/static/cacao.js"></script>
+    <script src="/static/cacao.js"></script>{plugin_script_tags}
 </body>
 </html>'''
