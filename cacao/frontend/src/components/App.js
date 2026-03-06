@@ -112,9 +112,10 @@ export function App({ renderers }) {
   // Check if there's an AppShell component (admin layout)
   const appShellIdx = components.findIndex(c => c.type === 'AppShell');
   if (appShellIdx >= 0) {
-    // Render the AppShell which handles its own layout
+    // Render ALL root components (e.g. RawHtml style blocks) plus the AppShell
+    const allRendered = components.map((c, i) => render(c, i));
     return h(React.Fragment, null, [
-      render(components[appShellIdx], 'app-shell'),
+      ...allRendered,
       ...overlays,
     ]);
   }

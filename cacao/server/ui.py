@@ -1200,6 +1200,74 @@ def file_tree(
     )
 
 
+@contextmanager
+def subnav(
+    searchable: bool = False,
+    placeholder: str = "Search...",
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Scrollable sidebar navigation with groups, search, and badges.
+
+    Example:
+        with subnav(searchable=True):
+            subnav_group("Models")
+            subnav_item("User", badge="3", target="section_user")
+            subnav_group("API")
+            subnav_item("/users", tag="GET", tag_color="success", target="ep_users")
+    """
+    component = Component(
+        type="SubNav",
+        props={"searchable": searchable, "placeholder": placeholder, **props},
+    )
+    with _container_context(component):
+        yield component
+
+
+def subnav_group(
+    label: str,
+    **props: Any,
+) -> Component:
+    """Group header within a subnav."""
+    return _add_to_current_container(Component(type="SubNavGroup", props={"label": label, **props}))
+
+
+def subnav_item(
+    label: str,
+    badge: str | None = None,
+    tag: str | None = None,
+    tag_color: str | None = None,
+    target: str | None = None,
+    href: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Navigation item within a subnav.
+
+    Args:
+        label: Display text
+        badge: Optional count/badge on the right side
+        tag: Optional colored tag on the left (e.g. HTTP method)
+        tag_color: Tag color variant: success, info, warning, danger, primary
+        target: Element ID to scroll into view on click
+        href: URL to navigate to (alternative to target)
+    """
+    return _add_to_current_container(
+        Component(
+            type="SubNavItem",
+            props={
+                "label": label,
+                "badge": badge,
+                "tag": tag,
+                "tag_color": tag_color,
+                "target": target,
+                "href": href,
+                **props,
+            },
+        )
+    )
+
+
 def link_card(
     title: str,
     description: str | None = None,

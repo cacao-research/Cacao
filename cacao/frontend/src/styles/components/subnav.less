@@ -1,0 +1,204 @@
+// SubNav - Sidebar navigation with groups, search, and badges
+
+.c-subnav {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-bottom: @space-4;
+
+  // Subtle scrollbar
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: @radius-full;
+    &:hover {
+      background: var(--border-color);
+    }
+  }
+}
+
+// Search
+.c-subnav-search {
+  padding: 0 @space-2 @space-3;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: inherit;
+}
+
+.c-subnav-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.c-subnav-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.c-subnav-search-input {
+  width: 100%;
+  padding: 7px @space-3 7px 30px;
+  border: 1px solid var(--border-subtle);
+  border-radius: @radius-sm;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: @font-size-sm;
+  font-family: @font-family;
+  outline: none;
+  transition: border-color @transition-fast, background @transition-fast, box-shadow @transition-fast;
+
+  &::placeholder {
+    color: var(--text-muted);
+    font-weight: @font-weight-normal;
+  }
+
+  &:hover {
+    border-color: var(--border-color);
+  }
+
+  &:focus {
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+}
+
+.c-subnav-search-count {
+  position: absolute;
+  right: 10px;
+  font-size: @font-size-xs;
+  color: var(--text-muted);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+// Items container
+.c-subnav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 @space-1;
+}
+
+// Group header
+.c-subnav-group {
+  font-size: 10px;
+  font-weight: @font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: @space-4 @space-2 @space-1;
+  user-select: none;
+
+  &:first-child {
+    padding-top: @space-2;
+  }
+}
+
+// Item
+.c-subnav-item {
+  display: flex;
+  align-items: center;
+  gap: @space-2;
+  padding: 5px @space-2;
+  border-radius: @radius-sm - 2px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: @font-size-sm;
+  cursor: pointer;
+  transition: background @transition-fast, color @transition-fast;
+  border: 1px solid transparent;
+  position: relative;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  &:active {
+    background: var(--bg-card);
+    transform: scale(0.99);
+  }
+}
+
+// Label (flex-fills remaining space)
+.c-subnav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+// Badge (count/number on the right)
+.c-subnav-badge {
+  font-size: @font-size-xs;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 0 6px;
+  border-radius: @radius-sm;
+  min-width: 20px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+// Tag (method badge / colored label on the left)
+.c-subnav-tag {
+  font-size: 9px;
+  font-weight: @font-weight-bold;
+  padding: 2px 0;
+  border-radius: @radius-xs + 1px;
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+// Tag color variants
+.c-subnav-tag--success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.c-subnav-tag--info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.c-subnav-tag--warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.c-subnav-tag--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.c-subnav-tag--primary {
+  background: var(--accent-glow);
+  color: var(--accent-primary);
+}
+
+// Empty state
+.c-subnav-empty {
+  padding: @space-4 @space-3;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: @font-size-sm;
+}

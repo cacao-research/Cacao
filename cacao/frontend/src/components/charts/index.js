@@ -1,10 +1,10 @@
-export { LineChart } from './LineChart.js';
-export { BarChart } from './BarChart.js';
-export { PieChart } from './PieChart.js';
 export { AreaChart } from './AreaChart.js';
-export { ScatterChart } from './ScatterChart.js';
-export { RadarChart } from './RadarChart.js';
-export { GaugeChart } from './GaugeChart.js';
+export { BarChart } from './BarChart.js';
 export { FunnelChart } from './FunnelChart.js';
+export { GaugeChart } from './GaugeChart.js';
 export { HeatmapChart } from './HeatmapChart.js';
+export { LineChart } from './LineChart.js';
+export { PieChart } from './PieChart.js';
+export { RadarChart } from './RadarChart.js';
+export { ScatterChart } from './ScatterChart.js';
 export { TreemapChart } from './TreemapChart.js';
