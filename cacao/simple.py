@@ -275,6 +275,31 @@ def bind(event_name: str, sig: Signal[T]) -> None:
     app.bind(event_name, sig)
 
 
+def use(middleware: Any = None) -> Any:
+    """
+    Add middleware to the event processing chain.
+
+    Middleware intercepts events before they reach handlers. Useful for
+    logging, authentication, rate limiting, validation, and more.
+
+    Can be used as a decorator or called directly.
+
+    Example:
+        @c.use
+        async def log_events(ctx, next):
+            print(f"Event: {ctx.event_name}")
+            await next(ctx)
+
+    Args:
+        middleware: The middleware function
+
+    Returns:
+        The middleware function (for decorator use)
+    """
+    app = _get_app()
+    return app.use(middleware)
+
+
 # =============================================================================
 # Pages (Multi-page apps)
 # =============================================================================
@@ -820,6 +845,239 @@ def get_plugin(name: str) -> Any:
 
 
 # =============================================================================
+# Keyboard Shortcuts
+# =============================================================================
+
+
+def shortcut(combo: str, handler: Callable[..., Any], description: str = "") -> None:
+    """
+    Register a keyboard shortcut.
+
+    The shortcut triggers a server-side event handler when pressed.
+
+    Args:
+        combo: Key combination (e.g., "mod+s", "mod+shift+p")
+        handler: Async function(session, event) to call
+        description: Human-readable description
+
+    Example:
+        @c.on("save_shortcut")
+        async def save(session, event):
+            print("Save triggered!")
+
+        c.shortcut("mod+s", save, "Save")
+    """
+    app = _get_app()
+    # Generate a unique event name for this shortcut
+    event_name = f"shortcut:{combo.replace('+', '_')}"
+    app._shortcuts.append(
+        {
+            "combo": combo,
+            "event_name": event_name,
+            "description": description,
+        }
+    )
+    # Register the handler for this event
+    app.events.register(event_name, handler)
+
+
+# =============================================================================
+# Theme API
+# =============================================================================
+
+
+def register_theme(name: str, variables: dict[str, str]) -> None:
+    """
+    Register a custom theme.
+
+    Themes are CSS custom property overrides applied via `data-theme` attribute.
+    Use `c.config(theme="name")` to set the default, or let users toggle via AppShell.
+
+    Args:
+        name: Theme name (e.g., "ocean", "sunset")
+        variables: CSS variable overrides (e.g., {"bg-primary": "#0a1628", "primary": "#4fc3f7"})
+
+    Example:
+        c.register_theme("ocean", {
+            "bg-primary": "#0a1628",
+            "primary": "#4fc3f7",
+            "text-primary": "#e0f7fa",
+        })
+    """
+    app = _get_app()
+    app._custom_themes[name] = variables
+
+
+# =============================================================================
+# Notifications
+# =============================================================================
+
+
+def notify(
+    message: str,
+    title: str = "",
+    variant: str = "info",
+    *,
+    session: Any = None,
+    broadcast: bool = False,
+) -> None:
+    """
+    Send a persistent notification to the client.
+
+    Unlike toasts, notifications persist in a notification center panel
+    until dismissed by the user.
+
+    Args:
+        message: Notification message
+        title: Optional title
+        variant: One of 'info', 'success', 'warning', 'error'
+        session: Specific session to notify (required if not broadcast)
+        broadcast: Send to all connected sessions
+
+    Example:
+        c.notify("Build complete", "3 docs updated", variant="success", broadcast=True)
+    """
+    import asyncio
+
+    app = _get_app()
+    msg = {
+        "type": "notification",
+        "title": title,
+        "message": message,
+        "variant": variant,
+    }
+
+    if broadcast:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(app.sessions.broadcast(msg))
+        except RuntimeError:
+            pass
+    elif session is not None:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(session.send(msg))
+        except RuntimeError:
+            pass
+
+
+# =============================================================================
+# IPC / Cross-Plugin Messaging
+# =============================================================================
+
+
+def emit(topic: str, data: Any = None) -> None:
+    """
+    Emit an event on the server-side event bus.
+
+    Used for inter-plugin communication. Never touches WebSocket.
+
+    Args:
+        topic: Event topic (e.g., "docs:updated")
+        data: Arbitrary data payload
+
+    Example:
+        c.emit("docs:updated", {"count": 42})
+    """
+    from .server.plugin import get_event_bus
+
+    get_event_bus().emit(topic, data)
+
+
+def listen(topic: str, handler: Callable[..., Any]) -> Callable[[], None]:
+    """
+    Listen for events on the server-side event bus.
+
+    Returns an unlisten function.
+
+    Args:
+        topic: Event topic to listen for
+        handler: Function to call with event data
+
+    Returns:
+        Unlisten function
+
+    Example:
+        def on_docs_updated(data):
+            print(f"Updated {data['count']} docs")
+
+        unlisten = c.listen("docs:updated", on_docs_updated)
+    """
+    from .server.plugin import get_event_bus
+
+    return get_event_bus().listen(topic, handler)
+
+
+# =============================================================================
+# Auth & Permissions
+# =============================================================================
+
+
+def require_auth(
+    provider: Any = None,
+    *,
+    users: dict[str, dict[str, Any]] | None = None,
+    public_events: set[str] | None = None,
+) -> None:
+    """
+    Enable authentication for the app.
+
+    Either pass a custom AuthProvider or use the simple username/password mode.
+
+    Args:
+        provider: AuthProvider instance (optional)
+        users: Dict of username -> {"password": "...", "permissions": [...]} for simple auth
+        public_events: Event names that don't require auth
+
+    Example:
+        c.require_auth(users={
+            "admin": {"password": "secret", "permissions": ["admin"]},
+            "user": {"password": "pass123"},
+        })
+    """
+    from .server.auth import SimpleAuthProvider, set_auth_provider
+
+    if provider is None and users:
+        provider = SimpleAuthProvider(users)
+
+    if provider:
+        set_auth_provider(provider, public_events)
+
+
+def permission(perm: str) -> Callable[..., Any]:
+    """
+    Decorator to require a permission on an event handler.
+
+    Args:
+        perm: Required permission name
+
+    Example:
+        @c.on("delete_user")
+        @c.permission("admin")
+        async def delete_user(session, event):
+            ...
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(func)
+        async def wrapper(session: Any, data: dict[str, Any]) -> None:
+            if perm not in session.permissions:
+                await session.send(
+                    {
+                        "type": "error",
+                        "message": f"Permission required: {perm}",
+                        "code": "PERMISSION_DENIED",
+                    }
+                )
+                return
+            await func(session, data)
+
+        return wrapper
+
+    return decorator
+
+
+# =============================================================================
 # Auto-discovery: wrap all ui.py component functions automatically
 # =============================================================================
 
@@ -865,6 +1123,20 @@ _MANUAL_FUNCTIONS = {
     "register_plugin",
     "get_plugins",
     "get_plugin",
+    # Middleware
+    "use",
+    # Shortcuts
+    "shortcut",
+    # Themes
+    "register_theme",
+    # Notifications
+    "notify",
+    # IPC
+    "emit",
+    "listen",
+    # Auth
+    "require_auth",
+    "permission",
     # Internal ui.py helpers that shouldn't be exposed
     "_add_to_current_container",
     "_container_context",
@@ -936,6 +1208,8 @@ __all__ = [
     # Events
     "on",
     "bind",
+    # Middleware
+    "use",
     # Pages
     "page",
     # Layout preset
@@ -976,6 +1250,18 @@ __all__ = [
     "register_plugin",
     "get_plugins",
     "get_plugin",
+    # Shortcuts
+    "shortcut",
+    # Themes
+    "register_theme",
+    # Notifications
+    "notify",
+    # IPC
+    "emit",
+    "listen",
+    # Auth
+    "require_auth",
+    "permission",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]

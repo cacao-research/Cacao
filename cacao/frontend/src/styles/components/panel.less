@@ -1,0 +1,127 @@
+.panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+
+  &.maximized {
+    border-radius: 0;
+  }
+
+  &.minimized {
+    .panel-content {
+      display: none;
+    }
+  }
+}
+
+.panel-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  flex-shrink: 0;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.panel-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-controls {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.panel-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  &.panel-btn-close:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  user-select: text;
+}
+
+// Resize handles
+.panel-resize {
+  position: absolute;
+
+  &-e {
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+  }
+
+  &-s {
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    cursor: ns-resize;
+  }
+
+  &-se {
+    bottom: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+  }
+
+  &-w {
+    top: 0;
+    left: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+  }
+
+  &-n {
+    top: -3px;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    cursor: ns-resize;
+  }
+}

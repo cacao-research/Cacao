@@ -4,6 +4,7 @@
 
 const { createElement: h, useEffect, useState, useCallback } = React;
 import { getIcon } from '../core/icons.js';
+import { renderComponent } from '../renderer.js';
 
 export function AppShell({ props, children, setActiveTab, activeTab }) {
   const { brand, logo, themeDark, themeLight } = props;
@@ -36,6 +37,11 @@ export function AppShell({ props, children, setActiveTab, activeTab }) {
     }
     setIsDark(!isDark);
   }, [isDark, themeDark, themeLight]);
+
+  // Plugin slot rendering
+  const slots = window.__CACAO_SLOTS__ || {};
+  const slotRenderers = window.Cacao?.renderers || {};
+  const renderSlot = (slotComps) => slotComps.map((c, i) => renderComponent(c, 'slot-' + i, setActiveTab, activeTab, slotRenderers));
 
   // Find NavSidebar and ShellContent children
   const navSidebar = children.find(c => c?.props?.type === 'NavSidebar');
@@ -76,12 +82,18 @@ export function AppShell({ props, children, setActiveTab, activeTab }) {
         }, getIcon(isDark ? 'sun' : 'moon'))
       ]),
       // Navigation content
-      navSidebar
+      navSidebar,
+      // Plugin sidebar slot
+      slots.sidebar && h('div', { className: 'app-shell-slot-sidebar', key: 'slot-sidebar' }, renderSlot(slots.sidebar))
     ]),
     // Main content area
     h('main', { className: 'app-shell-content', key: 'content' }, [
+      // Plugin header slot
+      slots.header && h('div', { className: 'app-shell-slot-header', key: 'slot-header' }, renderSlot(slots.header)),
       shellContent,
-      ...otherChildren
+      ...otherChildren,
+      // Plugin footer slot
+      slots.footer && h('div', { className: 'app-shell-slot-footer', key: 'slot-footer' }, renderSlot(slots.footer))
     ])
   ]);
 }

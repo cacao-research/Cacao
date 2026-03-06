@@ -7,6 +7,8 @@ import { renderComponent } from './renderer.js';
 import { isStaticMode } from './core/static-runtime.js';
 import { CommandPalette } from './core/CommandPalette.js';
 import { ToastContainer } from './core/Toast.js';
+import { NotificationCenter } from './core/NotificationCenter.js';
+import { LoginPage } from './core/LoginPage.js';
 
 // Extract route from URL (supports both pathname and hash-based routing)
 function getRouteFromPath() {
@@ -38,6 +40,8 @@ export function App({ renderers }) {
   // Initialize activeTab from URL if present
   const [activeTab, setActiveTab] = useState(() => getRouteFromPath());
   const [error, setError] = useState(null);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   // Wrap setActiveTab to also update URL
   const setActiveTabWithRoute = useCallback((tab) => {
@@ -91,9 +95,51 @@ export function App({ renderers }) {
     // Dynamic mode - fetch from server
     fetch('/api/pages')
       .then(r => r.json())
-      .then(data => setPages(data))
+      .then(data => {
+        window.__CACAO_SLOTS__ = data.slots || {};
+        // Inject head slot content into document <head>
+        const headSlot = (data.slots || {}).head;
+        if (headSlot && headSlot.length) {
+          headSlot.forEach(item => {
+            if (item.type === 'RawHtml' && item.props && item.props.html) {
+              const container = document.createElement('div');
+              container.innerHTML = item.props.html;
+              while (container.firstChild) {
+                document.head.appendChild(container.firstChild);
+              }
+            }
+          });
+        }
+        return setPages(data);
+      })
       .catch(e => setError(e.message));
   }, []);
+
+  // Check for auth_required flag
+  useEffect(() => {
+    const check = () => {
+      if (window.__CACAO_AUTH_REQUIRED__ && !authenticated) {
+        setAuthRequired(true);
+      }
+    };
+    check();
+    // Re-check when signals update (auth_required comes via WS)
+    const interval = setInterval(check, 500);
+    return () => clearInterval(interval);
+  }, [authenticated]);
+
+  // Show login page if auth is required
+  if (authRequired && !authenticated) {
+    const title = pages?.metadata?.title || 'Cacao App';
+    return h(LoginPage, {
+      title,
+      onLogin: (data) => {
+        window.__CACAO_AUTH_REQUIRED__ = false;
+        setAuthenticated(true);
+        setAuthRequired(false);
+      },
+    });
+  }
 
   if (error) return h('div', { className: 'loading', style: { color: 'var(--danger)' } }, 'Error: ' + error);
   if (!pages) return h('div', { className: 'loading' }, 'Loading...');
@@ -107,6 +153,7 @@ export function App({ renderers }) {
   const overlays = [
     h(CommandPalette, { key: 'cmd-palette', setActiveTab: setActiveTabWithRoute, pages: pageData }),
     h(ToastContainer, { key: 'toast' }),
+    h(NotificationCenter, { key: 'notifications' }),
   ];
 
   // Check if there's an AppShell component (admin layout)

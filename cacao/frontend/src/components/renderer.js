@@ -23,5 +23,12 @@ export function renderComponent(comp, key, setActiveTab, activeTab, renderers) {
   }
 
   const children = (comp.children || []).map((c, i) => renderComponent(c, i, setActiveTab, activeTab, renderers));
-  return h(Renderer, { props: comp.props || {}, children, key, setActiveTab, activeTab, type: comp.type });
+  const element = h(Renderer, { props: comp.props || {}, children, key, setActiveTab, activeTab, type: comp.type });
+
+  // Universal id prop: wrap with cloneElement to inject id onto the outermost DOM node
+  const id = comp.props?.id;
+  if (id) {
+    return React.cloneElement(element, { id });
+  }
+  return element;
 }

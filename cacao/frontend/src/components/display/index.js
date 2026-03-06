@@ -19,3 +19,4 @@ export { Table } from './Table.js';
 export { Timeline, TimelineItem } from './Timeline.js';
 export { Tooltip } from './Tooltip.js';
 export { Video } from './Video.js';
+export { VirtualList } from './VirtualList.js';

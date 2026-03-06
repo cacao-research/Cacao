@@ -1378,6 +1378,90 @@ def tooltip(
         yield component
 
 
+@contextmanager
+def panel(
+    title: str = "Panel",
+    width: str = "400px",
+    height: str = "300px",
+    draggable: bool = True,
+    resizable: bool = True,
+    closable: bool = True,
+    minimizable: bool = True,
+    maximizable: bool = True,
+    x: int | None = None,
+    y: int | None = None,
+    **props: Any,
+) -> Generator[Component, None, None]:
+    """
+    Floating panel (window) with drag, resize, minimize/maximize/close.
+
+    Example:
+        with panel(title="Inspector", width="400px", height="300px"):
+            text("Panel content here")
+    """
+    component = Component(
+        type="Panel",
+        props={
+            "title": title,
+            "width": width,
+            "height": height,
+            "draggable": draggable,
+            "resizable": resizable,
+            "closable": closable,
+            "minimizable": minimizable,
+            "maximizable": maximizable,
+            "x": x,
+            "y": y,
+            **props,
+        },
+    )
+    with _container_context(component):
+        yield component
+
+
+def virtual_list(
+    signal: Signal[list[Any]] | str | None = None,
+    row_height: int = 40,
+    height: str = "400px",
+    render_as: str = "Card",
+    buffer: int = 5,
+    gap: int = 0,
+    **props: Any,
+) -> Component:
+    """
+    Virtual list with windowed rendering for large datasets.
+
+    Only renders visible items + buffer for performance.
+
+    Args:
+        signal: Signal containing the list of items
+        row_height: Height of each row in pixels
+        height: Container height
+        render_as: Component type to render each item as
+        buffer: Number of off-screen items to render
+        gap: Gap between items in pixels
+
+    Example:
+        items = c.signal(list(range(10000)), name="items")
+        c.virtual_list(signal=items, row_height=40, render_as="Card")
+    """
+    sig_name = signal.name if signal is not None and hasattr(signal, "name") else signal
+    return _add_to_current_container(
+        Component(
+            type="VirtualList",
+            props={
+                "signal": sig_name,
+                "row_height": row_height,
+                "height": height,
+                "render_as": render_as,
+                "buffer": buffer,
+                "gap": gap,
+                **props,
+            },
+        )
+    )
+
+
 def breadcrumb(
     items: list[dict[str, Any]],
     separator: str = "/",
@@ -1785,6 +1869,7 @@ _LAYOUT_TYPES = {
     "Stack",
     "Split",
     "Hero",
+    "Panel",
 }
 _TYPOGRAPHY_TYPES = {
     "Title",
@@ -1820,6 +1905,7 @@ _DISPLAY_TYPES = {
     "Video",
     "Diff",
     "Anchor",
+    "VirtualList",
 }
 _FORM_TYPES = {
     "Button",
@@ -1946,4 +2032,8 @@ __all__ = [
     "anchor",
     # Toast
     "toast",
+    # Virtual List
+    "virtual_list",
+    # Panel
+    "panel",
 ]

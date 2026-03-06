@@ -12,6 +12,7 @@ from functools import wraps
 from typing import Any, TypeVar
 
 from .events import EventHandler, EventRegistry
+from .middleware import EventContext, MiddlewareChain, MiddlewareFunc
 from .session import Session, SessionManager
 from .signal import Signal
 
@@ -45,7 +46,10 @@ class App:
         self.debug = debug
         self.sessions = SessionManager()
         self.events = EventRegistry()
+        self.middleware = MiddlewareChain()
         self._routes: dict[str, Callable[[Session], dict[str, Any]]] = {}
+        self._shortcuts: list[dict[str, str]] = []
+        self._custom_themes: dict[str, dict[str, str]] = {}
         self._server: Any = None
 
     def on(self, event_name: str) -> Callable[[Callable[..., Awaitable[None]]], EventHandler]:
@@ -75,6 +79,28 @@ class App:
             return wrapper
 
         return decorator
+
+    def use(
+        self, middleware: MiddlewareFunc | None = None
+    ) -> MiddlewareFunc | Callable[[MiddlewareFunc], MiddlewareFunc]:
+        """
+        Add middleware to the event processing chain.
+
+        Can be used as a decorator or called directly.
+
+        Args:
+            middleware: The middleware function
+
+        Returns:
+            The middleware function (for decorator use)
+
+        Example:
+            @app.use
+            async def log_events(ctx, next):
+                print(f"Event: {ctx.event_name}")
+                await next(ctx)
+        """
+        return self.middleware.use(middleware)
 
     def route(
         self, path: str
@@ -149,15 +175,35 @@ class App:
         """
         Handle an incoming event from a client.
 
+        Events pass through the middleware chain (plugin middleware first,
+        then app middleware) before reaching the event handler.
+
         Args:
             session: The session that sent the event
             event_name: The event name
             data: The event data
         """
         from .events import Event
+        from .plugin import get_registry
 
+        ctx = EventContext(session=session, event_name=event_name, data=data)
         event = Event(name=event_name, data=data)
-        await self.events.dispatch(session, event)
+
+        async def final_handler(ctx: EventContext) -> None:
+            if not ctx.stopped:
+                await self.events.dispatch(session, event)
+
+        # Collect plugin middleware + app middleware
+        plugin_mw = get_registry().get_all_middleware()
+        all_middleware = plugin_mw + self.middleware._middleware
+
+        # Execute chain
+        if all_middleware:
+            chain = MiddlewareChain()
+            chain._middleware = all_middleware
+            await chain.execute(ctx, final_handler)
+        else:
+            await final_handler(ctx)
 
     def run(
         self,
@@ -179,12 +225,18 @@ class App:
         run_server(self, host=host, port=port, reload=reload)
 
     async def startup(self) -> None:
-        """Called when the server starts. Override for custom startup logic."""
-        pass
+        """Called when the server starts."""
+        from .plugin import get_registry
+
+        registry = get_registry()
+        await registry.run_hook("on_init")
+        await registry.run_hook("on_ready")
 
     async def shutdown(self) -> None:
-        """Called when the server stops. Override for custom shutdown logic."""
-        pass
+        """Called when the server stops."""
+        from .plugin import get_registry
+
+        await get_registry().run_hook("on_shutdown")
 
 
 # Convenience function to create an app

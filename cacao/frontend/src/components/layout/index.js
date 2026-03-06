@@ -7,6 +7,7 @@ export { NavGroup } from './NavGroup.js';
 export { NavItem } from './NavItem.js';
 export { NavPanel } from './NavPanel.js';
 export { NavSidebar } from './NavSidebar.js';
+export { Panel } from './Panel.js';
 export { Row } from './Row.js';
 export { ShellContent } from './ShellContent.js';
 export { Sidebar } from './Sidebar.js';

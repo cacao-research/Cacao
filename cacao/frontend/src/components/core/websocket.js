@@ -108,6 +108,34 @@ class CacaoWebSocket {
         this.chatListeners.forEach(listener => listener(message));
         break;
 
+      case 'register_shortcuts':
+        // Register keyboard shortcuts sent by the server
+        if (message.shortcuts && window.Cacao?.registerShortcut) {
+          message.shortcuts.forEach(s => {
+            window.Cacao.registerShortcut(s.combo, () => {
+              this.sendEvent(s.event_name, {});
+            }, s.description || '');
+          });
+        }
+        break;
+
+      case 'notification':
+        // Persistent notification
+        if (window.CacaoNotifications) {
+          window.CacaoNotifications.add({
+            title: message.title || '',
+            message: message.message || '',
+            variant: message.variant || 'info',
+          });
+        }
+        break;
+
+      case 'auth_required':
+        // Auth required — store flag for App component to check
+        window.__CACAO_AUTH_REQUIRED__ = true;
+        this.notifyListeners();
+        break;
+
       default:
         console.log('[Cacao] Unknown message type:', type, message);
     }
