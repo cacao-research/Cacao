@@ -17,10 +17,14 @@ For more control, use the full API from cacao.server.ui.
 
 from __future__ import annotations
 
+import inspect
+import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Literal, TypeVar
 
+from .server import ui as _ui_module
 from .server.signal import Computed, Signal
 from .server.ui import (
     App as _App,
@@ -28,192 +32,6 @@ from .server.ui import (
 from .server.ui import (
     Component,
     _current_container,
-)
-from .server.ui import (
-    # Content components
-    accordion as _accordion,
-)
-from .server.ui import (
-    accordion_item as _accordion_item,
-)
-from .server.ui import (
-    alert as _alert,
-)
-from .server.ui import (
-    # Admin layout components
-    app_shell as _app_shell,
-)
-from .server.ui import (
-    badge as _badge,
-)
-from .server.ui import (
-    breadcrumb as _breadcrumb,
-)
-from .server.ui import (
-    # Form components
-    button as _button,
-)
-from .server.ui import (
-    card as _card,
-)
-from .server.ui import (
-    chat as _chat,
-)
-from .server.ui import (
-    checkbox as _checkbox,
-)
-from .server.ui import (
-    code as _code,
-)
-from .server.ui import (
-    col as _col,
-)
-from .server.ui import (
-    container as _container,
-)
-from .server.ui import (
-    date_picker as _date_picker,
-)
-from .server.ui import (
-    diff as _diff,
-)
-from .server.ui import (
-    divider as _divider,
-)
-from .server.ui import (
-    file_tree as _file_tree,
-)
-from .server.ui import (
-    file_upload as _file_upload,
-)
-from .server.ui import (
-    grid as _grid,
-)
-from .server.ui import (
-    hero as _hero,
-)
-from .server.ui import (
-    html as _html,
-)
-from .server.ui import (
-    image as _image,
-)
-from .server.ui import (
-    input_field as _input_field,
-)
-from .server.ui import (
-    json_view as _json_view,
-)
-from .server.ui import (
-    link_card as _link_card,
-)
-from .server.ui import (
-    markdown as _markdown,
-)
-from .server.ui import (
-    # Data display
-    metric as _metric,
-)
-from .server.ui import (
-    # General UI components
-    modal as _modal,
-)
-from .server.ui import (
-    nav_group as _nav_group,
-)
-from .server.ui import (
-    nav_item as _nav_item,
-)
-from .server.ui import (
-    nav_panel as _nav_panel,
-)
-from .server.ui import (
-    nav_sidebar as _nav_sidebar,
-)
-from .server.ui import (
-    progress as _progress,
-)
-from .server.ui import (
-    raw_html as _raw_html,
-)
-from .server.ui import (
-    # Layout components (context managers)
-    row as _row,
-)
-from .server.ui import (
-    select as _select,
-)
-from .server.ui import (
-    shell_content as _shell_content,
-)
-from .server.ui import (
-    sidebar as _sidebar,
-)
-from .server.ui import (
-    slider as _slider,
-)
-from .server.ui import (
-    spacer as _spacer,
-)
-from .server.ui import (
-    split as _split,
-)
-from .server.ui import (
-    stack as _stack,
-)
-from .server.ui import (
-    step as _step,
-)
-from .server.ui import (
-    steps as _steps,
-)
-from .server.ui import (
-    subnav as _subnav,
-)
-from .server.ui import (
-    subnav_group as _subnav_group,
-)
-from .server.ui import (
-    subnav_item as _subnav_item,
-)
-from .server.ui import (
-    switch as _switch,
-)
-from .server.ui import (
-    tab as _tab,
-)
-from .server.ui import (
-    table as _table,
-)
-from .server.ui import (
-    tabs as _tabs,
-)
-from .server.ui import (
-    text as _text,
-)
-from .server.ui import (
-    textarea as _textarea,
-)
-from .server.ui import (
-    # Nice-to-Have components
-    timeline as _timeline,
-)
-from .server.ui import (
-    timeline_item as _timeline_item,
-)
-from .server.ui import (
-    # Typography (leaf components)
-    title as _title,
-)
-from .server.ui import (
-    # Toast
-    toast as _toast,
-)
-from .server.ui import (
-    tooltip as _tooltip,
-)
-from .server.ui import (
-    video as _video,
 )
 
 T = TypeVar("T")
@@ -327,68 +145,52 @@ def _ensure_context() -> None:
 def config(
     *,
     title: str | None = None,
-    theme: Literal["light", "dark", "auto"] | None = None,
+    theme: str | None = None,
     host: str | None = None,
     port: int | None = None,
     debug: bool | None = None,
-    branding: bool | str | None = None,
+    branding: dict[str, Any] | None = None,
+    **extra: Any,
 ) -> None:
     """
     Configure the application.
 
-    Call this before any components to set app-level options.
+    Call before any UI components. Settings merge with cacao.yaml values,
+    with c.config() taking priority.
 
     Example:
-        import cacao as c
-
         c.config(title="My Dashboard", theme="dark", port=3000)
-
-        c.title("Hello!")
-
-    Args:
-        title: Application title (shown in browser tab)
-        theme: Color theme - "light", "dark", or "auto"
-        host: Host to bind server to (default: 127.0.0.1)
-        port: Port for server (default: 1502 - historic chocolate year)
-        debug: Enable debug mode with verbose logging
-        branding: Show branding badge. True for default "Built with Cacao",
-                  or a custom HTML string. False to disable.
     """
-    global _global_config, _global_app
+    items = {
+        "title": title,
+        "theme": theme,
+        "host": host,
+        "port": port,
+        "debug": debug,
+        "branding": branding,
+        **extra,
+    }
 
-    if title is not None:
-        _global_config["title"] = title
-        _explicit_config_keys.add("title")
-    if theme is not None:
-        _global_config["theme"] = theme
-        _explicit_config_keys.add("theme")
-    if host is not None:
-        _global_config["host"] = host
-        _explicit_config_keys.add("host")
-    if port is not None:
-        _global_config["port"] = port
-        _explicit_config_keys.add("port")
-    if debug is not None:
-        _global_config["debug"] = debug
-        _explicit_config_keys.add("debug")
-    if branding is not None:
-        _global_config["branding"] = branding
-        _explicit_config_keys.add("branding")
+    # Load yaml first so we know defaults
+    _load_yaml_config()
 
-    # If app already created, update it
+    for key, value in items.items():
+        if value is not None:
+            _global_config[key] = value
+            _explicit_config_keys.add(key)
+
+    # If app already exists, update it
     if _global_app is not None:
         if title is not None:
             _global_app.title = title
         if theme is not None:
             _global_app.theme = theme
-        if debug is not None:
-            _global_app.debug = debug
         if branding is not None:
             _global_app.branding = branding
 
 
 # =============================================================================
-# Signals (State Management)
+# State Management
 # =============================================================================
 
 
@@ -396,7 +198,7 @@ def signal(default: T, *, name: str) -> Signal[T]:
     """
     Create a reactive signal.
 
-    Signals hold state that can change over time. When a signal's value
+    Signals hold state that syncs between server and client. When a signal
     changes, any UI that depends on it updates automatically.
 
     Example:
@@ -503,344 +305,7 @@ def page(path: str = "/") -> Generator[None, None, None]:
 
 
 # =============================================================================
-# Layout Components
-# =============================================================================
-
-
-@contextmanager
-def row(
-    gap: int = 4,
-    align: Literal["start", "center", "end", "stretch"] = "center",
-    justify: Literal["start", "center", "end", "between", "around"] = "start",
-    wrap: bool = False,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Horizontal row layout.
-
-    Example:
-        with c.row(gap=4):
-            c.metric("Users", 100)
-            c.metric("Revenue", "$5k")
-    """
-    _ensure_context()
-    with _row(gap=gap, align=align, justify=justify, wrap=wrap, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def col(
-    span: int | None = None,
-    gap: int = 4,
-    align: Literal["start", "center", "end", "stretch"] = "stretch",
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Vertical column layout.
-
-    Example:
-        with c.row():
-            with c.col(span=8):
-                c.chart(...)
-            with c.col(span=4):
-                c.text("Sidebar")
-    """
-    _ensure_context()
-    with _col(span=span, gap=gap, align=align, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def grid(cols: int = 12, gap: int = 4, **props: Any) -> Generator[Component, None, None]:
-    """CSS Grid layout."""
-    _ensure_context()
-    with _grid(cols=cols, gap=gap, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def card(
-    title: str | None = None, subtitle: str | None = None, **props: Any
-) -> Generator[Component, None, None]:
-    """
-    Card container.
-
-    Example:
-        with c.card("User Stats"):
-            c.metric("Active", 234)
-    """
-    _ensure_context()
-    with _card(title=title, subtitle=subtitle, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def sidebar(**props: Any) -> Generator[Component, None, None]:
-    """
-    Sidebar container.
-
-    Example:
-        with c.sidebar():
-            c.select("Filter", ["All", "Active", "Inactive"])
-    """
-    _ensure_context()
-    with _sidebar(**props) as comp:
-        yield comp
-
-
-@contextmanager
-def tabs(default: str | None = None, **props: Any) -> Generator[Component, None, None]:
-    """
-    Tab container.
-
-    Example:
-        with c.tabs(default="overview"):
-            with c.tab("overview", "Overview"):
-                c.text("Overview content")
-            with c.tab("details", "Details"):
-                c.text("Details content")
-    """
-    _ensure_context()
-    with _tabs(default=default, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def tab(
-    key: str, label: str, icon: str | None = None, **props: Any
-) -> Generator[Component, None, None]:
-    """Individual tab within tabs()."""
-    _ensure_context()
-    with _tab(key=key, label=label, icon=icon, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def container(
-    size: Literal["sm", "md", "lg", "xl", "full"] = "lg",
-    padding: bool = True,
-    center: bool = True,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Centered max-width content wrapper.
-
-    Example:
-        with c.container(size="md"):
-            c.title("Welcome")
-            c.text("Centered content.")
-    """
-    _ensure_context()
-    with _container(size=size, padding=padding, center=center, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def stack(
-    direction: Literal["vertical", "horizontal"] = "vertical",
-    gap: int = 4,
-    divider: bool = False,
-    align: Literal["start", "center", "end", "stretch"] | None = None,
-    justify: Literal["start", "center", "end", "between", "around"] | None = None,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Stack layout with optional dividers between items.
-
-    Example:
-        with c.stack(divider=True):
-            c.text("Item 1")
-            c.text("Item 2")
-    """
-    _ensure_context()
-    with _stack(
-        direction=direction,
-        gap=gap,
-        divider=divider,
-        align=align,
-        justify=justify,
-        **props,
-    ) as comp:
-        yield comp
-
-
-@contextmanager
-def split(
-    direction: Literal["horizontal", "vertical"] = "horizontal",
-    default_size: int = 50,
-    min_size: int = 20,
-    max_size: int = 80,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Two-pane resizable layout with draggable divider.
-
-    Example:
-        with c.split(default_size=40):
-            with c.col():
-                c.code(source, language="python")
-            with c.col():
-                c.text("Output")
-    """
-    _ensure_context()
-    with _split(
-        direction=direction,
-        default_size=default_size,
-        min_size=min_size,
-        max_size=max_size,
-        **props,
-    ) as comp:
-        yield comp
-
-
-@contextmanager
-def hero(
-    title: str | None = None,
-    subtitle: str | None = None,
-    background: str | None = None,
-    image: str | None = None,
-    height: str = "400px",
-    align: Literal["center", "left", "right"] = "center",
-    gradient: str | None = None,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Full-width hero/banner section.
-
-    Example:
-        with c.hero(title="My App", subtitle="Build amazing things",
-                     gradient="135deg, #667eea, #764ba2"):
-            c.button("Get Started")
-    """
-    _ensure_context()
-    with _hero(
-        title=title,
-        subtitle=subtitle,
-        background=background,
-        image=image,
-        height=height,
-        align=align,
-        gradient=gradient,
-        **props,
-    ) as comp:
-        yield comp
-
-
-# =============================================================================
-# Admin Layout Components
-# =============================================================================
-
-
-@contextmanager
-def app_shell(
-    brand: str | None = None,
-    logo: str | None = None,
-    default: str | None = None,
-    theme_dark: str | None = None,
-    theme_light: str | None = None,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Admin-style application shell with sidebar navigation.
-
-    Args:
-        brand: Brand name shown in sidebar header.
-        logo: URL to logo image.
-        default: Default active nav item key.
-        theme_dark: Dark theme name for the toggle (e.g. "tukuy").
-        theme_light: Light theme name for the toggle (e.g. "tukuy-light").
-
-    Example:
-        with c.app_shell(brand="My App", default="dashboard",
-                         theme_dark="dark", theme_light="light"):
-            with c.nav_sidebar():
-                with c.nav_group("Tools"):
-                    c.nav_item("Dashboard", key="dashboard")
-            with c.shell_content():
-                with c.nav_panel("dashboard"):
-                    c.title("Dashboard")
-    """
-    _ensure_context()
-    with _app_shell(
-        brand=brand,
-        logo=logo,
-        default=default,
-        theme_dark=theme_dark,
-        theme_light=theme_light,
-        **props,
-    ) as comp:
-        yield comp
-
-
-@contextmanager
-def nav_sidebar(**props: Any) -> Generator[Component, None, None]:
-    """Navigation sidebar for app_shell."""
-    _ensure_context()
-    with _nav_sidebar(**props) as comp:
-        yield comp
-
-
-@contextmanager
-def nav_group(
-    label: str,
-    icon: str | None = None,
-    default_open: bool = True,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Collapsible navigation group.
-
-    Example:
-        with c.nav_group("Encoders", icon="code"):
-            c.nav_item("Base64", key="base64")
-    """
-    _ensure_context()
-    with _nav_group(label=label, icon=icon, default_open=default_open, **props) as comp:
-        yield comp
-
-
-def nav_item(
-    label: str,
-    key: str,
-    icon: str | None = None,
-    badge: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    Navigation item.
-
-    Example:
-        c.nav_item("Base64 Encoder", key="base64", icon="code")
-    """
-    _ensure_context()
-    return _nav_item(label=label, key=key, icon=icon, badge=badge, **props)
-
-
-@contextmanager
-def shell_content(**props: Any) -> Generator[Component, None, None]:
-    """Main content area of app_shell."""
-    _ensure_context()
-    with _shell_content(**props) as comp:
-        yield comp
-
-
-@contextmanager
-def nav_panel(key: str, **props: Any) -> Generator[Component, None, None]:
-    """
-    Content panel that shows when the nav_item with matching key is active.
-
-    Example:
-        with c.shell_content():
-            with c.nav_panel("dashboard"):
-                c.title("Dashboard")
-    """
-    _ensure_context()
-    with _nav_panel(key=key, **props) as comp:
-        yield comp
-
-
-# =============================================================================
-# Layout Presets
+# Layout Presets (custom logic, not a simple wrapper)
 # =============================================================================
 
 
@@ -897,211 +362,47 @@ def layout(
     preset: Literal["sidebar", "centered", "split", "dashboard"] = "sidebar",
     *,
     sidebar_width: str = "300px",
-    max_width: str = "600px",
     ratio: str = "1:1",
-    height: str = "calc(100vh - 4rem)",
     gap: int = 4,
     **props: Any,
 ) -> Generator[_LayoutHelper, None, None]:
     """
-    Pre-built layout preset for common patterns.
-
-    Presets:
-        "sidebar"   - Side panel + main content, full viewport height
-        "centered"  - Centered content with max-width (forms, login)
-        "split"     - Two-pane split with custom ratio
-        "dashboard" - Full viewport dashboard layout
+    High-level layout preset.
 
     Example:
-        # Sidebar layout (like the chat app)
         with c.layout("sidebar", sidebar_width="300px") as l:
             with l.side():
-                c.card(title="Settings")
+                c.text("Sidebar content")
             with l.main():
-                c.chat(...)
-
-        # Centered form
-        with c.layout("centered", max_width="500px"):
-            c.title("Login")
-            c.input("Email")
-
-        # Split pane
-        with c.layout("split", ratio="1:2") as l:
-            with l.left():
-                c.text("Editor")
-            with l.right():
-                c.text("Preview")
+                c.text("Main content")
     """
     _ensure_context()
     helper = _LayoutHelper(preset, sidebar_width=sidebar_width, ratio=ratio)
 
     if preset == "sidebar":
-        with row(gap=gap, wrap=False, height=height, **props):
+        with row(gap=gap, align="start", wrap=False, **props):
             yield helper
-
     elif preset == "centered":
-        with row(justify="center", gap=gap, height=height, **props):
-            with col(
-                gap=gap,
-                max_width=max_width,
-                width="100%",
-                align="stretch",
-            ):
-                yield helper
+        from .server.ui import container as _container
 
+        with _container(size="md", **props):
+            yield helper
     elif preset == "split":
-        with row(gap=gap, wrap=False, height=height, **props):
+        with row(gap=gap, align="stretch", wrap=False, **props):
             yield helper
-
     elif preset == "dashboard":
-        with col(gap=gap, height=height, **props):
+        from .server.ui import grid as _grid
+
+        with _grid(cols=12, gap=gap, **props):
+            yield helper
+    else:
+        with row(gap=gap, **props):
             yield helper
 
-    else:
-        raise ValueError(f"Unknown layout preset: {preset!r}")
-
 
 # =============================================================================
-# Typography Components
+# Renamed / Aliased functions (name differs from ui.py)
 # =============================================================================
-
-
-def title(text: str, level: int = 1, **props: Any) -> Component:
-    """
-    Title/heading.
-
-    Example:
-        c.title("Welcome to My App")
-        c.title("Section", level=2)
-    """
-    _ensure_context()
-    return _title(text, level=level, **props)
-
-
-def text(content: str, size: str = "md", color: str | None = None, **props: Any) -> Component:
-    """
-    Body text.
-
-    Example:
-        c.text("Hello world")
-        c.text("Muted text", color="muted", size="sm")
-    """
-    _ensure_context()
-    return _text(content, size=size, color=color, **props)
-
-
-def html(content: str, **props: Any) -> Component:
-    """
-    Render pre-rendered HTML with prose styling.
-
-    Applies full prose typography. For raw HTML without styling, use raw_html().
-    For rendering markdown source, use markdown().
-    """
-    _ensure_context()
-    return _html(content, **props)
-
-
-def raw_html(content: str, **props: Any) -> Component:
-    """
-    Render raw HTML with zero styling.
-
-    For embedding widgets, iframes, or custom HTML that manages its own styling.
-    """
-    _ensure_context()
-    return _raw_html(content, **props)
-
-
-def markdown(content: str, toc: bool = False, **props: Any) -> Component:
-    """
-    Render markdown with full prose styling.
-
-    Features: prose typography, code blocks with copy, GFM tables/task lists,
-    callout blocks ([!NOTE], [!WARNING], [!TIP]), mermaid diagrams,
-    KaTeX math, auto-linking, and optional table of contents.
-
-    Example:
-        c.markdown("# Hello\\n\\nThis is **bold** text.")
-        c.markdown(doc_content, toc=True)
-    """
-    _ensure_context()
-    return _markdown(content, toc=toc, **props)
-
-
-def code(content: str, language: str = "python", **props: Any) -> Component:
-    """Syntax-highlighted code block."""
-    _ensure_context()
-    return _code(content, language=language, **props)
-
-
-def divider(**props: Any) -> Component:
-    """Horizontal divider line."""
-    _ensure_context()
-    return _divider(**props)
-
-
-def spacer(size: int = 4, **props: Any) -> Component:
-    """Vertical spacer."""
-    _ensure_context()
-    return _spacer(size=size, **props)
-
-
-# =============================================================================
-# Data Display Components
-# =============================================================================
-
-
-def metric(
-    label: str,
-    value: Any,
-    trend: str | None = None,
-    trend_direction: Literal["up", "down", "neutral"] | None = None,
-    prefix: str | None = None,
-    suffix: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    KPI metric card.
-
-    Example:
-        c.metric("Revenue", "$45,231", trend="+20.1%", trend_direction="up")
-    """
-    _ensure_context()
-    return _metric(
-        label=label,
-        value=value,
-        trend=trend,
-        trend_direction=trend_direction,
-        prefix=prefix,
-        suffix=suffix,
-        **props,
-    )
-
-
-def table(
-    data: list[dict[str, Any]] | Any,
-    columns: list[str] | list[dict[str, Any]] | None = None,
-    searchable: bool = False,
-    sortable: bool = True,
-    paginate: bool = True,
-    page_size: int = 10,
-    **props: Any,
-) -> Component:
-    """
-    Interactive data table.
-
-    Example:
-        c.table(users, columns=["name", "email"], searchable=True)
-    """
-    _ensure_context()
-    return _table(
-        data=data,
-        columns=columns,
-        searchable=searchable,
-        sortable=sortable,
-        paginate=paginate,
-        page_size=page_size,
-        **props,
-    )
 
 
 def json(data: Any, expanded: bool = True, **props: Any) -> Component:
@@ -1112,88 +413,11 @@ def json(data: Any, expanded: bool = True, **props: Any) -> Component:
         c.json({"name": "John", "age": 30})
     """
     _ensure_context()
-    return _json_view(data=data, expanded=expanded, **props)
+    return _ui_module.json_view(data=data, expanded=expanded, **props)
 
 
 # Alias for backwards compatibility
 json_view = json
-
-
-def progress(
-    value: int | float,
-    max_value: int | float = 100,
-    label: str | None = None,
-    show_value: bool = True,
-    variant: Literal["line", "circle"] = "line",
-    **props: Any,
-) -> Component:
-    """Progress bar."""
-    _ensure_context()
-    return _progress(
-        value=value,
-        max_value=max_value,
-        label=label,
-        show_value=show_value,
-        variant=variant,
-        **props,
-    )
-
-
-def badge(
-    text: str,
-    color: Literal["default", "primary", "success", "warning", "danger", "info"] = "default",
-    **props: Any,
-) -> Component:
-    """Badge/tag."""
-    _ensure_context()
-    return _badge(text=text, color=color, **props)
-
-
-def alert(
-    message: str,
-    type: Literal["info", "success", "warning", "error"] = "info",
-    title: str | None = None,
-    dismissible: bool = False,
-    **props: Any,
-) -> Component:
-    """Alert message."""
-    _ensure_context()
-    return _alert(message=message, type=type, title=title, dismissible=dismissible, **props)
-
-
-# =============================================================================
-# Form Components
-# =============================================================================
-
-
-def button(
-    label: str,
-    on_click: Callable[[], Any] | str | None = None,
-    variant: Literal["primary", "secondary", "danger", "ghost", "outline"] = "primary",
-    size: Literal["sm", "md", "lg"] = "md",
-    disabled: bool = False,
-    loading: bool = False,
-    icon: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    Button.
-
-    Example:
-        c.button("Submit", on_click="submit")
-        c.button("Delete", variant="danger")
-    """
-    _ensure_context()
-    return _button(
-        label=label,
-        on_click=on_click,
-        variant=variant,
-        size=size,
-        disabled=disabled,
-        loading=loading,
-        icon=icon,
-        **props,
-    )
 
 
 def input(
@@ -1212,7 +436,7 @@ def input(
         c.input("Name", signal=name, placeholder="Enter your name")
     """
     _ensure_context()
-    return _input_field(
+    return _ui_module.input_field(
         label=label, signal=signal, placeholder=placeholder, type=type, disabled=disabled, **props
     )
 
@@ -1220,104 +444,6 @@ def input(
 # Aliases
 input_field = input
 field = input
-
-
-def textarea(
-    label: str | None = None,
-    signal: Signal[str] | None = None,
-    placeholder: str = "",
-    rows: int = 4,
-    disabled: bool = False,
-    **props: Any,
-) -> Component:
-    """
-    Multi-line text input.
-
-    Example:
-        c.textarea("Description", placeholder="Enter details...", rows=6)
-    """
-    _ensure_context()
-    return _textarea(
-        label=label, signal=signal, placeholder=placeholder, rows=rows, disabled=disabled, **props
-    )
-
-
-def select(
-    label: str,
-    options: list[str] | list[dict[str, Any]],
-    signal: Signal[str] | None = None,
-    placeholder: str = "Select...",
-    disabled: bool = False,
-    **props: Any,
-) -> Component:
-    """
-    Select dropdown.
-
-    Example:
-        c.select("Category", ["All", "Tech", "Finance"])
-    """
-    _ensure_context()
-    return _select(
-        label=label,
-        options=options,
-        signal=signal,
-        placeholder=placeholder,
-        disabled=disabled,
-        **props,
-    )
-
-
-def checkbox(
-    label: str,
-    signal: Signal[bool] | None = None,
-    description: str | None = None,
-    disabled: bool = False,
-    **props: Any,
-) -> Component:
-    """Checkbox."""
-    _ensure_context()
-    return _checkbox(
-        label=label, signal=signal, description=description, disabled=disabled, **props
-    )
-
-
-def switch(
-    label: str,
-    signal: Signal[bool] | None = None,
-    disabled: bool = False,
-    **props: Any,
-) -> Component:
-    """Toggle switch."""
-    _ensure_context()
-    return _switch(label=label, signal=signal, disabled=disabled, **props)
-
-
-def slider(
-    label: str,
-    signal: Signal[int | float] | None = None,
-    min: int | float = 0,
-    max: int | float = 100,
-    step: int | float = 1,
-    disabled: bool = False,
-    **props: Any,
-) -> Component:
-    """
-    Range slider.
-
-    Example:
-        volume = c.signal(50, name="volume")
-        c.slider("Volume", signal=volume, min=0, max=100)
-    """
-    _ensure_context()
-    return _slider(
-        label=label,
-        signal=signal,
-        min_value=min,
-        max_value=max,
-        step=step,
-        disabled=disabled,
-        **props,
-    )
 
 
 def date(
@@ -1335,60 +461,13 @@ def date(
         c.date("Start Date", signal=start)
     """
     _ensure_context()
-    return _date_picker(
+    return _ui_module.date_picker(
         label=label, signal=signal, placeholder=placeholder, disabled=disabled, **props
     )
 
 
 # Alias
 date_picker = date
-
-
-def chat(
-    signal: Signal[list[Any]] | None = None,
-    on_send: Callable[..., Any] | str | None = None,
-    on_clear: Callable[..., Any] | str | None = None,
-    placeholder: str = "Type a message...",
-    title: str | None = None,
-    height: str = "500px",
-    show_clear: bool = False,
-    persist: bool = False,
-    **props: Any,
-) -> Component:
-    """
-    Interactive chat component with streaming support.
-
-    Renders a message list with user/assistant bubbles, a text input,
-    and supports real-time streaming of responses via WebSocket.
-
-    The signal should hold a list of messages:
-    [{"role": "user"|"assistant"|"error", "content": "..."}]
-
-    Args:
-        persist: If True, saves chat messages to localStorage so they
-            survive page refreshes. Messages are keyed by signal name.
-
-    Example:
-        messages = c.signal([], name="chat_messages")
-        c.chat(signal=messages, on_send="chat_send", title="AI Chat", persist=True)
-
-        @c.on("chat_send")
-        async def handle_send(session, event):
-            text = event["text"]
-            # ... use Prompture to get response and stream back
-    """
-    _ensure_context()
-    return _chat(
-        signal=signal,
-        on_send=on_send,
-        on_clear=on_clear,
-        placeholder=placeholder,
-        title=title,
-        height=height,
-        show_clear=show_clear,
-        persist=persist,
-        **props,
-    )
 
 
 def upload(
@@ -1405,393 +484,13 @@ def upload(
         c.upload("Upload CSV", accept=".csv")
     """
     _ensure_context()
-    return _file_upload(label=label, on_upload=on_upload, accept=accept, multiple=multiple, **props)
+    return _ui_module.file_upload(
+        label=label, on_upload=on_upload, accept=accept, multiple=multiple, **props
+    )
 
 
 # Alias
 file_upload = upload
-
-
-# =============================================================================
-# Content Components
-# =============================================================================
-
-
-@contextmanager
-def accordion(
-    title: str | None = None,
-    items: list[dict[str, Any]] | None = None,
-    mode: Literal["multiple", "single"] = "multiple",
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Collapsible accordion sections.
-
-    Example:
-        with c.accordion(mode="single"):
-            with c.accordion_item("FAQ 1"):
-                c.text("Answer 1")
-    """
-    _ensure_context()
-    with _accordion(title=title, items=items, mode=mode, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def accordion_item(
-    title: str,
-    default_open: bool = False,
-    icon: str | None = None,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """Individual accordion item."""
-    _ensure_context()
-    with _accordion_item(title=title, default_open=default_open, icon=icon, **props) as comp:
-        yield comp
-
-
-@contextmanager
-def steps(
-    direction: Literal["horizontal", "vertical"] = "horizontal",
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Step-by-step guide container.
-
-    Example:
-        with c.steps():
-            c.step("Sign Up", status="complete")
-            c.step("Verify", status="active")
-            c.step("Done", status="pending")
-    """
-    _ensure_context()
-    with _steps(direction=direction, **props) as comp:
-        yield comp
-
-
-def step(
-    title: str,
-    description: str | None = None,
-    status: Literal["pending", "active", "complete", "error"] = "pending",
-    icon: str | None = None,
-    **props: Any,
-) -> Component:
-    """Individual step within steps()."""
-    _ensure_context()
-    return _step(title=title, description=description, status=status, icon=icon, **props)
-
-
-def file_tree(
-    data: dict[str, Any] | str,
-    highlight: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    File/directory tree display.
-
-    Example:
-        c.file_tree({"src": {"main.py": None}, "README.md": None})
-    """
-    _ensure_context()
-    return _file_tree(data=data, highlight=highlight, **props)
-
-
-@contextmanager
-def subnav(
-    searchable: bool = False,
-    placeholder: str = "Search...",
-    **props: Any,
-):
-    """
-    Scrollable sidebar navigation with groups, search, and badges.
-
-    Example:
-        with c.subnav(searchable=True):
-            c.subnav_group("Models")
-            c.subnav_item("User", badge="3", target="section_user")
-            c.subnav_item("/users", tag="GET", tag_color="success", target="ep_users")
-    """
-    _ensure_context()
-    with _subnav(searchable=searchable, placeholder=placeholder, **props) as comp:
-        yield comp
-
-
-def subnav_group(
-    label: str,
-    **props: Any,
-) -> Component:
-    """Group header within a subnav."""
-    _ensure_context()
-    return _subnav_group(label=label, **props)
-
-
-def subnav_item(
-    label: str,
-    badge: str | None = None,
-    tag: str | None = None,
-    tag_color: str | None = None,
-    target: str | None = None,
-    href: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    Navigation item within a subnav.
-
-    Args:
-        label: Display text
-        badge: Optional count/badge on the right side
-        tag: Optional colored tag on the left (e.g. HTTP method)
-        tag_color: Tag color variant: success, info, warning, danger, primary
-        target: Element ID to scroll into view on click
-        href: URL to navigate to (alternative to target)
-    """
-    _ensure_context()
-    return _subnav_item(
-        label=label, badge=badge, tag=tag, tag_color=tag_color,
-        target=target, href=href, **props,
-    )
-
-
-def link_card(
-    title: str,
-    description: str | None = None,
-    href: str | None = None,
-    icon: str | None = None,
-    **props: Any,
-) -> Component:
-    """
-    Clickable navigation card.
-
-    Example:
-        c.link_card("Getting Started", description="Learn the basics", href="/docs", icon="book")
-    """
-    _ensure_context()
-    return _link_card(title=title, description=description, href=href, icon=icon, **props)
-
-
-# =============================================================================
-# General UI Components
-# =============================================================================
-
-
-@contextmanager
-def modal(
-    title: str | None = None,
-    signal: Signal[bool] | None = None,
-    size: Literal["sm", "md", "lg", "full"] = "md",
-    close_on_backdrop: bool = True,
-    close_on_escape: bool = True,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Modal dialog overlay.
-
-    Example:
-        show = c.signal(False, name="show_modal")
-        with c.modal(title="Confirm", signal=show):
-            c.text("Are you sure?")
-            c.button("Yes", on_click="confirm")
-    """
-    _ensure_context()
-    with _modal(
-        title=title,
-        signal=signal,
-        size=size,
-        close_on_backdrop=close_on_backdrop,
-        close_on_escape=close_on_escape,
-        **props,
-    ) as comp:
-        yield comp
-
-
-@contextmanager
-def tooltip(
-    text: str,
-    position: Literal["top", "bottom", "left", "right"] = "top",
-    delay: int = 200,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Tooltip wrapper.
-
-    Example:
-        with c.tooltip("Click to submit"):
-            c.button("Submit")
-    """
-    _ensure_context()
-    with _tooltip(text=text, position=position, delay=delay, **props) as comp:
-        yield comp
-
-
-def breadcrumb(
-    items: list[dict[str, Any]],
-    separator: str = "/",
-    **props: Any,
-) -> Component:
-    """
-    Breadcrumb navigation.
-
-    Example:
-        c.breadcrumb([{"label": "Home", "href": "/"}, {"label": "Docs"}, {"label": "API"}])
-    """
-    _ensure_context()
-    return _breadcrumb(items=items, separator=separator, **props)
-
-
-def image(
-    src: str,
-    alt: str = "",
-    caption: str | None = None,
-    width: int | str | None = None,
-    height: int | str | None = None,
-    lightbox: bool = False,
-    lazy: bool = True,
-    **props: Any,
-) -> Component:
-    """
-    Image with optional caption and lightbox.
-
-    Example:
-        c.image("photo.jpg", caption="Figure 1", lightbox=True, width=300)
-    """
-    _ensure_context()
-    return _image(
-        src=src,
-        alt=alt,
-        caption=caption,
-        width=width,
-        height=height,
-        lightbox=lightbox,
-        lazy=lazy,
-        **props,
-    )
-
-
-# =============================================================================
-# Nice-to-Have Components
-# =============================================================================
-
-
-@contextmanager
-def timeline(
-    items: list[dict[str, Any]] | None = None,
-    alternate: bool = False,
-    **props: Any,
-) -> Generator[Component, None, None]:
-    """
-    Vertical timeline for changelogs, events, history.
-
-    Example:
-        with c.timeline():
-            c.timeline_item("v1.0", "Initial release", date="2024-01-01")
-
-        # Or with items:
-        c.timeline(items=[{"title": "v1.0", "description": "Release", "date": "2024-01-01"}])
-    """
-    _ensure_context()
-    with _timeline(items=items, alternate=alternate, **props) as comp:
-        yield comp
-
-
-def timeline_item(
-    title: str,
-    description: str | None = None,
-    date: str | None = None,
-    icon: str | None = None,
-    color: Literal["primary", "success", "warning", "danger"] | None = None,
-    **props: Any,
-) -> Component:
-    """
-    Individual timeline entry. Must be used inside c.timeline().
-
-    Example:
-        c.timeline_item("v1.0", "Initial release", date="2024-01-01", color="success")
-    """
-    _ensure_context()
-    return _timeline_item(
-        title=title,
-        description=description,
-        date=date,
-        icon=icon,
-        color=color,
-        **props,
-    )
-
-
-def video(
-    src: str,
-    title: str = "",
-    width: int | str | None = None,
-    height: int | str | None = None,
-    aspect: str = "16/9",
-    poster: str | None = None,
-    autoplay: bool = False,
-    controls: bool = True,
-    loop: bool = False,
-    muted: bool = False,
-    **props: Any,
-) -> Component:
-    """
-    Video embed (YouTube, Vimeo, or direct file).
-
-    Example:
-        c.video("https://youtube.com/watch?v=abc123", title="Demo")
-        c.video("intro.mp4", poster="thumb.jpg")
-    """
-    _ensure_context()
-    return _video(
-        src=src,
-        title=title,
-        width=width,
-        height=height,
-        aspect=aspect,
-        poster=poster,
-        autoplay=autoplay,
-        controls=controls,
-        loop=loop,
-        muted=muted,
-        **props,
-    )
-
-
-def diff(
-    old_code: str,
-    new_code: str,
-    language: str = "",
-    mode: Literal["unified", "side-by-side"] = "unified",
-    **props: Any,
-) -> Component:
-    """
-    Code diff comparison.
-
-    Example:
-        c.diff("def foo():\\n    pass", "def foo():\\n    return 1", language="python")
-    """
-    _ensure_context()
-    return _diff(old_code=old_code, new_code=new_code, language=language, mode=mode, **props)
-
-
-# =============================================================================
-# Toast Notifications
-# =============================================================================
-
-
-def toast(
-    message: str,
-    variant: Literal["info", "success", "warning", "error"] = "info",
-    duration: int = 4000,
-) -> dict[str, Any]:
-    """
-    Create a toast notification payload.
-
-    Use with session.send_toast() in event handlers to show transient messages.
-
-    Example:
-        @c.on("save")
-        async def handle_save(session, event):
-            await session.send_toast("Saved!", variant="success")
-    """
-    return _toast(message=message, variant=variant, duration=duration)
 
 
 # =============================================================================
@@ -2003,78 +702,134 @@ def static_handler(event_name: str, js_code: str) -> None:
 
 def static_script(js_code: str) -> None:
     """
-    Register extra JavaScript to include in static builds.
+    Register a JavaScript snippet to be injected in static builds.
 
-    The code is injected as a <script> block before the app initializes.
-    Useful for utility functions, library setup, etc.
+    The code runs once when the page loads. Use for initialization,
+    registering global handlers, setting up client-side libraries, etc.
 
     Args:
-        js_code: Raw JavaScript code.
-
-    Example:
-        c.static_script('''
-        window.myApp = {
-            search: function(query) { return []; }
-        };
-        ''')
+        js_code: JavaScript code to inject.
     """
     _static_scripts.append(js_code)
 
 
 def export_static() -> dict[str, Any]:
     """
-    Export the app configuration for static builds.
+    Export the app for static HTML generation.
 
-    Returns a dictionary containing:
-    - pages: Component tree for all pages
-    - metadata: App metadata (title, theme)
-    - signals: Default signal values
-    - static_handlers: Custom JS event handlers
-    - static_scripts: Extra JS code blocks
+    Returns the app's page structure plus any registered static handlers
+    and scripts. Used by `cacao build` to generate standalone HTML.
 
-    Example:
-        import cacao as c
-        import json
-
-        c.config(title="My App")
-        c.title("Hello")
-
-        data = c.export_static()
-        print(json.dumps(data, indent=2))
+    Returns:
+        Dict with pages, static_handlers, and static_scripts.
     """
     app = _get_app()
-
-    # Get pages
-    pages = app.get_all_pages() if hasattr(app, "get_all_pages") else {"/": []}
-
-    # Get metadata
-    metadata = {
-        "title": getattr(app, "title", _global_config["title"]),
-        "theme": getattr(app, "theme", _global_config["theme"]),
-    }
-    branding = getattr(app, "branding", _global_config.get("branding"))
-    if branding is not None:
-        metadata["branding"] = branding
-
-    # Get signal defaults
-    from .server.signal import Signal
-
-    signals = {}
-    for name, signal in Signal.get_all_signals().items():
-        if hasattr(signal, "_default"):
-            signals[name] = signal._default
-
-    return {
-        "pages": pages,
-        "metadata": metadata,
-        "signals": signals,
-        "static_handlers": dict(_static_handlers),
-        "static_scripts": list(_static_scripts),
-    }
+    result = app.export_static()
+    result["static_handlers"] = dict(_static_handlers)
+    result["static_scripts"] = list(_static_scripts)
+    return result
 
 
 # =============================================================================
-# Exports
+# Auto-discovery: wrap all ui.py component functions automatically
+# =============================================================================
+
+# Functions that are defined manually above or should NOT be auto-wrapped
+_MANUAL_FUNCTIONS = {
+    # Defined manually in this module (custom logic or renamed)
+    "config",
+    "signal",
+    "computed",
+    "on",
+    "bind",
+    "page",
+    "layout",
+    "json",
+    "json_view",
+    "input",
+    "input_field",
+    "field",
+    "date",
+    "date_picker",
+    "upload",
+    "file_upload",
+    "line",
+    "bar",
+    "pie",
+    "area",
+    "scatter",
+    "gauge",
+    "load_csv",
+    "load_json",
+    "sample_sales_data",
+    "sample_users_data",
+    "run",
+    "get_app",
+    "is_simple_mode",
+    "reset",
+    "get_yaml_config",
+    "get_yaml_config_path",
+    "static_handler",
+    "static_script",
+    "export_static",
+    # Internal ui.py helpers that shouldn't be exposed
+    "_add_to_current_container",
+    "_container_context",
+    "_collect_types",
+    "_types_to_categories",
+    # Not UI functions (imported into ui.py but not components)
+    "dataclass",
+    "field",
+}
+
+# Collect auto-discovered function names for __all__
+_auto_discovered: list[str] = []
+
+_this_module = sys.modules[__name__]
+
+for _name, _fn in inspect.getmembers(_ui_module, inspect.isfunction):
+    # Skip private functions, already-defined functions, and non-ui classes
+    if _name.startswith("_") or _name in _MANUAL_FUNCTIONS:
+        continue
+    # Skip if already defined in this module (e.g. from manual section above)
+    if hasattr(_this_module, _name):
+        continue
+
+    # Detect if it's a context manager (decorated with @contextmanager)
+    _is_cm = hasattr(_fn, "__wrapped__") and inspect.isgeneratorfunction(_fn.__wrapped__)
+
+    if _is_cm:
+        # Create a context manager wrapper
+        def _make_cm_wrapper(fn):
+            @contextmanager
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                _ensure_context()
+                with fn(*args, **kwargs) as comp:
+                    yield comp
+
+            return wrapper
+
+        setattr(_this_module, _name, _make_cm_wrapper(_fn))
+    else:
+        # Create a plain function wrapper
+        def _make_wrapper(fn):
+            @wraps(fn)
+            def wrapper(*args, **kwargs):
+                _ensure_context()
+                return fn(*args, **kwargs)
+
+            return wrapper
+
+        setattr(_this_module, _name, _make_wrapper(_fn))
+
+    _auto_discovered.append(_name)
+
+# Clean up loop variables from module namespace
+del _name, _fn, _is_cm
+
+# =============================================================================
+# __all__
 # =============================================================================
 
 __all__ = [
@@ -2090,80 +845,18 @@ __all__ = [
     "bind",
     # Pages
     "page",
-    # Layout
-    "row",
-    "col",
-    "grid",
-    "container",
-    "stack",
-    "split",
-    "hero",
-    "card",
-    "sidebar",
-    "tabs",
-    "tab",
+    # Layout preset
     "layout",
-    # Admin Layout
-    "app_shell",
-    "nav_sidebar",
-    "nav_group",
-    "nav_item",
-    "shell_content",
-    "nav_panel",
-    # Typography
-    "title",
-    "text",
-    "html",
-    "raw_html",
-    "markdown",
-    "code",
-    "divider",
-    "spacer",
-    # Data Display
-    "metric",
-    "table",
+    # Renamed / aliased
     "json",
     "json_view",
-    "progress",
-    "badge",
-    "alert",
-    # Forms
-    "button",
     "input",
     "input_field",
     "field",
-    "textarea",
-    "select",
-    "checkbox",
-    "switch",
-    "slider",
     "date",
     "date_picker",
-    "chat",
     "upload",
     "file_upload",
-    # Content
-    "accordion",
-    "accordion_item",
-    "steps",
-    "step",
-    "file_tree",
-    "subnav",
-    "subnav_group",
-    "subnav_item",
-    "link_card",
-    # General UI
-    "modal",
-    "tooltip",
-    "breadcrumb",
-    "image",
-    # Nice-to-Have
-    "timeline",
-    "timeline_item",
-    "video",
-    "diff",
-    # Toast
-    "toast",
     # Charts
     "line",
     "bar",
@@ -2186,4 +879,6 @@ __all__ = [
     "static_script",
     "get_yaml_config",
     "get_yaml_config_path",
+    # Auto-discovered UI components (from ui.py)
+    *_auto_discovered,
 ]

@@ -1,11 +1,11 @@
 export { Button } from './Button.js';
-export { Input } from './Input.js';
-export { Textarea } from './Textarea.js';
-export { Select } from './Select.js';
+export { Chat } from './Chat.js';
 export { Checkbox } from './Checkbox.js';
-export { Switch } from './Switch.js';
-export { Slider } from './Slider.js';
 export { DatePicker } from './DatePicker.js';
 export { FileUpload } from './FileUpload.js';
-export { Chat } from './Chat.js';
+export { Input } from './Input.js';
+export { Select } from './Select.js';
+export { Slider } from './Slider.js';
+export { Switch } from './Switch.js';
 export { Tabs, Tab } from './Tabs.js';
+export { Textarea } from './Textarea.js';
