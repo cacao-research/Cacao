@@ -745,6 +745,81 @@ def export_static() -> dict[str, Any]:
 
 
 # =============================================================================
+# Plugin Registry
+# =============================================================================
+
+
+def register_plugin(
+    name: str,
+    *,
+    version: str = "0.0.0",
+    description: str = "",
+    author: str = "",
+    config_schema: dict[str, Any] | None = None,
+    **metadata: Any,
+) -> Any:
+    """
+    Register a Cacao plugin.
+
+    Plugins can register lifecycle hooks, inject UI into slots,
+    and add middleware for event interception.
+
+    Args:
+        name: Unique plugin name (e.g. "cacaodocs")
+        version: Plugin version
+        description: Short description
+        author: Plugin author
+        config_schema: Expected config keys in cacao.yaml
+        **metadata: Additional metadata
+
+    Returns:
+        Plugin instance with .on(), .inject(), .add_middleware() methods
+
+    Example:
+        plugin = c.register_plugin(
+            "cacaodocs",
+            version="0.1.19",
+            description="Documentation generator for Cacao apps",
+        )
+        plugin.on("on_ready", lambda: print("CacaoDocs ready!"))
+    """
+    from .server.plugin import get_registry
+
+    return get_registry().register(
+        name,
+        version=version,
+        description=description,
+        author=author,
+        config_schema=config_schema,
+        **metadata,
+    )
+
+
+def get_plugins() -> dict[str, Any]:
+    """
+    Get all registered plugins.
+
+    Returns:
+        Dict of plugin name -> Plugin instance
+    """
+    from .server.plugin import get_registry
+
+    return get_registry().all()
+
+
+def get_plugin(name: str) -> Any:
+    """
+    Get a specific registered plugin by name.
+
+    Returns:
+        Plugin instance or None
+    """
+    from .server.plugin import get_registry
+
+    return get_registry().get(name)
+
+
+# =============================================================================
 # Auto-discovery: wrap all ui.py component functions automatically
 # =============================================================================
 
@@ -786,6 +861,10 @@ _MANUAL_FUNCTIONS = {
     "static_handler",
     "static_script",
     "export_static",
+    # Plugin registry
+    "register_plugin",
+    "get_plugins",
+    "get_plugin",
     # Internal ui.py helpers that shouldn't be exposed
     "_add_to_current_container",
     "_container_context",
@@ -893,6 +972,10 @@ __all__ = [
     "static_script",
     "get_yaml_config",
     "get_yaml_config_path",
+    # Plugin registry
+    "register_plugin",
+    "get_plugins",
+    "get_plugin",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]

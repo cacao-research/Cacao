@@ -73,12 +73,12 @@ const allLessFiles = fs.readdirSync(lessComponentsDir)
 const lessCategoryMap = {
   'cat-layout': ['admin', 'container', 'hero', 'split', 'stack', 'tabs'],
   'cat-display': [
-    'accordion', 'alert', 'breadcrumb', 'card', 'diff', 'display',
+    'accordion', 'alert', 'anchor', 'breadcrumb', 'card', 'diff', 'display',
     'file-tree', 'image', 'link-card', 'metric', 'modal', 'progress',
     'steps', 'subnav', 'table', 'timeline', 'tooltip', 'video',
   ],
   'cat-typography': ['typography', 'prose'],
-  'cat-form': ['button', 'form', 'chat'],
+  'cat-form': ['button', 'form', 'chat', 'search'],
   'cat-charts': ['charts'],
 };
 
