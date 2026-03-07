@@ -234,32 +234,32 @@ Cacao already beats Gradio on: layout flexibility, real reactivity, component ri
 
 > **Goal:** Make Cacao trustworthy for real deployments.
 
-### 12.1 Performance
-- [ ] Component-level lazy loading
-- [ ] Virtual scrolling for large datasets (improve existing VirtualList)
-- [ ] Signal batching optimization (coalesce rapid updates)
-- [ ] WebSocket compression
-- [ ] CDN-ready asset fingerprinting
+### 12.1 Performance ✅
+- [x] Component-level lazy loading
+- [x] Virtual scrolling for large datasets (improve existing VirtualList)
+- [x] Signal batching optimization (coalesce rapid updates)
+- [x] WebSocket compression
+- [x] CDN-ready asset fingerprinting
 
-### 12.2 Security
-- [ ] CSRF protection
-- [ ] Input sanitization framework
-- [ ] OAuth2 / OIDC provider support
-- [ ] Role-based access control (RBAC)
-- [ ] Audit logging
+### 12.2 Security ✅
+- [x] CSRF protection
+- [x] Input sanitization framework
+- [x] OAuth2 / OIDC provider support
+- [x] Role-based access control (RBAC)
+- [x] Audit logging
 
-### 12.3 Reliability
-- [ ] Configurable WebSocket reconnection strategy
-- [ ] Session persistence across server restarts
-- [ ] Health check endpoint
-- [ ] Graceful shutdown with session draining
-- [ ] Background task queue (not blocking the event loop)
+### 12.3 Reliability ✅
+- [x] Configurable WebSocket reconnection strategy
+- [x] Session persistence across server restarts
+- [x] Health check endpoint
+- [x] Graceful shutdown with session draining
+- [x] Background task queue (not blocking the event loop)
 
-### 12.4 Observability
-- [ ] Structured logging with correlation IDs
-- [ ] Prometheus metrics export
-- [ ] OpenTelemetry tracing
-- [ ] Signal update rate monitoring
+### 12.4 Observability ✅
+- [x] Structured logging with correlation IDs
+- [x] Prometheus metrics export
+- [x] OpenTelemetry tracing
+- [x] Signal update rate monitoring
 
 ---
 

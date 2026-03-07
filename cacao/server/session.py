@@ -42,6 +42,10 @@ class Session:
     metadata: dict[str, Any] = field(default_factory=dict)
     _pending_updates: dict[str, Any] = field(default_factory=dict)
     _update_task: asyncio.Task[None] | None = field(default=None, repr=False)
+    _batch_window: float = field(default=0.016)  # ~16ms default (one frame at 60fps)
+    _max_batch_window: float = field(default=0.1)  # 100ms max window
+    _min_batch_window: float = field(default=0.004)  # 4ms min window
+    _max_batch_size: int = field(default=50)  # Flush immediately if batch exceeds this
 
     def __hash__(self) -> int:
         return hash(self.id)
@@ -204,7 +208,8 @@ class Session:
         """
         Queue a state update to be batched and sent.
 
-        Updates are batched to avoid sending too many messages.
+        Uses adaptive batching: coalesces rapid updates within a configurable
+        window, and flushes immediately if the batch grows too large.
 
         Args:
             key: The signal name
@@ -212,19 +217,35 @@ class Session:
         """
         self._pending_updates[key] = value
 
+        # Flush immediately if batch exceeds size threshold
+        if len(self._pending_updates) >= self._max_batch_size:
+            if self._update_task is not None and not self._update_task.done():
+                self._update_task.cancel()
+            self._update_task = asyncio.create_task(self._flush_updates(immediate=True))
+            return
+
         # Schedule send if not already scheduled
         if self._update_task is None or self._update_task.done():
             self._update_task = asyncio.create_task(self._flush_updates())
 
-    async def _flush_updates(self) -> None:
-        """Send all pending updates."""
-        # Small delay to batch updates
-        await asyncio.sleep(0.01)  # 10ms batching window
+    async def _flush_updates(self, *, immediate: bool = False) -> None:
+        """Send all pending updates with adaptive batching window."""
+        if not immediate:
+            await asyncio.sleep(self._batch_window)
 
         if self._pending_updates and self.websocket is not None:
             updates = self._pending_updates.copy()
             self._pending_updates.clear()
-            await self.send_state(updates)
+
+            try:
+                await self.send_state(updates)
+            except Exception:
+                _logger.warning(
+                    "Failed to flush %d updates for session %s",
+                    len(updates),
+                    self.id[:8],
+                    extra={"label": "batch"},
+                )
 
 
 class SessionManager:

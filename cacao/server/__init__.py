@@ -18,7 +18,7 @@ Fluent UI (Streamlit-like API):
 """
 
 # Fluent UI imports
-from . import agent, chart, data, llm, tukuy_skills, ui
+from . import agent, chart, data, llm, observability, tukuy_skills, ui
 from .app import App
 from .batch import Batch, batch, batch_updates
 from .effects import Effect, Watch, effect
@@ -33,9 +33,46 @@ from .middleware import (
     transform_middleware,
     validation_middleware,
 )
+from .observability import (
+    PrometheusMetrics,
+    SignalRateMonitor,
+    SignalRateStats,
+    StructuredLogFormatter,
+    Tracer,
+    enable_metrics,
+    enable_signal_monitoring,
+    enable_structured_logging,
+    enable_tracing,
+    get_correlation_id,
+    get_metrics,
+    get_signal_monitor,
+    get_tracer,
+    set_correlation_id,
+)
 from .persist import FileStorage, MemoryStorage, Persist, PersistManager
+from .security import (
+    RBAC,
+    AuditEntry,
+    AuditLogger,
+    CSRFProtection,
+    OAuth2Config,
+    OAuth2Provider,
+    Role,
+    Sanitizer,
+    audit_middleware,
+    csrf_middleware,
+    enable_csrf,
+    get_audit_logger,
+    get_rbac,
+    rbac_middleware,
+    register_oauth2,
+    require_role,
+    sanitization_middleware,
+)
 from .session import Session, SessionManager
+from .session_persist import SessionStore, enable_session_persistence, get_session_store
 from .signal import Computed, Signal
+from .tasks import BackgroundTaskQueue, TaskInfo, TaskStatus
 
 __all__ = [
     # Core
@@ -68,6 +105,48 @@ __all__ = [
     "auth_middleware",
     "transform_middleware",
     "timeout_middleware",
+    # Security
+    "CSRFProtection",
+    "enable_csrf",
+    "csrf_middleware",
+    "Sanitizer",
+    "sanitization_middleware",
+    "OAuth2Config",
+    "OAuth2Provider",
+    "register_oauth2",
+    "Role",
+    "RBAC",
+    "get_rbac",
+    "rbac_middleware",
+    "require_role",
+    "AuditLogger",
+    "AuditEntry",
+    "get_audit_logger",
+    "audit_middleware",
+    # Session Persistence
+    "SessionStore",
+    "enable_session_persistence",
+    "get_session_store",
+    # Background Tasks
+    "BackgroundTaskQueue",
+    "TaskInfo",
+    "TaskStatus",
+    # Observability
+    "observability",
+    "enable_structured_logging",
+    "StructuredLogFormatter",
+    "get_correlation_id",
+    "set_correlation_id",
+    "PrometheusMetrics",
+    "get_metrics",
+    "enable_metrics",
+    "Tracer",
+    "get_tracer",
+    "enable_tracing",
+    "SignalRateMonitor",
+    "SignalRateStats",
+    "get_signal_monitor",
+    "enable_signal_monitoring",
     # Fluent UI
     "ui",
     "chart",

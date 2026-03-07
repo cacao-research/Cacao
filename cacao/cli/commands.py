@@ -462,7 +462,7 @@ def create_command(args: list[str]) -> None:
     parser.add_argument(
         "-t",
         "--template",
-        choices=["minimal", "counter", "dashboard"],
+        choices=["minimal", "counter", "dashboard", "structured"],
         default="minimal",
         help="Template to use",
     )
@@ -505,12 +505,19 @@ def create_command(args: list[str]) -> None:
         # Create project structure
         project_path.mkdir(parents=True)
 
-        # Get template content
-        template_content = _get_template(parsed_args.template)
+        # Get template content (single file or multi-file dict)
+        template = _get_template(parsed_args.template)
 
-        # Write app.py
-        app_file = project_path / "app.py"
-        app_file.write_text(template_content, encoding="utf-8")
+        if isinstance(template, dict):
+            # Multi-file template
+            for rel_path, content in template.items():
+                file_path = project_path / rel_path
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(content, encoding="utf-8")
+        else:
+            # Single file template
+            app_file = project_path / "app.py"
+            app_file.write_text(template, encoding="utf-8")
 
         # Write requirements.txt
         requirements = project_path / "requirements.txt"
@@ -532,9 +539,9 @@ def create_command(args: list[str]) -> None:
         sys.exit(1)
 
 
-def _get_template(template_name: str) -> str:
+def _get_template(template_name: str) -> str | dict[str, str]:
     """Get the content for a project template."""
-    templates = {
+    templates: dict[str, str | dict[str, str]] = {
         "minimal": '''"""
 Minimal Cacao v2 application.
 """
@@ -622,8 +629,87 @@ with sidebar():
 if __name__ == "__main__":
     app.run()
 ''',
+        "structured": _get_structured_template(),
     }
-    return templates.get(template_name, templates["minimal"])
+    return templates[template_name] if template_name in templates else templates["minimal"]
+
+
+def _get_structured_template() -> dict[str, str]:
+    """Generate a multi-file structured project template.
+
+    Returns a dict of {relative_path: content} for all files.
+    """
+    return {
+        # --- Entry point ---
+        "app.py": '''"""My Cacao App - main entry point."""
+import cacao as c
+
+c.config(title="My App", theme="dark")
+
+# Import pages (each page registers itself)
+from pages import home, settings  # noqa: E402, F401
+
+# Import event handlers
+from handlers import events  # noqa: E402, F401
+''',
+        # --- Pages ---
+        "pages/__init__.py": "",
+        "pages/home.py": '''"""Home page."""
+import cacao as c
+
+from components.header import render_header
+
+
+with c.page("/"):
+    render_header()
+    c.title("Welcome")
+    c.text("Edit pages/home.py to get started.")
+
+    with c.row():
+        c.metric("Status", "Online", trend="+100%", trend_direction="up")
+''',
+        "pages/settings.py": '''"""Settings page."""
+import cacao as c
+
+
+theme_choice = c.signal("dark", name="theme_choice")
+
+with c.page("/settings"):
+    c.title("Settings")
+    c.select(
+        "Theme",
+        options=["dark", "light"],
+        signal=theme_choice,
+        on_change="change_theme",
+    )
+''',
+        # --- Shared components ---
+        "components/__init__.py": "",
+        "components/header.py": '''"""Reusable header component."""
+import cacao as c
+
+
+def render_header() -> None:
+    """Render the app header."""
+    with c.row(gap=4, align="center"):
+        c.title("My App", level=3)
+        c.badge("v1.0", color="info")
+''',
+        # --- Event handlers ---
+        "handlers/__init__.py": "",
+        "handlers/events.py": '''"""Event handlers."""
+import cacao as c
+from cacao.server.session import Session
+
+
+@c.on("change_theme")
+async def handle_change_theme(session: Session, event: dict) -> None:
+    """Handle theme change."""
+    pass  # Theme signal updates automatically via c.select binding
+''',
+        # --- Data directory ---
+        "data/.gitkeep": "",
+    }
 
 
 def build_command(args: list[str]) -> None:
@@ -929,6 +1015,7 @@ def help_command(args: list[str]) -> None:
     print("  cacao run app.py --debug      Enable DevTools + verbose WS logging")
     print("  cacao run app.py --no-reload  Run without hot reload")
     print("  cacao create my-dashboard     Create a new project")
+    print("  cacao create my-app -t structured  Multi-file project with pages/components")
     print()
     print(f"  {BOLD}Static builds:{RESET}")
     print("  cacao build app.py                     Build static site to dist/")

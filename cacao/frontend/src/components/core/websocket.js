@@ -6,6 +6,15 @@
 
 import { cacaoStatic, isStaticMode, staticSignals, staticDispatcher } from './static-runtime.js';
 
+// Default reconnection strategy (configurable via window.__CACAO_RECONNECT__)
+const DEFAULT_RECONNECT = {
+  maxAttempts: 10,        // Max reconnection attempts (0 = infinite)
+  baseDelay: 1000,        // Initial delay in ms
+  maxDelay: 30000,        // Maximum delay in ms
+  backoffMultiplier: 1.5, // Exponential backoff multiplier
+  jitter: true,           // Add random jitter to prevent thundering herd
+};
+
 class CacaoWebSocket {
   constructor() {
     this.ws = null;
@@ -14,8 +23,11 @@ class CacaoWebSocket {
     this.listeners = new Set();
     this.chatListeners = new Set();  // For chat_delta/chat_done messages
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 1000;
+    this._reconnectTimer = null;
+
+    // Merge user config with defaults
+    const userConfig = window.__CACAO_RECONNECT__ || {};
+    this.reconnectConfig = { ...DEFAULT_RECONNECT, ...userConfig };
   }
 
   connect() {
@@ -27,16 +39,29 @@ class CacaoWebSocket {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/ws`;
+    let url = `${protocol}//${window.location.host}/ws`;
+
+    // Include previous session ID for state restoration after server restart
+    if (this.sessionId) {
+      url += `?session_id=${encodeURIComponent(this.sessionId)}`;
+    }
 
     console.log('[Cacao] Connecting to WebSocket:', url);
 
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
+      const wasReconnect = this.reconnectAttempts > 0;
       console.log('[Cacao] WebSocket connected');
       this.connected = true;
       this.reconnectAttempts = 0;
+      if (this._reconnectTimer) {
+        clearTimeout(this._reconnectTimer);
+        this._reconnectTimer = null;
+      }
+      if (wasReconnect) {
+        this.notifyMessageListeners({ type: 'ws:reconnected' });
+      }
     };
 
     this.ws.onmessage = (event) => {
@@ -48,9 +73,10 @@ class CacaoWebSocket {
       }
     };
 
-    this.ws.onclose = () => {
-      console.log('[Cacao] WebSocket disconnected');
+    this.ws.onclose = (event) => {
+      console.log('[Cacao] WebSocket disconnected (code:', event.code, ')');
       this.connected = false;
+      this.notifyMessageListeners({ type: 'ws:disconnected', code: event.code });
       this.attemptReconnect();
     };
 
@@ -60,11 +86,26 @@ class CacaoWebSocket {
   }
 
   attemptReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[Cacao] Reconnecting (attempt ${this.reconnectAttempts})...`);
-      setTimeout(() => this.connect(), this.reconnectDelay * this.reconnectAttempts);
+    const cfg = this.reconnectConfig;
+    if (cfg.maxAttempts > 0 && this.reconnectAttempts >= cfg.maxAttempts) {
+      console.warn(`[Cacao] Max reconnection attempts (${cfg.maxAttempts}) reached`);
+      return;
     }
+
+    this.reconnectAttempts++;
+    // Exponential backoff: baseDelay * multiplier^(attempt-1), capped at maxDelay
+    let delay = cfg.baseDelay * Math.pow(cfg.backoffMultiplier, this.reconnectAttempts - 1);
+    delay = Math.min(delay, cfg.maxDelay);
+
+    // Add jitter (±25%) to prevent thundering herd
+    if (cfg.jitter) {
+      const jitterRange = delay * 0.25;
+      delay += (Math.random() * jitterRange * 2) - jitterRange;
+    }
+
+    delay = Math.round(delay);
+    console.log(`[Cacao] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`);
+    this._reconnectTimer = setTimeout(() => this.connect(), delay);
   }
 
   handleMessage(message) {
@@ -89,6 +130,18 @@ class CacaoWebSocket {
           window.__cacao_signals__ = this.signals;
           this.notifyListeners();
           console.log('[Cacao] State updated:', message.changes);
+        }
+        break;
+
+      case 'batch':
+        // Batched signal updates: { type: 'batch', changes: [{key, value}, ...] }
+        if (message.changes) {
+          message.changes.forEach(({ key, value }) => {
+            this.signals[key] = value;
+          });
+          window.__cacao_signals__ = this.signals;
+          this.notifyListeners();
+          console.log('[Cacao] Batch updated:', message.changes.length, 'signals');
         }
         break;
 
@@ -193,6 +246,12 @@ class CacaoWebSocket {
       // SQL query results — handled by SqlQuery component via message listener
       case 'sql:result':
       case 'sql:error':
+        break;
+
+      case 'server:shutdown':
+        // Server is shutting down gracefully — reconnect with session ID
+        console.log('[Cacao] Server shutting down, will reconnect...');
+        this._serverShutdown = true;
         break;
 
       case 'server:error':

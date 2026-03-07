@@ -226,15 +226,51 @@ class App:
 
     async def startup(self) -> None:
         """Called when the server starts."""
+        import time
+
+        # Record start time for uptime tracking
+        import cacao.server.server as _srv
+
         from .plugin import get_registry
+        from .tasks import BackgroundTaskQueue
+
+        _srv._server_start_time = time.monotonic()
+
+        # Start background task queue
+        self._task_queue = BackgroundTaskQueue()
+        await self._task_queue.start()
+        _srv._task_queue = self._task_queue
 
         registry = get_registry()
         await registry.run_hook("on_init")
         await registry.run_hook("on_ready")
 
     async def shutdown(self) -> None:
-        """Called when the server stops."""
+        """Called when the server stops. Drains sessions and saves state."""
+        from .log import get_logger
         from .plugin import get_registry
+        from .session_persist import get_session_store
+
+        logger = get_logger("cacao.server")
+
+        # Save all session state if persistence is enabled
+        store = get_session_store()
+        if store:
+            sessions = self.sessions.get_all()
+            if sessions:
+                count = await store.save_all(sessions)
+                logger.info(
+                    "Saved %d session(s) for restart recovery",
+                    count,
+                    extra={"label": "shutdown"},
+                )
+
+        # Notify connected clients of impending shutdown
+        await self.sessions.broadcast({"type": "server:shutdown"})
+
+        # Shut down background task queue
+        if hasattr(self, "_task_queue") and self._task_queue:
+            await self._task_queue.shutdown(timeout=10.0)
 
         await get_registry().run_hook("on_shutdown")
 

@@ -1895,24 +1895,36 @@ def virtual_list(
     render_as: str = "Card",
     buffer: int = 5,
     gap: int = 0,
+    jump_to: int | None = None,
+    end_reached_threshold: int = 200,
     **props: Any,
 ) -> Component:
     """
     Virtual list with windowed rendering for large datasets.
 
-    Only renders visible items + buffer for performance.
+    Only renders visible items + buffer for performance. Uses stable keys
+    from item id/key fields, throttled scroll handling, and supports
+    infinite scroll via end_reached events.
 
     Args:
         signal: Signal containing the list of items
         row_height: Height of each row in pixels
         height: Container height
         render_as: Component type to render each item as
-        buffer: Number of off-screen items to render
+        buffer: Number of off-screen items to render (overscan)
         gap: Gap between items in pixels
+        jump_to: Index to scroll to on mount/change
+        end_reached_threshold: Pixels from bottom to trigger end_reached event (0 to disable)
 
     Example:
         items = c.signal(list(range(10000)), name="items")
         c.virtual_list(signal=items, row_height=40, render_as="Card")
+
+        # Infinite scroll: listen for end_reached events
+        @app.on("items:end_reached")
+        async def load_more(session, data):
+            # Append more items to the signal
+            pass
     """
     sig_name = signal.name if signal is not None and hasattr(signal, "name") else signal
     return _add_to_current_container(
@@ -1925,6 +1937,8 @@ def virtual_list(
                 "render_as": render_as,
                 "buffer": buffer,
                 "gap": gap,
+                "jump_to": jump_to,
+                "end_reached_threshold": end_reached_threshold,
                 **props,
             },
         )
