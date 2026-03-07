@@ -70,6 +70,11 @@ export function renderComponent(comp, key, setActiveTab, activeTab, renderers) {
     );
   }
 
+  // Track render counts for DevTools profiler
+  if (window.__CACAO_DEVTOOLS__?.onRender) {
+    window.__CACAO_DEVTOOLS__.onRender(comp.type);
+  }
+
   const children = (comp.children || []).map((c, i) => renderComponent(c, i, setActiveTab, activeTab, renderers));
   const element = h(
     ErrorBoundary,

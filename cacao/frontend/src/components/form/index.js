@@ -21,6 +21,7 @@ export { Series } from './Series.js';
 export { SkillBrowser } from './SkillBrowser.js';
 export { SkillRunner } from './SkillRunner.js';
 export { Slider } from './Slider.js';
+export { SqlQuery } from './SqlQuery.js';
 export { Switch } from './Switch.js';
 export { Tabs, Tab } from './Tabs.js';
 export { Textarea } from './Textarea.js';

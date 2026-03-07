@@ -9,6 +9,8 @@ when the connection closes.
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -16,6 +18,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from starlette.websockets import WebSocket
+
+_logger = logging.getLogger("cacao.session")
 
 
 @dataclass
@@ -189,6 +193,12 @@ class Session:
         """Send an arbitrary JSON message to the client."""
         if self.websocket is None:
             return
+        _logger.debug(
+            "WS send [%s] to %s",
+            message.get("type", "?"),
+            self.id[:8],
+            extra={"label": "ws:send"},
+        )
         await self.websocket.send_json(message)
 
     def queue_update(self, key: str, value: Any) -> None:

@@ -379,6 +379,7 @@ def run_command(args: list[str]) -> None:
     )
     parser.add_argument("--no-reload", action="store_true", help="Disable hot reload")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode (verbose WS logging + browser DevTools)")
 
     parsed_args = parser.parse_args(args)
 
@@ -394,6 +395,7 @@ def run_command(args: list[str]) -> None:
         sys.exit(1)
 
     hot_reload = not parsed_args.no_reload
+    verbose = parsed_args.verbose or parsed_args.debug
 
     # Find an available port (auto-increment through chocolate years if needed)
     try:
@@ -420,16 +422,20 @@ def run_command(args: list[str]) -> None:
         config_file=config_file_str,
     )
 
+    if verbose:
+        print(f"  {CYAN}Debug mode enabled{RESET} — verbose WS logging + browser DevTools (Ctrl+Shift+D)")
+        print()
+
     try:
         if hot_reload:
-            run_with_reload(app_path, parsed_args.host, port, parsed_args.verbose)
+            run_with_reload(app_path, parsed_args.host, port, verbose)
         else:
-            run_without_reload(app_path, parsed_args.host, port, parsed_args.verbose)
+            run_without_reload(app_path, parsed_args.host, port, verbose)
     except KeyboardInterrupt:
         print(f"\n{DIM}Server stopped{RESET}")
     except Exception as e:
         print(f"{RED}Error: {e}{RESET}")
-        if parsed_args.verbose:
+        if verbose:
             import traceback
 
             traceback.print_exc()
@@ -894,6 +900,7 @@ def help_command(args: list[str]) -> None:
     print(f"  {CYAN}docker{RESET} <app.py>  Generate Dockerfile for containerized deployment")
     print(f"  {CYAN}publish{RESET} <app.py> Publish app to the Cacao gallery")
     print(f"  {CYAN}gallery{RESET}          Browse the Cacao app gallery")
+    print(f"  {CYAN}test{RESET} [target]    Run tests for a Cacao app")
     print(f"  {CYAN}create{RESET} [name]    Create a new Cacao project")
     print(f"  {CYAN}version{RESET}          Show version information")
     print(f"  {CYAN}help{RESET}             Show this help message")
@@ -901,6 +908,7 @@ def help_command(args: list[str]) -> None:
     print("Examples:")
     print("  cacao run app.py              Run app with hot reload (default port: 1502)")
     print("  cacao run app.py --port 1847  Run on port 1847 (year of first chocolate bar)")
+    print("  cacao run app.py --debug      Enable DevTools + verbose WS logging")
     print("  cacao run app.py --no-reload  Run without hot reload")
     print("  cacao create my-dashboard     Create a new project")
     print()
@@ -919,6 +927,12 @@ def help_command(args: list[str]) -> None:
     print("  cacao deploy app.py railway             Generate Railway config")
     print("  cacao docker app.py                    Generate Dockerfile")
     print()
+    print(f"  {BOLD}Testing:{RESET}")
+    print("  cacao test tests/                      Run all tests in directory")
+    print("  cacao test test_app.py                 Run tests in a specific file")
+    print("  cacao test tests/ -v                   Verbose output")
+    print("  cacao test tests/ -u                   Update snapshots")
+    print()
     print(f"  {BOLD}Gallery:{RESET}")
     print("  cacao publish app.py                   Publish app to gallery")
     print("  cacao publish app.py --url https://...  With live URL + embed snippet")
@@ -931,6 +945,51 @@ def help_command(args: list[str]) -> None:
         f"If in use, auto-increments to next year.{RESET}"
     )
     print()
+
+
+def test_command(args: list[str]) -> None:
+    """
+    Run tests for a Cacao application.
+
+    Usage: cacao test [target] [options]
+    """
+    parser = argparse.ArgumentParser(prog="cacao test", description="Run Cacao app tests")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        default=".",
+        help="Path to test file or directory (default: current directory)",
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--pattern",
+        "-p",
+        default="test_*.py",
+        help="Glob pattern for test files (default: test_*.py)",
+    )
+    parser.add_argument(
+        "--update-snapshots",
+        "-u",
+        action="store_true",
+        help="Update snapshot files with current values",
+    )
+
+    parsed = parser.parse_args(args)
+
+    from cacao.testing import run_tests
+
+    print(_get_logo())
+    print(f"  {CYAN}Running tests...{RESET}")
+
+    result = run_tests(
+        parsed.target,
+        verbose=parsed.verbose,
+        pattern=parsed.pattern,
+        update_snapshots=parsed.update_snapshots,
+    )
+
+    if not result.all_passed:
+        sys.exit(1)
 
 
 # Lazy imports for commands to avoid heavy imports at CLI startup
@@ -973,6 +1032,7 @@ COMMANDS: dict[str, Callable[[list[str]], None]] = {
     "docker": _docker_command_wrapper,
     "publish": _publish_command_wrapper,
     "gallery": _gallery_command_wrapper,
+    "test": test_command,
     "create": create_command,
     "version": version_command,
     "help": help_command,

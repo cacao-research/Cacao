@@ -773,6 +773,54 @@ def export_static() -> dict[str, Any]:
 
 
 # =============================================================================
+# Testing
+# =============================================================================
+
+
+def test(
+    target: str | None = None,
+    *,
+    verbose: bool = False,
+    pattern: str = "test_*.py",
+    update_snapshots: bool = False,
+) -> Any:
+    """
+    Run tests for a Cacao application.
+
+    Discovers and runs all functions starting with 'test_' in the target
+    file or directory. Both sync and async test functions are supported.
+
+    Args:
+        target: Path to a .py file or directory. If None, searches current dir.
+        verbose: Print detailed output for each test.
+        pattern: Glob pattern for discovering test files (default: test_*.py).
+        update_snapshots: Overwrite existing snapshots with current values.
+
+    Returns:
+        TestSuiteResult with pass/fail counts and timing.
+
+    Example:
+        # Run tests in a file
+        result = c.test("tests/test_app.py")
+        assert result.all_passed
+
+        # Run all test files in a directory
+        c.test("tests/", verbose=True)
+    """
+    from .testing import run_tests
+
+    if target is None:
+        target = "."
+
+    return run_tests(
+        target,
+        verbose=verbose,
+        pattern=pattern,
+        update_snapshots=update_snapshots,
+    )
+
+
+# =============================================================================
 # Plugin Registry
 # =============================================================================
 
@@ -1646,6 +1694,136 @@ def budget_gauge(
     )
 
 
+def dataframe(
+    data: Any,
+    title: str | None = None,
+    searchable: bool = True,
+    sortable: bool = True,
+    paginate: bool = True,
+    page_size: int = 25,
+    max_rows: int = 5000,
+    show_dtypes: bool = True,
+    show_shape: bool = True,
+    striped: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Rich DataFrame display for pandas and polars DataFrames.
+
+    Example:
+        import pandas as pd
+        df = pd.read_csv("sales.csv")
+        c.dataframe(df, title="Sales Data")
+    """
+    _ensure_context()
+    from .server.ui import dataframe as _ui_dataframe
+
+    return _ui_dataframe(
+        data=data,
+        title=title,
+        searchable=searchable,
+        sortable=sortable,
+        paginate=paginate,
+        page_size=page_size,
+        max_rows=max_rows,
+        show_dtypes=show_dtypes,
+        show_shape=show_shape,
+        striped=striped,
+        **props,
+    )
+
+
+def plotly_chart(
+    figure: Any,
+    title: str | None = None,
+    height: int = 400,
+    responsive: bool = True,
+    config: dict[str, Any] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Render a Plotly figure natively.
+
+    Example:
+        import plotly.express as px
+        fig = px.scatter(df, x="x", y="y")
+        c.plotly_chart(fig)
+    """
+    _ensure_context()
+    from .server.ui import plotly_chart as _ui_plotly_chart
+
+    return _ui_plotly_chart(
+        figure=figure,
+        title=title,
+        height=height,
+        responsive=responsive,
+        config=config,
+        **props,
+    )
+
+
+def mpl(
+    figure: Any = None,
+    title: str | None = None,
+    format: str = "svg",
+    dpi: int = 150,
+    tight: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Render a matplotlib figure.
+
+    Example:
+        import matplotlib.pyplot as plt
+        plt.plot([1, 2, 3], [4, 5, 6])
+        c.mpl()
+    """
+    _ensure_context()
+    from .server.ui import mpl as _ui_mpl
+
+    return _ui_mpl(
+        figure=figure,
+        title=title,
+        format=format,
+        dpi=dpi,
+        tight=tight,
+        **props,
+    )
+
+
+def sql_query(
+    connection: str | Any,
+    query: str = "",
+    title: str | None = None,
+    editable: bool = True,
+    auto_run: bool = False,
+    page_size: int = 25,
+    max_rows: int = 1000,
+    on_query: Any = None,
+    **props: Any,
+) -> Component:
+    """
+    SQL query component with connection management.
+
+    Example:
+        c.sql_query("sqlite:///mydata.db", query="SELECT * FROM users")
+    """
+    _ensure_context()
+    from .server.ui import sql_query as _ui_sql_query
+
+    return _ui_sql_query(
+        connection=connection,
+        query=query,
+        title=title,
+        editable=editable,
+        auto_run=auto_run,
+        page_size=page_size,
+        max_rows=max_rows,
+        on_query=on_query,
+        **props,
+    )
+
+
 # Re-export I/O marker types for use in function signatures
 from .server.interface import Audio, Code, DataFrame, File, Image, Markdown, Plot, Video  # noqa: E402
 
@@ -1719,6 +1897,11 @@ _MANUAL_FUNCTIONS = {
     "parallel",
     "series",
     "compare",
+    # Data Ecosystem
+    "dataframe",
+    "plotly_chart",
+    "mpl",
+    "sql_query",
     # AI / Prompture
     "extract",
     "cost_dashboard",
@@ -1864,6 +2047,11 @@ __all__ = [
     "stream",
     "ChatConfig",
     "ToolSpec",
+    # Data Ecosystem
+    "dataframe",
+    "plotly_chart",
+    "mpl",
+    "sql_query",
     # AI / Prompture
     "extract",
     "cost_dashboard",
@@ -1887,6 +2075,8 @@ __all__ = [
     "Markdown",
     "Plot",
     "File",
+    # Testing
+    "test",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]

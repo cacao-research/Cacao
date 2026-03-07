@@ -10,6 +10,7 @@ import { ToastContainer } from './core/Toast.js';
 import { NotificationCenter } from './core/NotificationCenter.js';
 import { LoginPage } from './core/LoginPage.js';
 import { ErrorOverlay } from './core/ErrorOverlay.js';
+import { DevTools } from './core/DevTools.js';
 
 // Extract route from URL (supports both pathname and hash-based routing)
 function getRouteFromPath() {
@@ -164,6 +165,7 @@ export function App({ renderers }) {
     h(ToastContainer, { key: 'toast' }),
     h(NotificationCenter, { key: 'notifications' }),
     window.__CACAO_DEBUG__ && h(ErrorOverlay, { key: 'error-overlay' }),
+    window.__CACAO_DEBUG__ && h(DevTools, { key: 'devtools' }),
   ].filter(Boolean);
 
   // Check if there's an AppShell component (admin layout)

@@ -1,0 +1,40 @@
+// PlotlyChart component
+
+.plotly-chart {
+  border-radius: @radius-md;
+  overflow: hidden;
+
+  &--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+  }
+
+  &__spinner {
+    color: var(--text-muted);
+    font-size: @font-size-sm;
+    animation: plotly-pulse 1.5s ease-in-out infinite;
+  }
+
+  // Override plotly default backgrounds to match theme
+  .js-plotly-plot .plotly .main-svg {
+    background: transparent !important;
+  }
+
+  .modebar {
+    opacity: 0;
+    transition: opacity @transition-fast;
+  }
+
+  &:hover .modebar {
+    opacity: 1;
+  }
+}
+
+@keyframes plotly-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

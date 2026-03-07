@@ -104,6 +104,12 @@ def create_server(app: App) -> Starlette:
                     continue
 
                 msg_type = message.get("type")
+                if app.debug:
+                    _preview = data[:200] + ("..." if len(data) > 200 else "")
+                    logger.debug(
+                        "WS recv [%s] %s", msg_type, _preview,
+                        extra={"label": "ws:recv"},
+                    )
 
                 if msg_type == "event":
                     event_name = message.get("name", "")
@@ -375,6 +381,20 @@ def create_server(app: App) -> Starlette:
                         "type": "budget:summary",
                         "summary": tracker.summary(),
                     })
+
+                # ── SQL Query ─────────────────────────────────────
+                elif msg_type == "sql_query":
+                    from .sql import handle_sql_query
+
+                    asyncio.create_task(
+                        handle_sql_query(
+                            session,
+                            connection=message.get("connection", ""),
+                            conn_type=message.get("connType", "unknown"),
+                            query=message.get("query", ""),
+                            max_rows=message.get("maxRows", 1000),
+                        )
+                    )
 
         except WebSocketDisconnect:
             pass

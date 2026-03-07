@@ -190,6 +190,11 @@ class CacaoWebSocket {
       case 'safety:get_error':
         break;
 
+      // SQL query results — handled by SqlQuery component via message listener
+      case 'sql:result':
+      case 'sql:error':
+        break;
+
       case 'server:error':
         // Server-side error — show in dev overlay
         console.error('[Cacao] Server error:', message.title, message.message);

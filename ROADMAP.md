@@ -186,23 +186,23 @@ Cacao already beats Gradio on: layout flexibility, real reactivity, component ri
 - [x] "Did you mean?" for typos in component names/props
 - [x] Server-side errors rendered in browser overlay (dev mode)
 
-### 10.2 DevTools
-- [ ] Browser DevTools panel — Signal inspector, event log, session viewer
-- [ ] `cacao --debug` mode with verbose WebSocket logging
-- [ ] Component tree visualizer
-- [ ] Performance profiler (signal update timings, render counts)
+### 10.2 DevTools ✅
+- [x] Browser DevTools panel — Signal inspector, event log, session viewer
+- [x] `cacao --debug` mode with verbose WebSocket logging
+- [x] Component tree visualizer
+- [x] Performance profiler (signal update timings, render counts)
 
-### 10.3 Testing
-- [ ] `c.test()` — Test runner for Cacao apps
-- [ ] Mock session/signals for unit testing event handlers
-- [ ] Snapshot testing for UI definitions
-- [ ] `cacao test app.py` CLI command
+### 10.3 Testing ✅
+- [x] `c.test()` — Test runner for Cacao apps
+- [x] Mock session/signals for unit testing event handlers
+- [x] Snapshot testing for UI definitions
+- [x] `cacao test app.py` CLI command
 
-### 10.4 Documentation
-- [ ] Interactive API reference (self-hosted Cacao app)
-- [ ] Component playground — Edit props live, see result
-- [ ] Cookbook with 20+ recipes (auth flow, CRUD app, dashboard, chat, etc.)
-- [ ] Video tutorials / getting started guide
+### 10.4 Documentation ✅
+- [x] Interactive API reference (self-hosted Cacao app)
+- [x] Component playground — Edit props live, see result
+- [x] Cookbook with 20+ recipes (auth flow, CRUD app, dashboard, chat, etc.)
+- [ ] ~~Video tutorials / getting started guide~~ (deferred)
 
 ---
 
@@ -210,12 +210,12 @@ Cacao already beats Gradio on: layout flexibility, real reactivity, component ri
 
 > **Goal:** Play well with the Python data stack, don't be an island.
 
-### 11.1 Data Ecosystem
-- [ ] Native pandas DataFrame support (auto-detect and render)
-- [ ] Polars DataFrame support
-- [ ] Plotly figure rendering (pass plotly fig, render natively)
-- [ ] Matplotlib figure rendering (auto-convert to image/SVG)
-- [ ] SQL query component with connection management
+### 11.1 Data Ecosystem ✅
+- [x] Native pandas DataFrame support (auto-detect and render)
+- [x] Polars DataFrame support
+- [x] Plotly figure rendering (pass plotly fig, render natively)
+- [x] Matplotlib figure rendering (auto-convert to image/SVG)
+- [x] SQL query component with connection management
 
 ### 11.2 Notebook Integration
 - [ ] `c.display()` for rendering Cacao components in Jupyter

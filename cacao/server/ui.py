@@ -667,6 +667,45 @@ def metric(
     )
 
 
+def _convert_dataframe(data: Any) -> tuple[list[dict[str, Any]], list[dict[str, str]] | None]:
+    """Convert pandas/polars DataFrame to records + column metadata.
+
+    Returns:
+        Tuple of (records, column_defs) where column_defs includes dtype info.
+    """
+    col_defs: list[dict[str, str]] | None = None
+
+    # Pandas DataFrame
+    try:
+        import pandas as pd
+        if isinstance(data, pd.DataFrame):
+            col_defs = [
+                {"key": str(col), "title": str(col), "dtype": str(data[col].dtype)}
+                for col in data.columns
+            ]
+            return data.head(5000).to_dict("records"), col_defs
+    except ImportError:
+        pass
+
+    # Polars DataFrame
+    try:
+        import polars as pl
+        if isinstance(data, pl.DataFrame):
+            col_defs = [
+                {"key": col, "title": col, "dtype": str(data[col].dtype)}
+                for col in data.columns
+            ]
+            return data.head(5000).to_dicts(), col_defs
+    except ImportError:
+        pass
+
+    # Generic to_dict support (Cacao's own DataFrame, etc.)
+    if hasattr(data, "to_dict"):
+        return data.to_dict("records"), None
+
+    return data, None
+
+
 def table(
     data: list[dict[str, Any]] | Any,
     columns: list[str] | list[dict[str, Any]] | None = None,
@@ -679,23 +718,373 @@ def table(
     """
     Interactive data table.
 
+    Accepts list of dicts, pandas DataFrame, or polars DataFrame.
+
     Example:
         table(users, columns=["name", "email", "role"], searchable=True)
+
+        import pandas as pd
+        df = pd.read_csv("data.csv")
+        table(df, searchable=True)
     """
-    # Convert data if it's a pandas DataFrame
-    if hasattr(data, "to_dict"):
-        data = data.to_dict("records")
+    records, auto_cols = _convert_dataframe(data)
+    if columns is None and auto_cols is not None:
+        columns = auto_cols
 
     return _add_to_current_container(
         Component(
             type="Table",
             props={
-                "data": data,
+                "data": records,
                 "columns": columns,
                 "searchable": searchable,
                 "sortable": sortable,
                 "paginate": paginate,
                 "pageSize": page_size,
+                **props,
+            },
+        )
+    )
+
+
+def dataframe(
+    data: Any,
+    title: str | None = None,
+    searchable: bool = True,
+    sortable: bool = True,
+    paginate: bool = True,
+    page_size: int = 25,
+    max_rows: int = 5000,
+    show_dtypes: bool = True,
+    show_shape: bool = True,
+    striped: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Rich DataFrame display for pandas and polars DataFrames.
+
+    Auto-detects DataFrame type and renders with dtype badges,
+    shape info, search, sort, and pagination.
+
+    Args:
+        data: A pandas or polars DataFrame (or list of dicts).
+        title: Optional title displayed above the table.
+        searchable: Enable full-text search across all columns.
+        sortable: Enable column header click-to-sort.
+        paginate: Enable pagination.
+        page_size: Rows per page.
+        max_rows: Maximum rows to send to the client.
+        show_dtypes: Show column data types as badges below headers.
+        show_shape: Show row/column count info.
+        striped: Alternate row shading.
+
+    Example:
+        import pandas as pd
+        df = pd.read_csv("sales.csv")
+        dataframe(df, title="Sales Data")
+
+        import polars as pl
+        df = pl.read_parquet("users.parquet")
+        dataframe(df, searchable=True)
+    """
+    shape: list[int] | None = None
+    col_defs: list[dict[str, str]] | None = None
+    framework: str = "unknown"
+
+    # Pandas DataFrame
+    try:
+        import pandas as pd
+        if isinstance(data, pd.DataFrame):
+            framework = "pandas"
+            shape = list(data.shape)
+            col_defs = [
+                {"key": str(col), "title": str(col), "dtype": str(data[col].dtype)}
+                for col in data.columns
+            ]
+            records = data.head(max_rows).to_dict("records")
+            return _add_to_current_container(
+                Component(
+                    type="DataFrameView",
+                    props={
+                        "data": records,
+                        "columns": col_defs,
+                        "title": title,
+                        "shape": shape,
+                        "framework": framework,
+                        "searchable": searchable,
+                        "sortable": sortable,
+                        "paginate": paginate,
+                        "pageSize": page_size,
+                        "showDtypes": show_dtypes,
+                        "showShape": show_shape,
+                        "striped": striped,
+                        **props,
+                    },
+                )
+            )
+    except ImportError:
+        pass
+
+    # Polars DataFrame
+    try:
+        import polars as pl
+        if isinstance(data, pl.DataFrame):
+            framework = "polars"
+            shape = [data.height, data.width]
+            col_defs = [
+                {"key": col, "title": col, "dtype": str(data[col].dtype)}
+                for col in data.columns
+            ]
+            records = data.head(max_rows).to_dicts()
+            return _add_to_current_container(
+                Component(
+                    type="DataFrameView",
+                    props={
+                        "data": records,
+                        "columns": col_defs,
+                        "title": title,
+                        "shape": shape,
+                        "framework": framework,
+                        "searchable": searchable,
+                        "sortable": sortable,
+                        "paginate": paginate,
+                        "pageSize": page_size,
+                        "showDtypes": show_dtypes,
+                        "showShape": show_shape,
+                        "striped": striped,
+                        **props,
+                    },
+                )
+            )
+    except ImportError:
+        pass
+
+    # Fallback: list of dicts or generic
+    if hasattr(data, "to_dict"):
+        records = data.to_dict("records")
+    elif isinstance(data, list):
+        records = data
+    else:
+        records = []
+
+    return _add_to_current_container(
+        Component(
+            type="DataFrameView",
+            props={
+                "data": records,
+                "columns": col_defs,
+                "title": title,
+                "shape": shape,
+                "framework": framework,
+                "searchable": searchable,
+                "sortable": sortable,
+                "paginate": paginate,
+                "pageSize": page_size,
+                "showDtypes": show_dtypes,
+                "showShape": show_shape,
+                "striped": striped,
+                **props,
+            },
+        )
+    )
+
+
+def plotly_chart(
+    figure: Any,
+    title: str | None = None,
+    height: int = 400,
+    responsive: bool = True,
+    config: dict[str, Any] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Render a Plotly figure natively using Plotly.js.
+
+    Args:
+        figure: A plotly.graph_objects.Figure or plotly.express figure.
+        title: Optional title (overrides figure layout title).
+        height: Chart height in pixels.
+        responsive: Auto-resize with container.
+        config: Plotly config options (displayModeBar, scrollZoom, etc.).
+
+    Example:
+        import plotly.express as px
+        fig = px.scatter(df, x="x", y="y", color="category")
+        plotly_chart(fig, height=500)
+    """
+    # Convert plotly figure to JSON
+    fig_json: dict[str, Any] | str = {}
+    try:
+        import plotly.graph_objects
+        if isinstance(figure, plotly.graph_objects.Figure):
+            fig_json = figure.to_plotly_json()
+            if title:
+                if isinstance(fig_json, dict):
+                    fig_json.setdefault("layout", {})["title"] = title
+    except ImportError:
+        pass
+
+    # If it's a dict (manual plotly spec), use as-is
+    if isinstance(figure, dict):
+        fig_json = figure
+        if title:
+            fig_json.setdefault("layout", {})["title"] = title
+
+    return _add_to_current_container(
+        Component(
+            type="PlotlyChart",
+            props={
+                "figure": fig_json,
+                "height": height,
+                "responsive": responsive,
+                "config": config or {},
+                **props,
+            },
+        )
+    )
+
+
+def mpl(
+    figure: Any = None,
+    title: str | None = None,
+    format: str = "svg",
+    dpi: int = 150,
+    tight: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Render a matplotlib figure as SVG or PNG.
+
+    If no figure is passed, uses the current pyplot figure (plt.gcf()).
+
+    Args:
+        figure: A matplotlib Figure. If None, uses plt.gcf().
+        title: Optional title displayed above the figure.
+        format: Output format — "svg" (default, crisp) or "png" (raster).
+        dpi: Resolution for PNG output.
+        tight: Use tight bounding box.
+
+    Example:
+        import matplotlib.pyplot as plt
+        plt.plot([1, 2, 3], [4, 5, 6])
+        mpl()  # renders current figure
+
+        fig, ax = plt.subplots()
+        ax.bar(["A", "B", "C"], [10, 20, 15])
+        mpl(fig, title="Bar Chart")
+    """
+    import base64
+    import io
+
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.figure
+
+        if figure is None:
+            figure = plt.gcf()
+
+        if not isinstance(figure, matplotlib.figure.Figure):
+            raise TypeError(f"Expected matplotlib Figure, got {type(figure).__name__}")
+
+        buf = io.BytesIO()
+        bbox = "tight" if tight else None
+        figure.savefig(buf, format=format, bbox_inches=bbox, dpi=dpi)
+        buf.seek(0)
+
+        if format == "svg":
+            svg_str = buf.getvalue().decode("utf-8")
+            plt.close(figure)
+            return _add_to_current_container(
+                Component(
+                    type="MplChart",
+                    props={
+                        "svg": svg_str,
+                        "title": title,
+                        "format": "svg",
+                        **props,
+                    },
+                )
+            )
+        else:
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            plt.close(figure)
+            return _add_to_current_container(
+                Component(
+                    type="MplChart",
+                    props={
+                        "src": f"data:image/png;base64,{b64}",
+                        "title": title,
+                        "format": "png",
+                        **props,
+                    },
+                )
+            )
+    except ImportError:
+        return _add_to_current_container(
+            Component(
+                type="Alert",
+                props={
+                    "message": "matplotlib is not installed. Install it with: pip install matplotlib",
+                    "variant": "warning",
+                },
+            )
+        )
+
+
+def sql_query(
+    connection: str | Any,
+    query: str = "",
+    title: str | None = None,
+    editable: bool = True,
+    auto_run: bool = False,
+    page_size: int = 25,
+    max_rows: int = 1000,
+    on_query: Any = None,
+    **props: Any,
+) -> Component:
+    """
+    SQL query component with connection management and result display.
+
+    Supports SQLite (built-in), and any SQLAlchemy-compatible connection string.
+    Results are displayed in a rich DataFrameView table.
+
+    Args:
+        connection: Database connection string (e.g. "sqlite:///db.sqlite3",
+                    "postgresql://user:pass@host/db") or a SQLAlchemy engine.
+        query: Initial SQL query to display in the editor.
+        title: Optional title above the query editor.
+        editable: Allow editing the SQL query.
+        auto_run: Automatically run the initial query on load.
+        page_size: Rows per page in results.
+        max_rows: Maximum rows to return.
+        on_query: Event handler called with query results.
+
+    Example:
+        sql_query("sqlite:///mydata.db", query="SELECT * FROM users LIMIT 10")
+    """
+    # Validate connection string
+    conn_type = "unknown"
+    if isinstance(connection, str):
+        if connection.startswith("sqlite"):
+            conn_type = "sqlite"
+        elif "://" in connection:
+            conn_type = "sqlalchemy"
+    else:
+        conn_type = "engine"
+
+    return _add_to_current_container(
+        Component(
+            type="SqlQuery",
+            props={
+                "connection": connection if isinstance(connection, str) else repr(connection),
+                "connType": conn_type,
+                "query": query,
+                "title": title,
+                "editable": editable,
+                "autoRun": auto_run,
+                "pageSize": page_size,
+                "maxRows": max_rows,
+                "on_query": on_query,
                 **props,
             },
         )
@@ -2875,6 +3264,11 @@ __all__ = [
     "virtual_list",
     # Panel
     "panel",
+    # Data Ecosystem
+    "dataframe",
+    "plotly_chart",
+    "mpl",
+    "sql_query",
     # AI / Prompture
     "extract",
     "cost_dashboard",

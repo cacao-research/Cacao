@@ -5,6 +5,7 @@ export { GaugeChart } from './GaugeChart.js';
 export { HeatmapChart } from './HeatmapChart.js';
 export { LineChart } from './LineChart.js';
 export { PieChart } from './PieChart.js';
+export { PlotlyChart } from './PlotlyChart.js';
 export { RadarChart } from './RadarChart.js';
 export { ScatterChart } from './ScatterChart.js';
 export { TreemapChart } from './TreemapChart.js';
