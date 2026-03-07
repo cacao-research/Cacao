@@ -22,8 +22,6 @@ The ``register`` callable receives the Cacao plugin instance::
 
 from __future__ import annotations
 
-import importlib
-import json
 import logging
 import subprocess
 import sys
@@ -166,16 +164,17 @@ def discover_extensions() -> dict[str, ExtensionInfo]:
         eps = entry_points(group=ENTRY_POINT_GROUP)
     except TypeError:
         # Python < 3.12 fallback
-        eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[assignment]
+        eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[arg-type]
 
     for ep in eps:
         try:
             dist = ep.dist
+            meta: Any = dist.metadata if dist else None
             extensions[ep.name] = ExtensionInfo(
                 name=ep.name,
                 version=str(dist.version) if dist else "0.0.0",
-                description=(dist.metadata.get("Summary", "") if dist else ""),
-                author=(dist.metadata.get("Author", "") if dist else ""),
+                description=(meta.get("Summary", "") if meta else ""),
+                author=(meta.get("Author", "") if meta else ""),
                 installed=True,
                 entry_point=f"{ep.value}",
             )
@@ -202,7 +201,7 @@ def load_extensions() -> list[str]:
             try:
                 eps = entry_points(group=ENTRY_POINT_GROUP)
             except TypeError:
-                eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[assignment]
+                eps = entry_points().get(ENTRY_POINT_GROUP, [])  # type: ignore[arg-type]
 
             for ep in eps:
                 if ep.name == ext_name:
@@ -557,7 +556,9 @@ def search_themes(query: str = "", tags: list[str] | None = None) -> list[ThemeD
         # Query filter
         if query:
             q = query.lower()
-            searchable = f"{theme.name} {theme.display_name} {theme.description} {theme.author}".lower()
+            searchable = (
+                f"{theme.name} {theme.display_name} {theme.description} {theme.author}".lower()
+            )
             if q not in searchable:
                 continue
 

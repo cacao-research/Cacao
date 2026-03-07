@@ -33,7 +33,9 @@ def install_command(args: list[str]) -> None:
         prog="cacao install",
         description="Install a Cacao extension or theme",
     )
-    parser.add_argument("name", nargs="?", help="Extension name (e.g. 'my-widget' or 'cacao-my-widget')")
+    parser.add_argument(
+        "name", nargs="?", help="Extension name (e.g. 'my-widget' or 'cacao-my-widget')"
+    )
     parser.add_argument("--upgrade", "-U", action="store_true", help="Upgrade if already installed")
     parser.add_argument("--theme", metavar="THEME", help="Install a theme from the marketplace")
 
@@ -73,7 +75,7 @@ def _install_extension(name: str, *, upgrade: bool = False) -> None:
             if info.description:
                 print(f"  {info.description}")
         print()
-        print(f"  The extension will be loaded automatically when your app starts.")
+        print("  The extension will be loaded automatically when your app starts.")
         print(f"  You can verify with: {CYAN}cacao extensions{RESET}")
     else:
         print(f"  {RED}Failed to install {pkg}{RESET}")
@@ -98,13 +100,13 @@ def _install_theme(name: str) -> None:
         if builtin.preview_colors:
             print(f"  Colors: {', '.join(builtin.preview_colors)}")
         print()
-        print(f"  Use it with: {CYAN}c.config(theme=\"{name}\"){RESET}")
+        print(f'  Use it with: {CYAN}c.config(theme="{name}"){RESET}')
         return
 
     print(f"{CYAN}Installing theme: {name}...{RESET}")
     if install_theme(name):
         print(f"  {GREEN}Theme '{name}' installed{RESET}")
-        print(f"  Use it with: {CYAN}c.config(theme=\"{name}\"){RESET}")
+        print(f'  Use it with: {CYAN}c.config(theme="{name}"){RESET}')
     else:
         print(f"  {RED}Theme '{name}' not found{RESET}")
         print(f"  Available themes: {CYAN}cacao extensions --themes{RESET}")
@@ -213,7 +215,7 @@ def _show_themes() -> None:
             print(f"    Preview: {' '.join(theme.preview_colors)}")
         print()
 
-    print(f"  {DIM}Use a theme: c.config(theme=\"<name>\"){RESET}")
+    print(f'  {DIM}Use a theme: c.config(theme="<name>"){RESET}')
     print(f"  {DIM}Install external: cacao install --theme <name>{RESET}")
     print()
 
@@ -229,11 +231,11 @@ def _show_handlers() -> None:
 
     # Always show built-in handlers
     print(f"  {GREEN}built-in{RESET} (always available)")
-    print(f"    encoders: base64, url, html, jwt, hex, csv")
-    print(f"    generators: uuid, password, lorem, random")
-    print(f"    converters: yaml, case, number bases")
-    print(f"    text: stats, regex, reverse, word wrap")
-    print(f"    crypto: sha256, md5, hmac")
+    print("    encoders: base64, url, html, jwt, hex, csv")
+    print("    generators: uuid, password, lorem, random")
+    print("    converters: yaml, case, number bases")
+    print("    text: stats, regex, reverse, word wrap")
+    print("    crypto: sha256, md5, hmac")
     print()
 
     if plugins:
@@ -274,6 +276,6 @@ def _create_extension(name: str) -> None:
     dir_name = f"cacao-{name}" if not name.startswith("cacao-") else name
     print(f"    1. cd {dir_name}")
     print(f"    2. Edit {pkg_name}/__init__.py to add your extension logic")
-    print(f"    3. pip install -e .     (install locally for development)")
-    print(f"    4. cacao extensions     (verify it's loaded)")
+    print("    3. pip install -e .     (install locally for development)")
+    print("    4. cacao extensions     (verify it's loaded)")
     print()

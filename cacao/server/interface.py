@@ -21,7 +21,6 @@ import asyncio
 import inspect
 import re
 import traceback
-import uuid
 from collections.abc import Callable
 from typing import (
     Any,
@@ -33,9 +32,7 @@ from typing import (
 )
 
 from .session import Session
-from .signal import Signal
 from .ui import Component, _add_to_current_container, _container_context
-
 
 # =============================================================================
 # I/O Marker Types (lightweight, for type hints only)
@@ -499,7 +496,6 @@ def _register_interface_handler(
     timeout: float,
 ) -> None:
     """Register the server-side event handler for an interface."""
-    from .app import App
 
     # We need to lazily register on the app. The event system is global.
     # The handler will be registered when the first event arrives (or we can
@@ -569,25 +565,19 @@ async def handle_interface_event(
         elif info["is_async"]:
             result = await asyncio.wait_for(fn(**kwargs), timeout=timeout)
             output = _serialize_output(result)
-            await session.send(
-                {"type": "interface:result", "id": iface_id, "output": output}
-            )
+            await session.send({"type": "interface:result", "id": iface_id, "output": output})
         else:
             # Run sync function in thread pool
-            result = await asyncio.wait_for(
-                asyncio.to_thread(fn, **kwargs), timeout=timeout
-            )
+            result = await asyncio.wait_for(asyncio.to_thread(fn, **kwargs), timeout=timeout)
             output = _serialize_output(result)
-            await session.send(
-                {"type": "interface:result", "id": iface_id, "output": output}
-            )
+            await session.send({"type": "interface:result", "id": iface_id, "output": output})
 
         # Cache result
         if use_cache and not info["is_generator"] and not info["is_async_generator"]:
             cache_key = str(sorted(input_values.items()))
             session_cache = _cache_store.setdefault(session.id, {})
             iface_cache = session_cache.setdefault(iface_id, {})
-            iface_cache[cache_key] = output  # type: ignore[possibly-undefined]
+            iface_cache[cache_key] = output
 
     except asyncio.TimeoutError:
         await session.send(
@@ -638,9 +628,7 @@ async def _execute_streaming(
             token = await queue.get()
             if token is None:
                 break
-            await session.send(
-                {"type": "interface:stream", "id": iface_id, "token": token}
-            )
+            await session.send({"type": "interface:stream", "id": iface_id, "token": token})
         await session.send({"type": "interface:stream_done", "id": iface_id})
 
     await asyncio.wait_for(_stream(), timeout=timeout)
@@ -665,9 +653,7 @@ async def _execute_async_streaming(
                     "token": str(token),
                 }
             )
-        await session.send(
-            {"type": "interface:stream_done", "id": iface_id}
-        )
+        await session.send({"type": "interface:stream_done", "id": iface_id})
 
     await asyncio.wait_for(_run(), timeout=timeout)
 
@@ -702,19 +688,13 @@ async def _execute_with_progress(
         kwargs["progress"] = progress_callback
         result = await asyncio.wait_for(fn(**kwargs), timeout=timeout)
     else:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(fn, **kwargs), timeout=timeout
-        )
+        result = await asyncio.wait_for(asyncio.to_thread(fn, **kwargs), timeout=timeout)
 
     output = _serialize_output(result)
-    await session.send(
-        {"type": "interface:result", "id": iface_id, "output": output}
-    )
+    await session.send({"type": "interface:result", "id": iface_id, "output": output})
 
 
-def _coerce_inputs(
-    values: dict[str, Any], params: list[dict[str, Any]]
-) -> dict[str, Any]:
+def _coerce_inputs(values: dict[str, Any], params: list[dict[str, Any]]) -> dict[str, Any]:
     """Coerce string input values to their expected types."""
     result: dict[str, Any] = {}
     param_map = {p["name"]: p for p in params}
@@ -755,9 +735,11 @@ def _serialize_output(result: Any) -> Any:
     # PIL Image → base64 PNG
     try:
         import PIL.Image
+
         if isinstance(result, PIL.Image.Image):
             import base64
             import io
+
             buf = io.BytesIO()
             fmt = "PNG" if result.mode == "RGBA" else "JPEG"
             result.save(buf, format=fmt)
@@ -770,14 +752,17 @@ def _serialize_output(result: Any) -> Any:
     # Matplotlib figure → base64 PNG
     try:
         import matplotlib.figure
+
         if isinstance(result, matplotlib.figure.Figure):
             import base64
             import io
+
             buf = io.BytesIO()
             result.savefig(buf, format="png", bbox_inches="tight", dpi=150)
             buf.seek(0)
             b64 = base64.b64encode(buf.getvalue()).decode("ascii")
             import matplotlib.pyplot as plt
+
             plt.close(result)
             return {"type": "image", "value": f"data:image/png;base64,{b64}"}
     except ImportError:
@@ -786,6 +771,7 @@ def _serialize_output(result: Any) -> Any:
     # Plotly figure → JSON
     try:
         import plotly.graph_objects
+
         if isinstance(result, plotly.graph_objects.Figure):
             return {"type": "plotly", "value": result.to_json()}
     except ImportError:
@@ -794,6 +780,7 @@ def _serialize_output(result: Any) -> Any:
     # Pandas DataFrame → table
     try:
         import pandas
+
         if isinstance(result, pandas.DataFrame):
             records = result.head(500).to_dict("records")
             return {"type": "table", "value": records}
@@ -803,6 +790,7 @@ def _serialize_output(result: Any) -> Any:
     # Polars DataFrame → table
     try:
         import polars
+
         if isinstance(result, polars.DataFrame):
             records = result.head(500).to_dicts()
             return {"type": "table", "value": records}
@@ -812,6 +800,7 @@ def _serialize_output(result: Any) -> Any:
     # bytes → file download (base64)
     if isinstance(result, bytes):
         import base64
+
         b64 = base64.b64encode(result).decode("ascii")
         return {"type": "file", "value": f"data:application/octet-stream;base64,{b64}"}
 
@@ -905,7 +894,9 @@ def parallel(
     **kwargs: Any,
 ) -> Component:
     """Run multiple functions side-by-side in a row layout."""
-    with _container_context(Component(type="Row", props={"gap": 4, "align": "stretch"})) as container:
+    with _container_context(
+        Component(type="Row", props={"gap": 4, "align": "stretch"})
+    ) as container:
         for i, fn in enumerate(fns):
             title = titles[i] if titles and i < len(titles) else None
             interface(fn, title=title, **kwargs)
@@ -938,21 +929,29 @@ def series(
             inputs.append(spec)
 
         output_mode = _type_to_output(info["return_type"])
-        exec_mode = "stream" if (info["is_generator"] or info["is_async_generator"]) else ("progress" if info["has_progress"] else "simple")
+        exec_mode = (
+            "stream"
+            if (info["is_generator"] or info["is_async_generator"])
+            else ("progress" if info["has_progress"] else "simple")
+        )
 
         title = titles[i] if titles and i < len(titles) else _fn_title(fn)
 
-        _register_interface_handler(iface_id, fn, info, kwargs.get("cache", False), kwargs.get("timeout", 60.0))
+        _register_interface_handler(
+            iface_id, fn, info, kwargs.get("cache", False), kwargs.get("timeout", 60.0)
+        )
 
-        interfaces.append({
-            "id": iface_id,
-            "title": title,
-            "description": _fn_description(fn),
-            "inputs": inputs,
-            "output_mode": output_mode,
-            "exec_mode": exec_mode,
-            "param_names": [p["name"] for p in info["params"]],
-        })
+        interfaces.append(
+            {
+                "id": iface_id,
+                "title": title,
+                "description": _fn_description(fn),
+                "inputs": inputs,
+                "output_mode": output_mode,
+                "exec_mode": exec_mode,
+                "param_names": [p["name"] for p in info["params"]],
+            }
+        )
 
     return _add_to_current_container(
         Component(
@@ -996,18 +995,26 @@ def compare(
 
         info = _inspect_function(fn)
         output_mode = _type_to_output(info["return_type"])
-        exec_mode = "stream" if (info["is_generator"] or info["is_async_generator"]) else ("progress" if info["has_progress"] else "simple")
+        exec_mode = (
+            "stream"
+            if (info["is_generator"] or info["is_async_generator"])
+            else ("progress" if info["has_progress"] else "simple")
+        )
 
         title = titles[i] if titles and i < len(titles) else _fn_title(fn)
 
-        _register_interface_handler(iface_id, fn, info, kwargs.get("cache", False), kwargs.get("timeout", 60.0))
+        _register_interface_handler(
+            iface_id, fn, info, kwargs.get("cache", False), kwargs.get("timeout", 60.0)
+        )
 
-        fn_specs.append({
-            "id": iface_id,
-            "title": title,
-            "output_mode": output_mode,
-            "exec_mode": exec_mode,
-        })
+        fn_specs.append(
+            {
+                "id": iface_id,
+                "title": title,
+                "output_mode": output_mode,
+                "exec_mode": exec_mode,
+            }
+        )
 
     return _add_to_current_container(
         Component(

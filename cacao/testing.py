@@ -29,15 +29,14 @@ import os
 import sys
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 from .server.session import Session, SessionManager
-from .server.signal import Computed, Signal
-
+from .server.signal import Signal
 
 # =============================================================================
 # Mock WebSocket
@@ -86,7 +85,8 @@ class MockWebSocket:
         """Get the most recent state update's changes, or empty dict."""
         updates = self.get_state_updates()
         if updates:
-            return updates[-1].get("changes", {})
+            last: dict[str, Any] = updates[-1].get("changes", {})
+            return last
         return {}
 
     def clear(self) -> None:

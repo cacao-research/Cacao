@@ -77,7 +77,8 @@ class ToolCall:
     def parsed_arguments(self) -> dict[str, Any]:
         """Parse the JSON arguments string."""
         try:
-            return json.loads(self.arguments)
+            result: dict[str, Any] = json.loads(self.arguments)
+            return result
         except (json.JSONDecodeError, TypeError):
             return {}
 
@@ -198,7 +199,9 @@ class SessionCostTracker:
             return False
         if self._budget_max_cost is not None and self._total_cost >= self._budget_max_cost * 0.8:
             return True
-        if self._budget_max_tokens is not None and self._total_tokens >= int(self._budget_max_tokens * 0.8):
+        if self._budget_max_tokens is not None and self._total_tokens >= int(
+            self._budget_max_tokens * 0.8
+        ):
             return True
         return False
 
@@ -211,15 +214,18 @@ class SessionCostTracker:
         by_model: dict[str, dict[str, Any]] = {}
         for rec in self._records:
             key = f"{rec.provider}/{rec.model}"
-            entry = by_model.setdefault(key, {
-                "provider": rec.provider,
-                "model": rec.model,
-                "calls": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-                "cost": 0.0,
-            })
+            entry = by_model.setdefault(
+                key,
+                {
+                    "provider": rec.provider,
+                    "model": rec.model,
+                    "calls": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "cost": 0.0,
+                },
+            )
             entry["calls"] += 1
             entry["prompt_tokens"] += rec.prompt_tokens
             entry["completion_tokens"] += rec.completion_tokens
@@ -260,7 +266,7 @@ class LLMProvider(ABC):
     """Base class for LLM provider adapters."""
 
     @abstractmethod
-    async def stream(
+    def stream(
         self,
         messages: list[dict[str, Any]],
         *,
@@ -385,7 +391,9 @@ class PromptureProvider(LLMProvider):
                     ToolCall(
                         id=tc.get("id", str(uuid.uuid4())),
                         name=tc["name"],
-                        arguments=json.dumps(tc["arguments"]) if isinstance(tc["arguments"], dict) else tc["arguments"],
+                        arguments=json.dumps(tc["arguments"])
+                        if isinstance(tc["arguments"], dict)
+                        else tc["arguments"],
                     )
                     for tc in response["tool_calls"]
                 ]
@@ -452,7 +460,9 @@ class PromptureProvider(LLMProvider):
                 ToolCall(
                     id=tc.get("id", str(uuid.uuid4())),
                     name=tc["name"],
-                    arguments=json.dumps(tc["arguments"]) if isinstance(tc["arguments"], dict) else tc["arguments"],
+                    arguments=json.dumps(tc["arguments"])
+                    if isinstance(tc["arguments"], dict)
+                    else tc["arguments"],
                 )
                 for tc in response["tool_calls"]
             ]
@@ -612,14 +622,16 @@ async def handle_chat_message(
         # Send budget exceeded error
         history: list[dict[str, Any]] = list(signal.get(session))
         history.append({"role": "user", "content": text})
-        history.append({
-            "role": "error",
-            "content": f"Budget exceeded (${tracker.total_cost:.4f} spent"
-            + (f", limit ${config.max_cost:.4f}" if config.max_cost else "")
-            + f"). {tracker.total_tokens} tokens used"
-            + (f", limit {config.max_budget_tokens}" if config.max_budget_tokens else "")
-            + ".",
-        })
+        history.append(
+            {
+                "role": "error",
+                "content": f"Budget exceeded (${tracker.total_cost:.4f} spent"
+                + (f", limit ${config.max_cost:.4f}" if config.max_cost else "")
+                + f"). {tracker.total_tokens} tokens used"
+                + (f", limit {config.max_budget_tokens}" if config.max_budget_tokens else "")
+                + ".",
+            }
+        )
         signal.set(session, history)
         await session.send_chat_done(signal_name)
         return
@@ -630,7 +642,8 @@ async def handle_chat_message(
         model = tracker.fallback_model
         logger.info(
             "Budget threshold reached for session '%s', degrading to '%s'",
-            session.id, model,
+            session.id,
+            model,
         )
 
     # Get current history
@@ -716,7 +729,7 @@ async def handle_chat_message(
 
             # Trim history if needed
             if config.max_history and len(history) > config.max_history:
-                history = history[-config.max_history:]
+                history = history[-config.max_history :]
 
             signal.set(session, history)
 
@@ -741,16 +754,20 @@ def _record_cost(
     if not meta:
         return
 
-    provider_name = config.provider if isinstance(config.provider, str) else type(config.provider).__name__
+    provider_name = (
+        config.provider if isinstance(config.provider, str) else type(config.provider).__name__
+    )
     tracker = get_cost_tracker(session_id)
-    tracker.record(UsageRecord(
-        provider=provider_name,
-        model=model,
-        prompt_tokens=meta.get("prompt_tokens", 0),
-        completion_tokens=meta.get("completion_tokens", 0),
-        total_tokens=meta.get("total_tokens", 0),
-        cost=meta.get("cost", 0.0),
-    ))
+    tracker.record(
+        UsageRecord(
+            provider=provider_name,
+            model=model,
+            prompt_tokens=meta.get("prompt_tokens", 0),
+            completion_tokens=meta.get("completion_tokens", 0),
+            total_tokens=meta.get("total_tokens", 0),
+            cost=meta.get("cost", 0.0),
+        )
+    )
 
 
 async def _continue_after_tools(
@@ -827,7 +844,7 @@ async def _continue_after_tools(
             history.append(assistant_msg)
 
             if config.max_history and len(history) > config.max_history:
-                history = history[-config.max_history:]
+                history = history[-config.max_history :]
 
             signal.set(session, history)
 
@@ -883,9 +900,7 @@ async def stream_to_chat(
             def _run() -> None:
                 try:
                     for token in fn(*args, **kwargs):
-                        asyncio.run_coroutine_threadsafe(
-                            queue.put(str(token)), loop
-                        ).result()
+                        asyncio.run_coroutine_threadsafe(queue.put(str(token)), loop).result()
                 finally:
                     asyncio.run_coroutine_threadsafe(queue.put(None), loop).result()
 
@@ -1029,7 +1044,10 @@ async def ingest_document(
 
     if schema is not None:
         extraction = await extract_structured(
-            doc.text, schema=schema, model=model, api_key=api_key,
+            doc.text,
+            schema=schema,
+            model=model,
+            api_key=api_key,
         )
         result["extracted"] = extraction.get("result", {})
         result["extraction_usage"] = extraction.get("usage", {})

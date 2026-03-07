@@ -1431,6 +1431,7 @@ def parallel(
     """Run multiple functions side-by-side."""
     _ensure_context()
     from .server.interface import parallel as _parallel_fn
+
     return _parallel_fn(*fns, titles=titles, **kwargs)
 
 
@@ -1442,6 +1443,7 @@ def series(
     """Chain functions — output of each feeds into the next."""
     _ensure_context()
     from .server.interface import series as _series_fn
+
     return _series_fn(*fns, titles=titles, **kwargs)
 
 
@@ -1453,6 +1455,7 @@ def compare(
     """Run same inputs through multiple functions, compare outputs."""
     _ensure_context()
     from .server.interface import compare as _compare_fn
+
     return _compare_fn(*fns, titles=titles, **kwargs)
 
 
@@ -1568,10 +1571,10 @@ def stream(
     """
     _ensure_context()
     from .server.llm import stream_to_chat
-    from .server.ui import chat as _ui_chat
 
     # Create signal for this stream instance
     from .server.signal import Signal as _Signal
+    from .server.ui import chat as _ui_chat
 
     sig_name = f"stream_{id(fn)}"
     if signal is None:
@@ -2057,11 +2060,19 @@ def sql_query(
 
 
 # Re-export I/O marker types for use in function signatures
-from .server.interface import Audio, Code, DataFrame, File, Image, Markdown, Plot, Video  # noqa: E402
+from .server.interface import (  # noqa: E402
+    Audio,
+    Code,
+    DataFrame,
+    File,
+    Image,
+    Markdown,
+    Plot,
+    Video,
+)
 
 # Re-export LLM types for tool calling
 from .server.llm import ChatConfig, ToolSpec  # noqa: E402
-
 
 # =============================================================================
 # Auto-discovery: wrap all ui.py component functions automatically
@@ -2297,11 +2308,6 @@ __all__ = [
     "cost_dashboard",
     "document_upload",
     "model_picker",
-    # Tukuy Skills
-    "skill",
-    "skill_browser",
-    "chain_builder",
-    "safety_policy",
     # Agent Components
     "agent",
     "multi_agent",

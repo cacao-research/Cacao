@@ -379,7 +379,11 @@ def run_command(args: list[str]) -> None:
     )
     parser.add_argument("--no-reload", action="store_true", help="Disable hot reload")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode (verbose WS logging + browser DevTools)")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode (verbose WS logging + browser DevTools)",
+    )
 
     parsed_args = parser.parse_args(args)
 
@@ -423,7 +427,10 @@ def run_command(args: list[str]) -> None:
     )
 
     if verbose:
-        print(f"  {CYAN}Debug mode enabled{RESET} — verbose WS logging + browser DevTools (Ctrl+Shift+D)")
+        print(
+            f"  {CYAN}Debug mode enabled{RESET}"
+            " — verbose WS logging + browser DevTools (Ctrl+Shift+D)"
+        )
         print()
 
     try:
@@ -640,7 +647,8 @@ def build_command(args: list[str]) -> None:
         "--base-path", default="", help="Base path for deployment (e.g., /my-repo for GitHub Pages)"
     )
     parser.add_argument(
-        "--embed-url", default="",
+        "--embed-url",
+        default="",
         help="URL where the app will be hosted (generates embed snippet)",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")

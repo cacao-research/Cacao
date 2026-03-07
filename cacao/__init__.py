@@ -47,7 +47,7 @@ except Exception:
     )
 
 
-def __getattr__(name: str):  # type: ignore[misc]
+def __getattr__(name: str) -> None:
     """Provide helpful 'Did you mean?' messages for typos in component names."""
     # Skip private/dunder names — let Python raise the default error
     if name.startswith("_"):

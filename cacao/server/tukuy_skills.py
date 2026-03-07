@@ -25,21 +25,23 @@ logger = get_logger("cacao.tukuy")
 # Lazy Tukuy imports (graceful fallback if not installed)
 # =============================================================================
 
+
 def _get_tukuy() -> Any:
     """Import tukuy lazily. Raises ImportError if not installed."""
     try:
         import tukuy
+
         return tukuy
     except ImportError:
         raise ImportError(
-            "Tukuy is required for skill components. "
-            "Install it with: pip install tukuy"
+            "Tukuy is required for skill components. Install it with: pip install tukuy"
         )
 
 
 # =============================================================================
 # Skill Invocation
 # =============================================================================
+
 
 async def handle_skill_invoke(
     session: Session,
@@ -49,20 +51,22 @@ async def handle_skill_invoke(
 ) -> None:
     """Invoke a Tukuy skill and send the result back to the client."""
     try:
-        tukuy = _get_tukuy()
-        from tukuy import search_tools, get_tool_details
+        _get_tukuy()
+        from tukuy import get_tool_details
 
         # Find the skill
         details = get_tool_details(skill_name)
         if not details:
-            await session.send({
-                "type": "skill:error",
-                "id": invoke_id,
-                "error": f"Skill '{skill_name}' not found",
-            })
+            await session.send(
+                {
+                    "type": "skill:error",
+                    "id": invoke_id,
+                    "error": f"Skill '{skill_name}' not found",
+                }
+            )
             return
 
-        skill_info = details[0]
+        details[0]
 
         # Get the actual skill object from the plugin system
         from tukuy.availability import get_available_skills
@@ -78,111 +82,134 @@ async def handle_skill_invoke(
                 break
 
         if skill_obj is None:
-            await session.send({
-                "type": "skill:error",
-                "id": invoke_id,
-                "error": f"Skill '{skill_name}' could not be loaded",
-            })
+            await session.send(
+                {
+                    "type": "skill:error",
+                    "id": invoke_id,
+                    "error": f"Skill '{skill_name}' could not be loaded",
+                }
+            )
             return
 
         # Invoke the skill
         result = await asyncio.to_thread(skill_obj.invoke, **inputs)
 
-        await session.send({
-            "type": "skill:result",
-            "id": invoke_id,
-            "value": result.value if result.success else None,
-            "error": str(result.error) if result.error else None,
-            "success": result.success,
-            "duration_ms": result.duration_ms,
-            "metadata": result.metadata if hasattr(result, "metadata") else {},
-        })
+        await session.send(
+            {
+                "type": "skill:result",
+                "id": invoke_id,
+                "value": result.value if result.success else None,
+                "error": str(result.error) if result.error else None,
+                "success": result.success,
+                "duration_ms": result.duration_ms,
+                "metadata": result.metadata if hasattr(result, "metadata") else {},
+            }
+        )
 
     except Exception as e:
         logger.warning("Skill invoke error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "skill:error",
-            "id": invoke_id,
-            "error": str(e),
-            "traceback": traceback.format_exc(),
-        })
+        await session.send(
+            {
+                "type": "skill:error",
+                "id": invoke_id,
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            }
+        )
 
 
 # =============================================================================
 # Skill Discovery
 # =============================================================================
 
+
 async def handle_skill_browse(session: Session) -> None:
     """Browse all available Tukuy skills."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import browse_tools
 
         index = await asyncio.to_thread(browse_tools)
 
-        await session.send({
-            "type": "skill:browse_result",
-            "index": index,
-        })
+        await session.send(
+            {
+                "type": "skill:browse_result",
+                "index": index,
+            }
+        )
 
     except Exception as e:
         logger.warning("Skill browse error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "skill:browse_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "skill:browse_error",
+                "error": str(e),
+            }
+        )
 
 
 async def handle_skill_search(
-    session: Session, query: str, limit: int = 20,
+    session: Session,
+    query: str,
+    limit: int = 20,
 ) -> None:
     """Search Tukuy skills by keyword."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import search_tools
 
         results = await asyncio.to_thread(search_tools, query, limit=limit)
 
-        await session.send({
-            "type": "skill:search_result",
-            "query": query,
-            "results": results,
-        })
+        await session.send(
+            {
+                "type": "skill:search_result",
+                "query": query,
+                "results": results,
+            }
+        )
 
     except Exception as e:
         logger.warning("Skill search error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "skill:search_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "skill:search_error",
+                "error": str(e),
+            }
+        )
 
 
 async def handle_skill_details(
-    session: Session, skill_names: list[str],
+    session: Session,
+    skill_names: list[str],
 ) -> None:
     """Get detailed info for specific skills."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import get_tool_details
 
         details = await asyncio.to_thread(get_tool_details, *skill_names)
 
-        await session.send({
-            "type": "skill:details_result",
-            "details": details,
-        })
+        await session.send(
+            {
+                "type": "skill:details_result",
+                "details": details,
+            }
+        )
 
     except Exception as e:
         logger.warning("Skill details error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "skill:details_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "skill:details_error",
+                "error": str(e),
+            }
+        )
 
 
 # =============================================================================
 # Chain Execution
 # =============================================================================
+
 
 async def handle_chain_run(
     session: Session,
@@ -192,20 +219,22 @@ async def handle_chain_run(
 ) -> None:
     """Execute a Tukuy chain and stream step-by-step results."""
     try:
-        tukuy = _get_tukuy()
-        from tukuy import Chain, Branch, Parallel
+        _get_tukuy()
+        from tukuy import Chain
 
         # Build steps from serialized definitions
         resolved_steps = _resolve_chain_steps(steps)
 
-        chain = Chain(resolved_steps)
+        Chain(resolved_steps)
 
         # Send start notification
-        await session.send({
-            "type": "chain:started",
-            "id": chain_id,
-            "step_count": len(resolved_steps),
-        })
+        await session.send(
+            {
+                "type": "chain:started",
+                "id": chain_id,
+                "step_count": len(resolved_steps),
+            }
+        )
 
         # Run the chain (we can't easily intercept per-step in Chain,
         # so we run sequentially and report each step)
@@ -218,44 +247,54 @@ async def handle_chain_run(
                 result = await asyncio.to_thread(step_chain.run, current_value)
                 current_value = result
 
-                await session.send({
-                    "type": "chain:step_result",
-                    "id": chain_id,
-                    "step_index": i,
-                    "step_name": step_name,
-                    "value": _serialize_value(result),
-                    "success": True,
-                })
+                await session.send(
+                    {
+                        "type": "chain:step_result",
+                        "id": chain_id,
+                        "step_index": i,
+                        "step_name": step_name,
+                        "value": _serialize_value(result),
+                        "success": True,
+                    }
+                )
             except Exception as step_error:
-                await session.send({
-                    "type": "chain:step_result",
-                    "id": chain_id,
-                    "step_index": i,
-                    "step_name": step_name,
-                    "error": str(step_error),
-                    "success": False,
-                })
+                await session.send(
+                    {
+                        "type": "chain:step_result",
+                        "id": chain_id,
+                        "step_index": i,
+                        "step_name": step_name,
+                        "error": str(step_error),
+                        "success": False,
+                    }
+                )
                 # Stop the chain on error
-                await session.send({
-                    "type": "chain:error",
-                    "id": chain_id,
-                    "error": f"Step '{step_name}' failed: {step_error}",
-                })
+                await session.send(
+                    {
+                        "type": "chain:error",
+                        "id": chain_id,
+                        "error": f"Step '{step_name}' failed: {step_error}",
+                    }
+                )
                 return
 
-        await session.send({
-            "type": "chain:result",
-            "id": chain_id,
-            "value": _serialize_value(current_value),
-        })
+        await session.send(
+            {
+                "type": "chain:result",
+                "id": chain_id,
+                "value": _serialize_value(current_value),
+            }
+        )
 
     except Exception as e:
         logger.warning("Chain run error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "chain:error",
-            "id": chain_id,
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "chain:error",
+                "id": chain_id,
+                "error": str(e),
+            }
+        )
 
 
 def _resolve_chain_steps(steps: list[dict[str, Any]]) -> list[Any]:
@@ -275,20 +314,28 @@ def _resolve_chain_steps(steps: list[dict[str, Any]]) -> list[Any]:
             resolved.append(name)
         elif step_type == "branch":
             from tukuy import Branch
+
             true_path = _resolve_chain_steps(step.get("true_path", []))
             false_path = _resolve_chain_steps(step.get("false_path", []))
-            resolved.append(Branch(
-                on_match=lambda v, cond=step.get("condition", ""): bool(v) if not cond else eval(cond, {"v": v}),
-                true_path=true_path,
-                false_path=false_path if false_path else None,
-            ))
+            resolved.append(
+                Branch(
+                    on_match=lambda v, cond=step.get("condition", ""): (
+                        bool(v) if not cond else eval(cond, {"v": v})
+                    ),
+                    true_path=true_path,
+                    false_path=false_path if false_path else None,
+                )
+            )
         elif step_type == "parallel":
             from tukuy import Parallel
+
             sub_steps = _resolve_chain_steps(step.get("steps", []))
-            resolved.append(Parallel(
-                steps=sub_steps,
-                merge=step.get("merge", "dict"),
-            ))
+            resolved.append(
+                Parallel(
+                    steps=sub_steps,
+                    merge=step.get("merge", "dict"),
+                )
+            )
 
     return resolved
 
@@ -308,6 +355,7 @@ def _serialize_value(value: Any) -> Any:
 # Tukuy Transformer Bridge (replaces Phase 6 JS handlers)
 # =============================================================================
 
+
 async def handle_transform(
     session: Session,
     transform_id: str,
@@ -317,9 +365,10 @@ async def handle_transform(
 ) -> None:
     """Run a Tukuy transformer server-side (replaces client-side JS handlers)."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import Chain
 
+        step: Any
         if params:
             step = {"function": transformer_name, **params}
         else:
@@ -328,25 +377,29 @@ async def handle_transform(
         chain = Chain([step])
         result = await asyncio.to_thread(chain.run, input_value)
 
-        await session.send({
-            "type": "transform:result",
-            "id": transform_id,
-            "value": _serialize_value(result),
-        })
+        await session.send(
+            {
+                "type": "transform:result",
+                "id": transform_id,
+                "value": _serialize_value(result),
+            }
+        )
 
     except Exception as e:
         logger.warning("Transform error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "transform:error",
-            "id": transform_id,
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "transform:error",
+                "id": transform_id,
+                "error": str(e),
+            }
+        )
 
 
 async def handle_transform_list(session: Session) -> None:
     """List all available Tukuy transformers (for the transformer bridge)."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import browse_tools
 
         index = await asyncio.to_thread(browse_tools)
@@ -358,18 +411,22 @@ async def handle_transform_list(session: Session) -> None:
             if tools:
                 transformers[plugin_name] = tools
 
-        await session.send({
-            "type": "transform:list_result",
-            "transformers": transformers,
-            "total_count": index.get("total_count", 0),
-        })
+        await session.send(
+            {
+                "type": "transform:list_result",
+                "transformers": transformers,
+                "total_count": index.get("total_count", 0),
+            }
+        )
 
     except Exception as e:
         logger.warning("Transform list error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "transform:list_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "transform:list_error",
+                "error": str(e),
+            }
+        )
 
 
 # =============================================================================
@@ -386,7 +443,7 @@ async def handle_safety_set(
 ) -> None:
     """Set the Tukuy safety policy for the current session."""
     try:
-        tukuy = _get_tukuy()
+        _get_tukuy()
         from tukuy import SafetyPolicy
 
         preset = policy_config.get("preset")
@@ -409,24 +466,32 @@ async def handle_safety_set(
 
         _session_policies[session.id] = policy
 
-        await session.send({
-            "type": "safety:set_result",
-            "success": True,
-            "policy": {
-                "preset": preset,
-                "allowed_imports": list(policy.allowed_imports) if policy.allowed_imports else None,
-                "blocked_imports": list(policy.blocked_imports) if policy.blocked_imports else None,
-                "allow_network": policy.allow_network,
-                "allow_filesystem": policy.allow_filesystem,
-            },
-        })
+        await session.send(
+            {
+                "type": "safety:set_result",
+                "success": True,
+                "policy": {
+                    "preset": preset,
+                    "allowed_imports": list(policy.allowed_imports)
+                    if policy.allowed_imports
+                    else None,
+                    "blocked_imports": list(policy.blocked_imports)
+                    if policy.blocked_imports
+                    else None,
+                    "allow_network": policy.allow_network,
+                    "allow_filesystem": policy.allow_filesystem,
+                },
+            }
+        )
 
     except Exception as e:
         logger.warning("Safety policy error: %s", e, extra={"label": "tukuy"})
-        await session.send({
-            "type": "safety:set_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "safety:set_error",
+                "error": str(e),
+            }
+        )
 
 
 async def handle_safety_get(session: Session) -> None:
@@ -435,28 +500,38 @@ async def handle_safety_get(session: Session) -> None:
         policy = _session_policies.get(session.id)
 
         if policy is None:
-            await session.send({
-                "type": "safety:get_result",
-                "policy": None,
-                "message": "No policy set (unrestricted)",
-            })
+            await session.send(
+                {
+                    "type": "safety:get_result",
+                    "policy": None,
+                    "message": "No policy set (unrestricted)",
+                }
+            )
             return
 
-        await session.send({
-            "type": "safety:get_result",
-            "policy": {
-                "allowed_imports": list(policy.allowed_imports) if policy.allowed_imports else None,
-                "blocked_imports": list(policy.blocked_imports) if policy.blocked_imports else None,
-                "allow_network": policy.allow_network,
-                "allow_filesystem": policy.allow_filesystem,
-            },
-        })
+        await session.send(
+            {
+                "type": "safety:get_result",
+                "policy": {
+                    "allowed_imports": list(policy.allowed_imports)
+                    if policy.allowed_imports
+                    else None,
+                    "blocked_imports": list(policy.blocked_imports)
+                    if policy.blocked_imports
+                    else None,
+                    "allow_network": policy.allow_network,
+                    "allow_filesystem": policy.allow_filesystem,
+                },
+            }
+        )
 
     except Exception as e:
-        await session.send({
-            "type": "safety:get_error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "safety:get_error",
+                "error": str(e),
+            }
+        )
 
 
 def get_session_policy(session_id: str) -> Any | None:

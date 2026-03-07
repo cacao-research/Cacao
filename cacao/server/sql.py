@@ -29,44 +29,44 @@ async def handle_sql_query(
     """Execute a SQL query and send results back to the client."""
     try:
         if conn_type == "sqlite":
-            results = await asyncio.to_thread(
-                _execute_sqlite, connection, query, max_rows
-            )
+            results = await asyncio.to_thread(_execute_sqlite, connection, query, max_rows)
         elif conn_type == "sqlalchemy":
-            results = await asyncio.to_thread(
-                _execute_sqlalchemy, connection, query, max_rows
-            )
+            results = await asyncio.to_thread(_execute_sqlalchemy, connection, query, max_rows)
         else:
-            await session.send({
-                "type": "sql:result",
-                "error": f"Unsupported connection type: {conn_type}",
-            })
+            await session.send(
+                {
+                    "type": "sql:result",
+                    "error": f"Unsupported connection type: {conn_type}",
+                }
+            )
             return
 
-        await session.send({
-            "type": "sql:result",
-            "data": results["data"],
-            "columns": results["columns"],
-            "rowcount": results["rowcount"],
-        })
+        await session.send(
+            {
+                "type": "sql:result",
+                "data": results["data"],
+                "columns": results["columns"],
+                "rowcount": results["rowcount"],
+            }
+        )
     except Exception as e:
         logger.exception("SQL query error", extra={"label": "sql"})
-        await session.send({
-            "type": "sql:error",
-            "error": str(e),
-        })
+        await session.send(
+            {
+                "type": "sql:error",
+                "error": str(e),
+            }
+        )
 
 
-def _execute_sqlite(
-    connection: str, query: str, max_rows: int
-) -> dict[str, Any]:
+def _execute_sqlite(connection: str, query: str, max_rows: int) -> dict[str, Any]:
     """Execute a query against a SQLite database."""
     # Parse connection string: sqlite:///path or just path
     db_path = connection
     if db_path.startswith("sqlite:///"):
-        db_path = db_path[len("sqlite:///"):]
+        db_path = db_path[len("sqlite:///") :]
     elif db_path.startswith("sqlite://"):
-        db_path = db_path[len("sqlite://"):]
+        db_path = db_path[len("sqlite://") :]
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -84,9 +84,7 @@ def _execute_sqlite(
         conn.close()
 
 
-def _execute_sqlalchemy(
-    connection: str, query: str, max_rows: int
-) -> dict[str, Any]:
+def _execute_sqlalchemy(connection: str, query: str, max_rows: int) -> dict[str, Any]:
     """Execute a query using SQLAlchemy."""
     try:
         from sqlalchemy import create_engine, text

@@ -48,6 +48,7 @@ GALLERY_REMOTE_URL = "https://raw.githubusercontent.com/cacao-research/gallery/m
 # Gallery entry schema
 # ---------------------------------------------------------------------------
 
+
 def _make_entry(
     *,
     name: str,
@@ -83,6 +84,7 @@ def _make_entry(
 # ---------------------------------------------------------------------------
 # Gallery storage
 # ---------------------------------------------------------------------------
+
 
 def _load_gallery() -> dict[str, Any]:
     """Load the local gallery index."""
@@ -131,6 +133,7 @@ def _merge_galleries(local: dict[str, Any], remote: dict[str, Any]) -> dict[str,
 # Embed snippet generation
 # ---------------------------------------------------------------------------
 
+
 def generate_embed_snippet(
     url: str,
     width: str = "100%",
@@ -139,7 +142,7 @@ def generate_embed_snippet(
 ) -> str:
     """Generate an HTML iframe embed snippet."""
     return (
-        f'<iframe\n'
+        f"<iframe\n"
         f'  src="{url}"\n'
         f'  width="{width}"\n'
         f'  height="{height}"\n'
@@ -147,24 +150,25 @@ def generate_embed_snippet(
         f'  frameborder="0"\n'
         f'  allow="clipboard-write; cross-origin-isolated"\n'
         f'  style="border: 1px solid #2a2a4a; border-radius: 8px;"\n'
-        f'></iframe>'
+        f"></iframe>"
     )
 
 
 def generate_embed_markdown(url: str, title: str = "Cacao App") -> str:
     """Generate a Markdown-compatible embed reference."""
     return (
-        f'<!-- Cacao App Embed -->\n'
+        f"<!-- Cacao App Embed -->\n"
         f'<iframe src="{url}" width="100%" height="600" '
         f'title="{title}" frameborder="0" '
         f'style="border: 1px solid #2a2a4a; border-radius: 8px;">'
-        f'</iframe>'
+        f"</iframe>"
     )
 
 
 # ---------------------------------------------------------------------------
 # `cacao publish` command
 # ---------------------------------------------------------------------------
+
 
 def publish_command(args: list[str]) -> None:
     """
@@ -184,43 +188,63 @@ def publish_command(args: list[str]) -> None:
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument(
-        "--name", type=str, default=None,
+        "--name",
+        type=str,
+        default=None,
         help="App name/slug (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--title", type=str, default=None,
+        "--title",
+        type=str,
+        default=None,
         help="Display title (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--description", "-d", type=str, default="",
+        "--description",
+        "-d",
+        type=str,
+        default="",
         help="Short description of the app",
     )
     parser.add_argument(
-        "--author", "-a", type=str, default="",
+        "--author",
+        "-a",
+        type=str,
+        default="",
         help="Author name",
     )
     parser.add_argument(
-        "--tags", type=str, default="",
+        "--tags",
+        type=str,
+        default="",
         help="Comma-separated tags (e.g., dashboard,ml,demo)",
     )
     parser.add_argument(
-        "--url", type=str, default="",
+        "--url",
+        type=str,
+        default="",
         help="Live URL where the app is hosted",
     )
     parser.add_argument(
-        "--source", type=str, default="",
+        "--source",
+        type=str,
+        default="",
         help="Source code URL (e.g., GitHub repo)",
     )
     parser.add_argument(
-        "--build", action="store_true",
+        "--build",
+        action="store_true",
         help="Build a static version before publishing",
     )
     parser.add_argument(
-        "--base-path", type=str, default="",
+        "--base-path",
+        type=str,
+        default="",
         help="Base path for static build (used with --build)",
     )
     parser.add_argument(
-        "--embed", action="store_true",
+        "--embed",
+        action="store_true",
         help="Print embed snippet after publishing",
     )
 
@@ -362,6 +386,7 @@ def _print_embed_info(url: str, title: str) -> None:
 # `cacao gallery` command
 # ---------------------------------------------------------------------------
 
+
 def gallery_command(args: list[str]) -> None:
     """
     Browse the Cacao app gallery.
@@ -373,27 +398,41 @@ def gallery_command(args: list[str]) -> None:
         description="Browse the Cacao app gallery",
     )
     parser.add_argument(
-        "search", nargs="?", default=None,
+        "search",
+        nargs="?",
+        default=None,
         help="Search term to filter apps",
     )
     parser.add_argument(
-        "--tag", "-t", type=str, default=None,
+        "--tag",
+        "-t",
+        type=str,
+        default=None,
         help="Filter by tag",
     )
     parser.add_argument(
-        "--author", "-a", type=str, default=None,
+        "--author",
+        "-a",
+        type=str,
+        default=None,
         help="Filter by author",
     )
     parser.add_argument(
-        "--remote", action="store_true",
+        "--remote",
+        action="store_true",
         help="Also fetch apps from the remote gallery",
     )
     parser.add_argument(
-        "--json", action="store_true", dest="output_json",
+        "--json",
+        action="store_true",
+        dest="output_json",
         help="Output as JSON",
     )
     parser.add_argument(
-        "--embed", type=str, default=None, metavar="APP_NAME",
+        "--embed",
+        type=str,
+        default=None,
+        metavar="APP_NAME",
         help="Show embed snippet for an app",
     )
 
@@ -432,7 +471,8 @@ def gallery_command(args: list[str]) -> None:
     if parsed.search:
         term = parsed.search.lower()
         apps = [
-            a for a in apps
+            a
+            for a in apps
             if term in a.get("name", "").lower()
             or term in a.get("title", "").lower()
             or term in a.get("description", "").lower()

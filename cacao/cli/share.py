@@ -28,7 +28,6 @@ from typing import Any
 
 from .commands import (
     BOLD,
-    BROWN,
     CYAN,
     DARK_BROWN,
     DIM,
@@ -303,7 +302,8 @@ def _print_qr_terminal(url: str) -> None:
         # Fallback: print a link to online QR generator
         from urllib.parse import urlencode
 
-        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?{urlencode({'data': url, 'size': '300x300'})}"
+        params = urlencode({"data": url, "size": "300x300"})
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?{params}"
         print(f"\n  {DIM}QR Code: {qr_url}{RESET}\n")
         print(f"  {DIM}Tip: pip install qrcode for in-terminal QR codes{RESET}\n")
 
@@ -322,22 +322,30 @@ def _add_password_middleware(app: Any, password: str) -> None:
         async def dispatch(self, request: Request, call_next: Any) -> Response:
             # Allow WebSocket connections that already authenticated
             if request.url.path == "/ws":
-                return await call_next(request)
+                resp: Response = await call_next(request)
+                return resp
 
             # Allow health check
             if request.url.path == "/health":
-                return await call_next(request)
+                resp = await call_next(request)
+                return resp
 
             # Check for auth cookie
             token = request.cookies.get("cacao_share_token")
             if token and hashlib.sha256(token.encode()).hexdigest() == password_hash:
-                return await call_next(request)
+                resp = await call_next(request)
+                return resp
 
             # Check for password in query param (for initial access)
             query_password = request.query_params.get("password")
-            if query_password and hashlib.sha256(query_password.encode()).hexdigest() == password_hash:
-                response = await call_next(request)
-                response.set_cookie("cacao_share_token", query_password, httponly=True, max_age=86400)
+            if (
+                query_password
+                and hashlib.sha256(query_password.encode()).hexdigest() == password_hash
+            ):
+                response: Response = await call_next(request)
+                response.set_cookie(
+                    "cacao_share_token", query_password, httponly=True, max_age=86400
+                )
                 return response
 
             # Check for Basic Auth header
@@ -347,7 +355,8 @@ def _add_password_middleware(app: Any, password: str) -> None:
                     decoded = base64.b64decode(auth[6:]).decode()
                     _, pwd = decoded.split(":", 1)
                     if hashlib.sha256(pwd.encode()).hexdigest() == password_hash:
-                        return await call_next(request)
+                        resp = await call_next(request)
+                        return resp
                 except Exception:
                     pass
 
@@ -432,7 +441,8 @@ def _get_login_page() -> str:
         document.getElementById('form').addEventListener('submit', function(e) {
             e.preventDefault();
             var pwd = document.getElementById('pwd').value;
-            window.location.href = window.location.pathname + '?password=' + encodeURIComponent(pwd);
+            var loc = window.location.pathname;
+            window.location.href = loc + '?password=' + encodeURIComponent(pwd);
         });
         if (window.location.search.includes('password=')) {
             document.getElementById('err').style.display = 'block';
@@ -454,23 +464,33 @@ def share_command(args: list[str]) -> None:
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument(
-        "--port", "-p", type=int, default=None,
+        "--port",
+        "-p",
+        type=int,
+        default=None,
         help="Local port (auto-selected if not specified)",
     )
     parser.add_argument(
-        "--password", type=str, default=None,
+        "--password",
+        type=str,
+        default=None,
         help="Password to protect the shared app",
     )
     parser.add_argument(
-        "--expire", type=float, default=72,
+        "--expire",
+        type=float,
+        default=72,
         help="Auto-expire after N hours (default: 72, 0 = never)",
     )
     parser.add_argument(
-        "--no-qr", action="store_true",
+        "--no-qr",
+        action="store_true",
         help="Don't display QR code",
     )
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
+        "--verbose",
+        "-v",
+        action="store_true",
         help="Enable verbose logging",
     )
 

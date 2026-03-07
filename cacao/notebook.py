@@ -117,7 +117,8 @@ def _build_iframe_html(
     <script>
         window.__CACAO_STATIC__ = true;
         window.__CACAO_DEFER_MOUNT__ = true;
-        window.__CACAO_PAGES__ = {{"pages": {{"/": {components_json}}}, "metadata": {{"title": "{title}", "theme": "{theme}"}}}};
+        window.__CACAO_PAGES__ = {{"pages": {{"/": {components_json}}},
+            "metadata": {{"title": "{title}", "theme": "{theme}"}}}};
         window.__CACAO_INITIAL_SIGNALS__ = {signals_json};
     <\\/script>
     <script>{js_content}<\\/script>
@@ -134,7 +135,8 @@ def _build_iframe_html(
             var h = document.documentElement.scrollHeight;
             window.parent.postMessage({{cacaoFrame: "{frame_id}", height: h}}, "*");
         }}
-        new MutationObserver(notifyHeight).observe(document.body, {{childList: true, subtree: true}});
+        var obs = new MutationObserver(notifyHeight);
+        obs.observe(document.body, {{childList: true, subtree: true}});
         setTimeout(notifyHeight, 100);
         setTimeout(notifyHeight, 500);
     <\\/script>
@@ -190,7 +192,8 @@ def display(
         c.metric("Users", 42)
         c.display()
     """
-    from IPython.display import HTML, display as ipython_display
+    from IPython.display import HTML
+    from IPython.display import display as ipython_display
 
     # Determine components to render
     if components:
@@ -308,7 +311,7 @@ class ReactiveDisplay:
         for name in signal_names:
             if name in all_signals:
                 sig = all_signals[name]
-                unsub = sig.subscribe(lambda _name, _val, _sess: self._refresh())
+                unsub = sig.subscribe(lambda _name, _val: self._refresh())
                 self._subscriptions.append(unsub)
 
     def _find_signal_refs(self, components: list[Component]) -> set[str]:
@@ -363,7 +366,8 @@ class ReactiveDisplay:
 
     def show(self) -> Any:
         """Display in the notebook and return the handle."""
-        from IPython.display import HTML, display as ipython_display
+        from IPython.display import HTML
+        from IPython.display import display as ipython_display
 
         self._display_handle = ipython_display(
             HTML(self._render_html()), display_id=self._display_id
@@ -480,7 +484,6 @@ def convert_notebook(
     # First pass: scan all cells to extract imports and detect features
     all_imports: list[str] = []
     body_blocks: list[str] = []
-    has_cacao_import = False
     has_config = False
 
     for cell in cells:
@@ -500,7 +503,7 @@ def convert_notebook(
                 continue
 
             if "import cacao" in source or "from cacao" in source:
-                has_cacao_import = True
+                pass
             if "c.config(" in source or "cacao.config(" in source:
                 has_config = True
 

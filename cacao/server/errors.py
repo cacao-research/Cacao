@@ -12,48 +12,133 @@ import difflib
 import traceback
 from typing import Any
 
-
 # All public component/function names exposed by the simple API
 _SIMPLE_API_NAMES: list[str] = [
     # Layout
-    "row", "col", "grid", "container", "stack", "split", "hero", "card",
-    "sidebar", "tabs", "tab", "app_shell", "nav_sidebar", "nav_group",
-    "nav_item", "shell_content", "nav_panel", "panel",
+    "row",
+    "col",
+    "grid",
+    "container",
+    "stack",
+    "split",
+    "hero",
+    "card",
+    "sidebar",
+    "tabs",
+    "tab",
+    "app_shell",
+    "nav_sidebar",
+    "nav_group",
+    "nav_item",
+    "shell_content",
+    "nav_panel",
+    "panel",
     # Typography
-    "title", "text", "html", "raw_html", "markdown", "code", "divider", "spacer",
+    "title",
+    "text",
+    "html",
+    "raw_html",
+    "markdown",
+    "code",
+    "divider",
+    "spacer",
     # Display
-    "metric", "table", "json_view", "json", "progress", "badge", "alert",
-    "accordion", "accordion_item", "steps", "step", "file_tree", "subnav",
-    "subnav_group", "subnav_item", "link_card", "modal", "tooltip",
-    "breadcrumb", "image", "timeline", "timeline_item", "video", "diff",
-    "search_input", "anchor",
+    "metric",
+    "table",
+    "json_view",
+    "json",
+    "progress",
+    "badge",
+    "alert",
+    "accordion",
+    "accordion_item",
+    "steps",
+    "step",
+    "file_tree",
+    "subnav",
+    "subnav_group",
+    "subnav_item",
+    "link_card",
+    "modal",
+    "tooltip",
+    "breadcrumb",
+    "image",
+    "timeline",
+    "timeline_item",
+    "video",
+    "diff",
+    "search_input",
+    "anchor",
     # Form
-    "button", "input", "input_field", "textarea", "select", "checkbox",
-    "switch", "slider", "date", "date_picker", "chat", "upload", "file_upload",
+    "button",
+    "input",
+    "input_field",
+    "textarea",
+    "select",
+    "checkbox",
+    "switch",
+    "slider",
+    "date",
+    "date_picker",
+    "chat",
+    "upload",
+    "file_upload",
     # Charts
-    "line", "bar", "pie", "area", "scatter", "gauge",
+    "line",
+    "bar",
+    "pie",
+    "area",
+    "scatter",
+    "gauge",
     # Interface
-    "interface", "parallel", "series", "compare",
+    "interface",
+    "parallel",
+    "series",
+    "compare",
     # AI / Agent
-    "extract", "cost_dashboard", "document_upload", "model_picker",
-    "agent", "multi_agent", "tool_timeline", "budget_gauge",
-    "skill", "skill_browser", "chain_builder", "safety_policy",
+    "extract",
+    "cost_dashboard",
+    "document_upload",
+    "model_picker",
+    "agent",
+    "multi_agent",
+    "tool_timeline",
+    "budget_gauge",
+    "skill",
+    "skill_browser",
+    "chain_builder",
+    "safety_policy",
     # State
-    "signal", "computed", "on", "bind", "use",
+    "signal",
+    "computed",
+    "on",
+    "bind",
+    "use",
     # App
-    "config", "page", "layout", "run", "stream", "chat",
+    "config",
+    "page",
+    "layout",
+    "run",
+    "stream",
+    "chat",
     # Data
-    "load_csv", "load_json",
+    "load_csv",
+    "load_json",
     # Notifications
-    "notify", "emit", "listen",
+    "notify",
+    "emit",
+    "listen",
     # Auth
-    "require_auth", "permission",
+    "require_auth",
+    "permission",
     # Themes
     "register_theme",
 ]
 
 
-def did_you_mean(name: str, candidates: list[str] | None = None, n: int = 3, cutoff: float = 0.6) -> list[str]:
+def did_you_mean(
+    name: str, candidates: list[str] | None = None, n: int = 3, cutoff: float = 0.6
+) -> list[str]:
     """Find close matches for a name from a list of candidates.
 
     Args:
@@ -135,7 +220,7 @@ def _classify_error(
     # --- ImportError ---
     if isinstance(exc, ImportError):
         module = _extract_module_name(exc_msg)
-        suggestion = f'Install it with: pip install {module}' if module else ""
+        suggestion = f"Install it with: pip install {module}" if module else ""
         return ("Missing Dependency", exc_msg, suggestion)
 
     # --- KeyError ---

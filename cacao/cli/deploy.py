@@ -13,21 +13,17 @@ Supports multiple deployment targets:
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
-from typing import Any
 
 from .commands import (
     BOLD,
-    BROWN,
     CYAN,
     DARK_BROWN,
     DIM,
     GREEN,
     RED,
     RESET,
-    YELLOW,
     _get_logo,
     find_app_instance,
     load_app_module,
@@ -165,7 +161,7 @@ license: mit
 
 # {title}
 
-Built with [Cacao](https://github.com/cacao-research/Cacao) — a high-performance reactive web framework for Python.
+Built with [Cacao](https://github.com/cacao-research/Cacao) — a reactive web framework for Python.
 """
 
 
@@ -292,6 +288,7 @@ def _generate_flyio(
 # `cacao docker` command
 # ---------------------------------------------------------------------------
 
+
 def docker_command(args: list[str]) -> None:
     """
     Generate a Dockerfile for a Cacao app.
@@ -304,15 +301,21 @@ def docker_command(args: list[str]) -> None:
     )
     parser.add_argument("app_file", help="Path to the app file (e.g., app.py)")
     parser.add_argument(
-        "--port", "-p", type=int, default=7860,
+        "--port",
+        "-p",
+        type=int,
+        default=7860,
         help="Port to expose (default: 7860)",
     )
     parser.add_argument(
-        "-o", "--output", default=".",
+        "-o",
+        "--output",
+        default=".",
         help="Output directory (default: current directory)",
     )
     parser.add_argument(
-        "--no-requirements", action="store_true",
+        "--no-requirements",
+        action="store_true",
         help="Don't generate requirements.txt",
     )
 
@@ -432,19 +435,28 @@ def deploy_command(args: list[str]) -> None:
         help="Deployment target (interactive if omitted)",
     )
     parser.add_argument(
-        "--name", type=str, default=None,
+        "--name",
+        type=str,
+        default=None,
         help="App/service name (auto-detected if omitted)",
     )
     parser.add_argument(
-        "--port", "-p", type=int, default=None,
+        "--port",
+        "-p",
+        type=int,
+        default=None,
         help="Port to expose (target-specific default)",
     )
     parser.add_argument(
-        "-o", "--output", default=".",
+        "-o",
+        "--output",
+        default=".",
         help="Output directory (default: current directory)",
     )
     parser.add_argument(
-        "--force", "-f", action="store_true",
+        "--force",
+        "-f",
+        action="store_true",
         help="Overwrite existing files",
     )
 
@@ -517,9 +529,11 @@ def deploy_command(args: list[str]) -> None:
         print(f"  {BOLD}Next steps:{RESET}")
         print(f"    1. Create a new Space at {CYAN}https://huggingface.co/new-space{RESET}")
         print(f"       - Select {BOLD}Docker{RESET} as the SDK")
-        print(f"    2. Push these files to your Space repo:")
+        print("    2. Push these files to your Space repo:")
         print(f"       {CYAN}git init && git add .{RESET}")
-        print(f"       {CYAN}git remote add origin https://huggingface.co/spaces/YOUR_USER/{name}{RESET}")
+        print(
+            f"       {CYAN}git remote add origin https://huggingface.co/spaces/YOUR_USER/{name}{RESET}"
+        )
         print(f"       {CYAN}git push -u origin main{RESET}")
 
     elif target == "railway":
@@ -545,7 +559,7 @@ def deploy_command(args: list[str]) -> None:
         _write_deploy_files(files, output_dir, force=parsed.force)
         print()
         print(f"  {BOLD}Next steps:{RESET}")
-        print(f"    1. Push to GitHub")
+        print("    1. Push to GitHub")
         print(f"    2. Go to {CYAN}https://dashboard.render.com/new{RESET}")
         print(f"    3. Select {BOLD}Blueprint{RESET} and connect your repo")
         print(f"    {DIM}Render will auto-detect render.yaml and deploy{RESET}")
@@ -573,7 +587,7 @@ def deploy_command(args: list[str]) -> None:
 
 def _deploy_ghpages(app_file: str) -> None:
     """Handle GitHub Pages deployment (redirect to cacao build)."""
-    print(f"  GitHub Pages uses static builds. Run:")
+    print("  GitHub Pages uses static builds. Run:")
     print()
     print(f"    {CYAN}cacao build {app_file} --base-path /your-repo-name{RESET}")
     print()

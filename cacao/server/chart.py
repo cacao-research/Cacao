@@ -28,8 +28,10 @@ def _normalize_data(data: Any) -> list[dict[str, Any]]:
     # Polars DataFrame (check before generic to_dict)
     try:
         import polars as pl
+
         if isinstance(data, pl.DataFrame):
-            return data.to_dicts()
+            polars_result: list[dict[str, Any]] = data.to_dicts()
+            return polars_result
     except ImportError:
         pass
 

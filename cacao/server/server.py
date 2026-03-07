@@ -107,7 +107,9 @@ def create_server(app: App) -> Starlette:
                 if app.debug:
                     _preview = data[:200] + ("..." if len(data) > 200 else "")
                     logger.debug(
-                        "WS recv [%s] %s", msg_type, _preview,
+                        "WS recv [%s] %s",
+                        msg_type,
+                        _preview,
                         extra={"label": "ws:recv"},
                     )
 
@@ -121,12 +123,14 @@ def create_server(app: App) -> Starlette:
                         await app.handle_event(session, event_name, event_data)
                     except Exception as ev_exc:
                         logger.exception(
-                            "Error handling event '%s'", event_name,
+                            "Error handling event '%s'",
+                            event_name,
                             extra={"label": "error"},
                         )
                         if app.debug:
                             err = format_friendly_error(
-                                ev_exc, context=f"handling event '{event_name}'",
+                                ev_exc,
+                                context=f"handling event '{event_name}'",
                             )
                             await session.send({"type": "server:error", **err})
 
@@ -139,9 +143,7 @@ def create_server(app: App) -> Starlette:
 
                         sig = Signal.get_all_signals().get(signal_name)
                         if sig:
-                            asyncio.create_task(
-                                handle_chat_message(session, sig, text)
-                            )
+                            asyncio.create_task(handle_chat_message(session, sig, text))
 
                 elif msg_type == "interface:submit":
                     from .interface import handle_interface_event
@@ -149,9 +151,7 @@ def create_server(app: App) -> Starlette:
                     iface_id = message.get("id", "")
                     input_values = message.get("inputs", {})
                     logger.debug("Interface submit: %s", iface_id, extra={"label": "interface"})
-                    asyncio.create_task(
-                        handle_interface_event(session, iface_id, input_values)
-                    )
+                    asyncio.create_task(handle_interface_event(session, iface_id, input_values))
 
                 elif msg_type == "interface:flag":
                     from .interface import handle_interface_flag
@@ -160,9 +160,7 @@ def create_server(app: App) -> Starlette:
                     input_values = message.get("inputs", {})
                     output_value = message.get("output")
                     note = message.get("note", "")
-                    await handle_interface_flag(
-                        session, iface_id, input_values, output_value, note
-                    )
+                    await handle_interface_flag(session, iface_id, input_values, output_value, note)
 
                 elif msg_type == "extract:submit":
                     from .llm import extract_structured
@@ -174,24 +172,36 @@ def create_server(app: App) -> Starlette:
                     extract_id = message.get("id", "")
 
                     async def _do_extract(
-                        _s: Session, _text: str, _schema: dict, _model: str, _key: str | None, _eid: str
+                        _s: Session,
+                        _text: str,
+                        _schema: dict[str, Any],
+                        _model: str,
+                        _key: str | None,
+                        _eid: str,
                     ) -> None:
                         try:
                             result = await extract_structured(
-                                _text, schema=_schema, model=_model, api_key=_key,
+                                _text,
+                                schema=_schema,
+                                model=_model,
+                                api_key=_key,
                             )
-                            await _s.send({
-                                "type": "extract:result",
-                                "id": _eid,
-                                "result": result.get("result", {}),
-                                "usage": result.get("usage", {}),
-                            })
+                            await _s.send(
+                                {
+                                    "type": "extract:result",
+                                    "id": _eid,
+                                    "result": result.get("result", {}),
+                                    "usage": result.get("usage", {}),
+                                }
+                            )
                         except Exception as e:
-                            await _s.send({
-                                "type": "extract:error",
-                                "id": _eid,
-                                "error": str(e),
-                            })
+                            await _s.send(
+                                {
+                                    "type": "extract:error",
+                                    "id": _eid,
+                                    "error": str(e),
+                                }
+                            )
 
                     asyncio.create_task(
                         _do_extract(session, text, schema, model_str, api_key, extract_id)
@@ -208,31 +218,45 @@ def create_server(app: App) -> Starlette:
                     doc_id = message.get("id", "")
 
                     async def _do_ingest(
-                        _s: Session, _path: str, _ft: str | None, _schema: dict | None,
-                        _model: str, _key: str | None, _did: str,
+                        _s: Session,
+                        _path: str,
+                        _ft: str | None,
+                        _schema: dict[str, Any] | None,
+                        _model: str,
+                        _key: str | None,
+                        _did: str,
                     ) -> None:
                         try:
                             result = await ingest_document(
-                                _path, file_type=_ft, schema=_schema,
-                                model=_model, api_key=_key,
+                                _path,
+                                file_type=_ft,
+                                schema=_schema,
+                                model=_model,
+                                api_key=_key,
                             )
-                            await _s.send({
-                                "type": "document:result",
-                                "id": _did,
-                                "text": result.get("text", ""),
-                                "metadata": result.get("metadata", {}),
-                                "extracted": result.get("extracted"),
-                                "extraction_usage": result.get("extraction_usage"),
-                            })
+                            await _s.send(
+                                {
+                                    "type": "document:result",
+                                    "id": _did,
+                                    "text": result.get("text", ""),
+                                    "metadata": result.get("metadata", {}),
+                                    "extracted": result.get("extracted"),
+                                    "extraction_usage": result.get("extraction_usage"),
+                                }
+                            )
                         except Exception as e:
-                            await _s.send({
-                                "type": "document:error",
-                                "id": _did,
-                                "error": str(e),
-                            })
+                            await _s.send(
+                                {
+                                    "type": "document:error",
+                                    "id": _did,
+                                    "error": str(e),
+                                }
+                            )
 
                     asyncio.create_task(
-                        _do_ingest(session, file_path, file_type, schema, model_str, api_key, doc_id)
+                        _do_ingest(
+                            session, file_path, file_type, schema, model_str, api_key, doc_id
+                        )
                     )
 
                 elif msg_type == "models:discover":
@@ -243,17 +267,23 @@ def create_server(app: App) -> Starlette:
                     async def _do_discover(_s: Session, _grouped: bool) -> None:
                         try:
                             models = await asyncio.to_thread(
-                                discover_models, grouped=_grouped, include_capabilities=True,
+                                discover_models,
+                                grouped=_grouped,
+                                include_capabilities=True,
                             )
-                            await _s.send({
-                                "type": "models:result",
-                                "models": models,
-                            })
+                            await _s.send(
+                                {
+                                    "type": "models:result",
+                                    "models": models,
+                                }
+                            )
                         except Exception as e:
-                            await _s.send({
-                                "type": "models:error",
-                                "error": str(e),
-                            })
+                            await _s.send(
+                                {
+                                    "type": "models:error",
+                                    "error": str(e),
+                                }
+                            )
 
                     asyncio.create_task(_do_discover(session, grouped))
 
@@ -261,10 +291,12 @@ def create_server(app: App) -> Starlette:
                     from .llm import get_cost_tracker
 
                     tracker = get_cost_tracker(session.id)
-                    await session.send({
-                        "type": "cost:summary",
-                        "summary": tracker.summary(),
-                    })
+                    await session.send(
+                        {
+                            "type": "cost:summary",
+                            "summary": tracker.summary(),
+                        }
+                    )
 
                 # ── Tukuy Skills ──────────────────────────────────
                 elif msg_type == "skill:invoke":
@@ -377,10 +409,12 @@ def create_server(app: App) -> Starlette:
                     from .llm import get_cost_tracker
 
                     tracker = get_cost_tracker(session.id)
-                    await session.send({
-                        "type": "budget:summary",
-                        "summary": tracker.summary(),
-                    })
+                    await session.send(
+                        {
+                            "type": "budget:summary",
+                            "summary": tracker.summary(),
+                        }
+                    )
 
                 # ── SQL Query ─────────────────────────────────────
                 elif msg_type == "sql_query":
@@ -407,6 +441,7 @@ def create_server(app: App) -> Starlette:
 
             # Clean up Tukuy session policy
             from .tukuy_skills import cleanup_session_policy
+
             cleanup_session_policy(session.id)
 
             await get_registry().run_hook("on_session_end", session)
@@ -694,10 +729,7 @@ def _get_dashboard_html(
     plugin_script_tags = ""
     for url in plugin_scripts or []:
         plugin_script_tags += f'\n    <script src="{url}"></script>'
-    debug_script = (
-        '\n    <script>window.__CACAO_DEBUG__ = true;</script>'
-        if debug else ""
-    )
+    debug_script = "\n    <script>window.__CACAO_DEBUG__ = true;</script>" if debug else ""
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>

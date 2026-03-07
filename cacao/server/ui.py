@@ -678,6 +678,7 @@ def _convert_dataframe(data: Any) -> tuple[list[dict[str, Any]], list[dict[str, 
     # Pandas DataFrame
     try:
         import pandas as pd
+
         if isinstance(data, pd.DataFrame):
             col_defs = [
                 {"key": str(col), "title": str(col), "dtype": str(data[col].dtype)}
@@ -690,10 +691,10 @@ def _convert_dataframe(data: Any) -> tuple[list[dict[str, Any]], list[dict[str, 
     # Polars DataFrame
     try:
         import polars as pl
+
         if isinstance(data, pl.DataFrame):
             col_defs = [
-                {"key": col, "title": col, "dtype": str(data[col].dtype)}
-                for col in data.columns
+                {"key": col, "title": col, "dtype": str(data[col].dtype)} for col in data.columns
             ]
             return data.head(5000).to_dicts(), col_defs
     except ImportError:
@@ -794,6 +795,7 @@ def dataframe(
     # Pandas DataFrame
     try:
         import pandas as pd
+
         if isinstance(data, pd.DataFrame):
             framework = "pandas"
             shape = list(data.shape)
@@ -828,12 +830,12 @@ def dataframe(
     # Polars DataFrame
     try:
         import polars as pl
+
         if isinstance(data, pl.DataFrame):
             framework = "polars"
             shape = [data.height, data.width]
             col_defs = [
-                {"key": col, "title": col, "dtype": str(data[col].dtype)}
-                for col in data.columns
+                {"key": col, "title": col, "dtype": str(data[col].dtype)} for col in data.columns
             ]
             records = data.head(max_rows).to_dicts()
             return _add_to_current_container(
@@ -916,6 +918,7 @@ def plotly_chart(
     fig_json: dict[str, Any] | str = {}
     try:
         import plotly.graph_objects
+
         if isinstance(figure, plotly.graph_objects.Figure):
             fig_json = figure.to_plotly_json()
             if title:
@@ -977,8 +980,8 @@ def mpl(
     import io
 
     try:
-        import matplotlib.pyplot as plt
         import matplotlib.figure
+        import matplotlib.pyplot as plt
 
         if figure is None:
             figure = plt.gcf()
@@ -1024,7 +1027,8 @@ def mpl(
             Component(
                 type="Alert",
                 props={
-                    "message": "matplotlib is not installed. Install it with: pip install matplotlib",
+                    "message": "matplotlib is not installed. "
+                    "Install it with: pip install matplotlib",
                     "variant": "warning",
                 },
             )
@@ -2472,7 +2476,7 @@ def extract(
     from .signal import Signal as _Signal
 
     sig_name = f"extract_{id(schema)}_{id(pydantic_model)}"
-    result_signal = _Signal({}, name=f"{sig_name}_result")
+    result_signal: Any = _Signal({}, name=f"{sig_name}_result")
 
     # Serialize schema for the frontend
     schema_display = schema
@@ -2527,7 +2531,7 @@ def cost_dashboard(
     from .signal import Signal as _Signal
 
     sig_name = f"cost_dashboard_{id(title)}"
-    cost_signal = _Signal({}, name=sig_name)
+    cost_signal: Any = _Signal({}, name=sig_name)
 
     return _add_to_current_container(
         Component(
@@ -2578,7 +2582,7 @@ def document_upload(
     from .signal import Signal as _Signal
 
     sig_name = f"docupload_{id(schema)}_{id(title)}"
-    doc_signal = _Signal({}, name=f"{sig_name}_doc")
+    doc_signal: Any = _Signal({}, name=f"{sig_name}_doc")
 
     return _add_to_current_container(
         Component(
@@ -2707,7 +2711,12 @@ def skill(
             "requires_network": getattr(desc, "requires_network", False),
             "requires_filesystem": getattr(desc, "requires_filesystem", False),
             "config_params": [
-                {"name": p.name, "type": str(p.type), "default": p.default, "description": p.description}
+                {
+                    "name": p.name,
+                    "type": str(p.type),
+                    "default": p.default,
+                    "description": p.description,
+                }
                 for p in getattr(desc, "config_params", [])
             ],
         }
@@ -3026,8 +3035,10 @@ def multi_agent(
         c.multi_agent(
             mode="pipeline",
             agents=[
-                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Translate to French."},
-                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Summarize in one sentence."},
+                {"provider": "openai", "model": "gpt-4o",
+                 "system_prompt": "Translate to French."},
+                {"provider": "openai", "model": "gpt-4o",
+                 "system_prompt": "Summarize in one sentence."},
             ],
             agent_names=["Translator", "Summarizer"],
         )
