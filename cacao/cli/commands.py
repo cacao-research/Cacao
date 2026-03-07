@@ -539,9 +539,9 @@ def create_command(args: list[str]) -> None:
         sys.exit(1)
 
 
-def _get_template(template_name: str) -> str:
+def _get_template(template_name: str) -> str | dict[str, str]:
     """Get the content for a project template."""
-    templates = {
+    templates: dict[str, str | dict[str, str]] = {
         "minimal": '''"""
 Minimal Cacao v2 application.
 """
@@ -631,7 +631,7 @@ if __name__ == "__main__":
 ''',
         "structured": _get_structured_template(),
     }
-    return templates.get(template_name, templates["minimal"])
+    return templates[template_name] if template_name in templates else templates["minimal"]
 
 
 def _get_structured_template() -> dict[str, str]:
