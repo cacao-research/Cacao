@@ -217,16 +217,16 @@ Cacao already beats Gradio on: layout flexibility, real reactivity, component ri
 - [x] Matplotlib figure rendering (auto-convert to image/SVG)
 - [x] SQL query component with connection management
 
-### 11.2 Notebook Integration
-- [ ] `c.display()` for rendering Cacao components in Jupyter
-- [ ] Notebook-to-app export (`cacao convert notebook.ipynb`)
-- [ ] Marimo-style reactive mode in notebooks
+### 11.2 Notebook Integration ✅
+- [x] `c.display()` for rendering Cacao components in Jupyter
+- [x] Notebook-to-app export (`cacao convert notebook.ipynb`)
+- [x] Marimo-style reactive mode in notebooks
 
-### 11.3 Extension System
-- [ ] Custom component SDK — Build React components, use from Python
-- [ ] `cacao install <extension>` — Install community components
-- [ ] Theme marketplace
-- [ ] Handler plugins for static builds
+### 11.3 Extension System ✅
+- [x] Custom component SDK — Build React components, use from Python
+- [x] `cacao install <extension>` — Install community components
+- [x] Theme marketplace
+- [x] Handler plugins for static builds
 
 ---
 

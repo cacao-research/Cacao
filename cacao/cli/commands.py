@@ -756,6 +756,12 @@ def build_command(args: list[str]) -> None:
     static_handlers = export_data.get("static_handlers", {})
     static_scripts = export_data.get("static_scripts", [])
 
+    # Merge handler plugin handlers (extension system)
+    handler_plugin_handlers = export_data.get("handler_plugins", {})
+    for evt_name, js_code in handler_plugin_handlers.items():
+        if evt_name not in static_handlers:
+            static_handlers[evt_name] = js_code
+
     # Build handlers JS object: { "event_name": async function(signals, event) { ... }, ... }
     handler_entries = []
     for evt_name, js_code in static_handlers.items():
@@ -900,6 +906,10 @@ def help_command(args: list[str]) -> None:
     print(f"  {CYAN}docker{RESET} <app.py>  Generate Dockerfile for containerized deployment")
     print(f"  {CYAN}publish{RESET} <app.py> Publish app to the Cacao gallery")
     print(f"  {CYAN}gallery{RESET}          Browse the Cacao app gallery")
+    print(f"  {CYAN}install{RESET} <ext>    Install a Cacao extension or theme")
+    print(f"  {CYAN}uninstall{RESET} <ext>  Uninstall a Cacao extension")
+    print(f"  {CYAN}extensions{RESET}       List installed extensions, themes & handlers")
+    print(f"  {CYAN}convert{RESET} <nb.ipynb> Convert a Jupyter notebook to a Cacao app")
     print(f"  {CYAN}test{RESET} [target]    Run tests for a Cacao app")
     print(f"  {CYAN}create{RESET} [name]    Create a new Cacao project")
     print(f"  {CYAN}version{RESET}          Show version information")
@@ -927,6 +937,11 @@ def help_command(args: list[str]) -> None:
     print("  cacao deploy app.py railway             Generate Railway config")
     print("  cacao docker app.py                    Generate Dockerfile")
     print()
+    print(f"  {BOLD}Notebook:{RESET}")
+    print("  cacao convert notebook.ipynb              Convert notebook to app")
+    print("  cacao convert notebook.ipynb -o app.py    Custom output path")
+    print("  cacao convert notebook.ipynb --no-markdown Skip markdown cells")
+    print()
     print(f"  {BOLD}Testing:{RESET}")
     print("  cacao test tests/                      Run all tests in directory")
     print("  cacao test test_app.py                 Run tests in a specific file")
@@ -939,6 +954,16 @@ def help_command(args: list[str]) -> None:
     print("  cacao gallery                          Browse all published apps")
     print("  cacao gallery --embed my-app           Get embed snippet for an app")
     print("  cacao gallery dashboard --tag ml        Search & filter apps")
+    print()
+    print(f"  {BOLD}Extensions:{RESET}")
+    print("  cacao install my-widget                Install extension from PyPI")
+    print("  cacao install my-widget --upgrade      Upgrade an extension")
+    print("  cacao install --theme ocean            Install a marketplace theme")
+    print("  cacao uninstall my-widget              Remove an extension")
+    print("  cacao extensions                       List installed extensions")
+    print("  cacao extensions --themes              Browse theme marketplace")
+    print("  cacao extensions --handlers            Show handler plugins")
+    print("  cacao extensions --create my-ext       Scaffold a new extension")
     print()
     print(
         f"{DIM}Ports are historic chocolate years (1502-1936). "
@@ -993,6 +1018,71 @@ def test_command(args: list[str]) -> None:
 
 
 # Lazy imports for commands to avoid heavy imports at CLI startup
+def convert_command(args: list[str]) -> None:
+    """
+    Convert a Jupyter notebook to a Cacao application.
+
+    Usage: cacao convert notebook.ipynb [options]
+
+    Extracts code and markdown cells from a notebook and generates
+    a standalone Cacao app.py file.
+    """
+    parser = argparse.ArgumentParser(
+        prog="cacao convert", description="Convert a Jupyter notebook to a Cacao app"
+    )
+    parser.add_argument("notebook", help="Path to the .ipynb file")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output .py file path (default: same name with .py extension)",
+    )
+    parser.add_argument(
+        "--no-markdown",
+        action="store_true",
+        help="Skip markdown cells (don't convert to c.markdown())",
+    )
+    parser.add_argument(
+        "--include-outputs",
+        action="store_true",
+        help="Include cell outputs as comments",
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    parsed = parser.parse_args(args)
+
+    notebook_path = Path(parsed.notebook)
+    if not notebook_path.exists():
+        print(f"{RED}Error: File '{parsed.notebook}' not found{RESET}")
+        sys.exit(1)
+
+    if not notebook_path.suffix == ".ipynb":
+        print(f"{RED}Error: '{parsed.notebook}' is not a Jupyter notebook (.ipynb){RESET}")
+        sys.exit(1)
+
+    print(_get_logo())
+    print(f"  {CYAN}Converting notebook...{RESET}")
+
+    from cacao.notebook import convert_notebook
+
+    try:
+        output = convert_notebook(
+            notebook_path,
+            parsed.output,
+            include_markdown=not parsed.no_markdown,
+            include_outputs=parsed.include_outputs,
+        )
+        print(f"  {GREEN}Created {output}{RESET}")
+        print()
+        print("Next steps:")
+        print(f"  {CYAN}cacao run {output}{RESET}          Run the converted app")
+        print(f"  {CYAN}cacao build {output}{RESET}        Build as static site")
+        print()
+    except Exception as e:
+        print(f"  {RED}Error: {e}{RESET}")
+        sys.exit(1)
+
+
 def _share_command_wrapper(args: list[str]) -> None:
     from .share import share_command
 
@@ -1023,15 +1113,37 @@ def _gallery_command_wrapper(args: list[str]) -> None:
     gallery_command(args)
 
 
+def _install_command_wrapper(args: list[str]) -> None:
+    from .install import install_command
+
+    install_command(args)
+
+
+def _uninstall_command_wrapper(args: list[str]) -> None:
+    from .install import uninstall_command
+
+    uninstall_command(args)
+
+
+def _extensions_command_wrapper(args: list[str]) -> None:
+    from .install import extensions_command
+
+    extensions_command(args)
+
+
 # Command registry
 COMMANDS: dict[str, Callable[[list[str]], None]] = {
     "run": run_command,
     "build": build_command,
+    "convert": convert_command,
     "share": _share_command_wrapper,
     "deploy": _deploy_command_wrapper,
     "docker": _docker_command_wrapper,
     "publish": _publish_command_wrapper,
     "gallery": _gallery_command_wrapper,
+    "install": _install_command_wrapper,
+    "uninstall": _uninstall_command_wrapper,
+    "extensions": _extensions_command_wrapper,
     "test": test_command,
     "create": create_command,
     "version": version_command,

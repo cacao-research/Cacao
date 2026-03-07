@@ -120,6 +120,12 @@ def _get_app() -> _App:
         )
         _simple_mode = True
 
+        # Register marketplace themes so they're available via c.config(theme="...")
+        _register_marketplace_themes()
+
+        # Load installed extensions via entry points
+        _load_extensions()
+
         # Start the implicit "/" page context
         _start_implicit_page()
 
@@ -142,6 +148,32 @@ def _start_implicit_page() -> None:
 def _ensure_context() -> None:
     """Ensure we have a valid component context."""
     _get_app()  # This will create app and start implicit page if needed
+
+
+def _register_marketplace_themes() -> None:
+    """Register built-in marketplace themes with the app."""
+    global _global_app
+    if _global_app is None:
+        return
+
+    try:
+        from .extensions import BUILTIN_THEMES
+
+        for theme in BUILTIN_THEMES:
+            if theme.name not in _global_app._custom_themes:
+                _global_app._custom_themes[theme.name] = theme.variables
+    except Exception:
+        pass  # Extensions module not critical for app startup
+
+
+def _load_extensions() -> None:
+    """Load installed extensions via entry points."""
+    try:
+        from .extensions import load_extensions
+
+        load_extensions()
+    except Exception:
+        pass  # Extension loading should never block app startup
 
 
 # =============================================================================
@@ -768,6 +800,7 @@ def export_static() -> dict[str, Any]:
         "signals": {s.name: s.default for s in Signal.get_all_signals().values()},
         "static_handlers": dict(_static_handlers),
         "static_scripts": list(_static_scripts),
+        "handler_plugins": _get_handler_plugin_handlers(),
     }
     return result
 
@@ -817,6 +850,113 @@ def test(
         verbose=verbose,
         pattern=pattern,
         update_snapshots=update_snapshots,
+    )
+
+
+# =============================================================================
+# Notebook Integration
+# =============================================================================
+
+
+def display(
+    *components: Component,
+    theme: str | None = None,
+    width: str = "100%",
+    height: str = "400px",
+) -> Any:
+    """
+    Render Cacao components inline in a Jupyter notebook.
+
+    Takes one or more Component instances and renders them in an embedded
+    iframe using the full Cacao frontend. If no components are passed,
+    renders the current page's components.
+
+    Args:
+        *components: Cacao Component instances to render.
+        theme: Theme override ("dark" or "light").
+        width: CSS width for the display area.
+        height: CSS height (auto-resizes to content).
+
+    Returns:
+        IPython HTML display object.
+
+    Example:
+        import cacao as c
+
+        c.display(c.title("Hello"), c.metric("Users", 42))
+    """
+    _ensure_context()
+    from .notebook import display as _nb_display
+
+    return _nb_display(*components, theme=theme, width=width, height=height)
+
+
+def reactive(
+    *components: Component,
+    theme: str | None = None,
+    width: str = "100%",
+    height: str = "400px",
+) -> Any:
+    """
+    Create a reactive display that auto-updates when signals change.
+
+    Marimo-style reactivity: the output re-renders whenever any
+    referenced signal value changes.
+
+    Args:
+        *components: Cacao Components to render.
+        theme: Theme override.
+        width: CSS width.
+        height: CSS height.
+
+    Returns:
+        ReactiveDisplay handle.
+
+    Example:
+        import cacao as c
+
+        count = c.signal("count", 0)
+        rd = c.reactive(c.metric("Count", count))
+        # Changing the signal auto-updates the display
+    """
+    _ensure_context()
+    from .notebook import reactive as _nb_reactive
+
+    return _nb_reactive(*components, theme=theme, width=width, height=height)
+
+
+def convert_notebook(
+    notebook_path: str,
+    output_path: str | None = None,
+    *,
+    include_markdown: bool = True,
+    include_outputs: bool = False,
+) -> str:
+    """
+    Convert a Jupyter notebook to a Cacao app.
+
+    Extracts Python code cells from a .ipynb file and generates a
+    standalone app.py.
+
+    Args:
+        notebook_path: Path to the .ipynb file.
+        output_path: Output .py file path. Defaults to same name with .py.
+        include_markdown: Include markdown cells as c.markdown().
+        include_outputs: Include output cells as comments.
+
+    Returns:
+        Path to the generated .py file.
+
+    Example:
+        c.convert_notebook("analysis.ipynb")  # creates analysis.py
+    """
+    from .notebook import convert_notebook as _nb_convert
+
+    return _nb_convert(
+        notebook_path,
+        output_path,
+        include_markdown=include_markdown,
+        include_outputs=include_outputs,
     )
 
 
@@ -957,6 +1097,98 @@ def register_theme(name: str, variables: dict[str, str]) -> None:
     """
     app = _get_app()
     app._custom_themes[name] = variables
+
+
+# =============================================================================
+# Extension System
+# =============================================================================
+
+
+def custom(name: str, **props: Any) -> Any:
+    """
+    Render a custom component registered via the extension system.
+
+    Custom components are React components registered with
+    ``register_component(ComponentSpec(...))``.
+
+    Args:
+        name: Component name (PascalCase, e.g. "ColorPicker")
+        **props: Component properties
+
+    Example:
+        c.custom("ColorPicker", value="#ff0000", on_change=handle_color)
+    """
+    from .extensions import get_custom_component
+    from .server.ui import Component, _add_to_current_container
+
+    _ensure_context()
+    spec = get_custom_component(name)
+    if spec is None:
+        raise ValueError(
+            f"Custom component '{name}' not registered. "
+            f"Register it with c.register_component(ComponentSpec(name='{name}', ...))"
+        )
+    component = Component(type=f"Custom:{name}", props=props)
+    _add_to_current_container(component)
+    return component
+
+
+def register_component(spec: Any) -> None:
+    """
+    Register a custom React component for use from Python.
+
+    Args:
+        spec: A ComponentSpec instance from cacao.extensions.
+
+    Example:
+        from cacao.extensions import ComponentSpec
+        c.register_component(ComponentSpec(
+            name="ColorPicker",
+            js_code='export function ColorPicker({ value }) { ... }',
+        ))
+    """
+    from .extensions import register_component as _register
+
+    _register(spec)
+
+
+def register_handler_plugin(
+    name: str,
+    handlers: dict[str, str],
+    *,
+    description: str = "",
+    author: str = "",
+) -> None:
+    """
+    Register a handler plugin for static builds.
+
+    Handler plugins provide client-side JavaScript functions that extend
+    the built-in handlers (encoders, generators, converters, etc.).
+
+    Args:
+        name: Plugin name (e.g. "image-tools")
+        handlers: Dict of handler_name -> JS function expression
+        description: Human-readable description
+        author: Plugin author
+
+    Example:
+        c.register_handler_plugin("my-handlers", {
+            "process_data": '''async function(signals, event) {
+                const val = signals.get("input");
+                signals.set("output", val.toUpperCase());
+            }''',
+        })
+    """
+    from .extensions import register_handler_plugin as _register
+
+    _register(name, handlers, description=description, author=author)
+
+
+def _get_handler_plugin_handlers() -> dict[str, str]:
+    """Get all handler plugin handlers for static export."""
+    from .extensions import get_all_static_handlers
+
+    return get_all_static_handlers()
 
 
 # =============================================================================
@@ -1884,6 +2116,10 @@ _MANUAL_FUNCTIONS = {
     "shortcut",
     # Themes
     "register_theme",
+    # Extensions
+    "custom",
+    "register_component",
+    "register_handler_plugin",
     # Notifications
     "notify",
     # IPC
@@ -2029,6 +2265,10 @@ __all__ = [
     "shortcut",
     # Themes
     "register_theme",
+    # Extensions
+    "custom",
+    "register_component",
+    "register_handler_plugin",
     # Notifications
     "notify",
     # IPC
@@ -2077,6 +2317,10 @@ __all__ = [
     "File",
     # Testing
     "test",
+    # Notebook integration
+    "display",
+    "reactive",
+    "convert_notebook",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]
