@@ -9,6 +9,7 @@ import { CommandPalette } from './core/CommandPalette.js';
 import { ToastContainer } from './core/Toast.js';
 import { NotificationCenter } from './core/NotificationCenter.js';
 import { LoginPage } from './core/LoginPage.js';
+import { ErrorOverlay } from './core/ErrorOverlay.js';
 
 // Extract route from URL (supports both pathname and hash-based routing)
 function getRouteFromPath() {
@@ -110,6 +111,14 @@ export function App({ renderers }) {
             }
           });
         }
+        // Show page-build errors in dev overlay
+        if (data.error && window.__CACAO_DEBUG__) {
+          setTimeout(() => {
+            if (window.__CACAO_ERROR_OVERLAY__) {
+              window.__CACAO_ERROR_OVERLAY__.addError(data.error);
+            }
+          }, 100);
+        }
         return setPages(data);
       })
       .catch(e => setError(e.message));
@@ -154,7 +163,8 @@ export function App({ renderers }) {
     h(CommandPalette, { key: 'cmd-palette', setActiveTab: setActiveTabWithRoute, pages: pageData }),
     h(ToastContainer, { key: 'toast' }),
     h(NotificationCenter, { key: 'notifications' }),
-  ];
+    window.__CACAO_DEBUG__ && h(ErrorOverlay, { key: 'error-overlay' }),
+  ].filter(Boolean);
 
   // Check if there's an AppShell component (admin layout)
   const appShellIdx = components.findIndex(c => c.type === 'AppShell');

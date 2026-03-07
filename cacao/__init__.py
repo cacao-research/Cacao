@@ -45,3 +45,20 @@ except Exception:
         if (_Path(__file__).resolve().parent / "VERSION").exists()
         else "0.0.0"
     )
+
+
+def __getattr__(name: str):  # type: ignore[misc]
+    """Provide helpful 'Did you mean?' messages for typos in component names."""
+    # Skip private/dunder names — let Python raise the default error
+    if name.startswith("_"):
+        raise AttributeError(f"module 'cacao' has no attribute '{name}'")
+
+    from .server.errors import did_you_mean
+
+    matches = did_you_mean(name)
+    if matches:
+        suggestions = ", ".join(f"c.{m}()" for m in matches)
+        raise AttributeError(
+            f"module 'cacao' has no attribute '{name}'. Did you mean: {suggestions}?"
+        )
+    raise AttributeError(f"module 'cacao' has no attribute '{name}'")

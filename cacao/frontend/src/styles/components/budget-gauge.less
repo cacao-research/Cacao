@@ -1,0 +1,249 @@
+// Budget Gauge Component
+// Real-time cost/token usage widget with threshold alerts
+
+.c-budget-gauge {
+  border: 1px solid var(--border-color);
+  border-radius: @radius-md;
+  background: var(--bg-secondary);
+  overflow: hidden;
+
+  // ── Header ──
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: @space-3 @space-4;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+  }
+
+  &__title {
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-base;
+    color: var(--text-primary);
+  }
+
+  &__calls {
+    font-size: @font-size-xs;
+    color: var(--text-muted);
+    font-family: @font-mono;
+  }
+
+  // ── Alerts ──
+  &__alert {
+    padding: @space-2 @space-4;
+    font-size: @font-size-sm;
+    font-weight: @font-weight-medium;
+
+    &--danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-bottom: 1px solid fade(#e57373, 25%);
+    }
+
+    &--warn {
+      background: fade(#ffb74d, 10%);
+      color: #ffb74d;
+      border-bottom: 1px solid fade(#ffb74d, 25%);
+    }
+  }
+
+  // ── Gauges ──
+  &__gauges {
+    padding: @space-4;
+    display: flex;
+    flex-direction: column;
+    gap: @space-4;
+  }
+
+  &__gauge {
+    display: flex;
+    flex-direction: column;
+    gap: @space-2;
+  }
+
+  &__gauge-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__gauge-label {
+    font-size: @font-size-sm;
+    font-weight: @font-weight-semibold;
+    color: var(--text-secondary);
+  }
+
+  &__gauge-value {
+    font-size: @font-size-sm;
+    font-family: @font-mono;
+    font-weight: @font-weight-semibold;
+  }
+
+  &__gauge-percent {
+    font-size: @font-size-xs;
+    font-family: @font-mono;
+    text-align: right;
+  }
+
+  // ── Bar ──
+  &__bar-track {
+    position: relative;
+    height: 8px;
+    border-radius: @radius-full;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    overflow: visible;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: @radius-full;
+    transition: width 0.5s ease, background 0.3s ease;
+    min-width: 2px;
+  }
+
+  &__threshold-mark {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 14px;
+    background: var(--text-muted);
+    opacity: 0.4;
+    border-radius: 1px;
+  }
+
+  // ── Usage (no limits) ──
+  &__usage {
+    padding: @space-4;
+    display: flex;
+    gap: @space-4;
+  }
+
+  &__usage-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: @space-1;
+    padding: @space-3;
+    border-radius: @radius-md;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  &__usage-label {
+    font-size: @font-size-xs;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__usage-value {
+    font-size: @font-size-lg;
+    font-weight: @font-weight-bold;
+    font-family: @font-mono;
+    color: var(--text-primary);
+  }
+
+  // ── Breakdown ──
+  &__breakdown {
+    padding: @space-3 @space-4 @space-4;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  &__breakdown-title {
+    font-size: @font-size-xs;
+    font-weight: @font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: @space-2;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: @font-size-xs;
+    font-family: @font-mono;
+
+    th {
+      text-align: left;
+      padding: @space-1 @space-2;
+      color: var(--text-muted);
+      font-weight: @font-weight-semibold;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: @space-1 @space-2;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  // ── Compact mode ──
+  &--compact {
+    display: flex;
+    align-items: center;
+    gap: @space-3;
+    padding: @space-2 @space-3;
+    border: 1px solid var(--border-subtle);
+    border-radius: @radius-md;
+    background: var(--bg-tertiary);
+  }
+
+  &__compact-title {
+    font-size: @font-size-xs;
+    font-weight: @font-weight-semibold;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  &__compact-row {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__compact-label {
+    font-size: @font-size-xs;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    width: 45px;
+  }
+
+  &__compact-bar-wrap {
+    flex: 1;
+    height: 4px;
+    border-radius: @radius-full;
+    background: var(--bg-secondary);
+    overflow: hidden;
+    min-width: 40px;
+  }
+
+  &__compact-bar {
+    height: 100%;
+    border-radius: @radius-full;
+    transition: width 0.5s ease;
+  }
+
+  &__compact-value {
+    font-size: @font-size-xs;
+    font-family: @font-mono;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  &__compact-usage {
+    font-size: @font-size-xs;
+    font-family: @font-mono;
+    color: var(--text-muted);
+  }
+}

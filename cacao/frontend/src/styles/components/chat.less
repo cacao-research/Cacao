@@ -256,6 +256,71 @@
   }
 }
 
+// ── Tool messages ──
+.c-chat-message--tool {
+  align-self: center;
+  align-items: center;
+  max-width: 90%;
+
+  .c-chat-message__role {
+    color: var(--text-muted);
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+  }
+
+  .c-chat-message__content {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    font-family: @font-mono;
+    font-size: @font-size-sm;
+    white-space: pre-wrap;
+  }
+}
+
+// ── Tool call blocks (inline in assistant messages) ──
+.c-chat-tool-call {
+  margin: @space-2 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: @radius-sm;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-2 @space-3;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: @font-size-xs;
+    font-weight: @font-weight-semibold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__icon {
+    font-size: @font-size-sm;
+  }
+
+  &__name {
+    font-family: @font-mono;
+    color: var(--accent-primary);
+  }
+
+  &__args {
+    margin: 0;
+    padding: @space-2 @space-3;
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+}
+
 // ── Animations ──
 @keyframes c-chat-dot {
   0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }

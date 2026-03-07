@@ -1,5 +1,5 @@
 /**
- * Chat - Interactive chat component with streaming support
+ * Chat - Interactive chat component with streaming and LLM support
  *
  * Renders a message list with user/assistant bubbles, a text input,
  * and handles real-time streaming of assistant responses via WebSocket.
@@ -13,6 +13,7 @@
  *   show_clear   - Show clear conversation button
  *   on_clear     - Event name fired when user clears chat
  *   persist      - Enable localStorage persistence for chat messages
+ *   llm_enabled  - Whether LLM backend is active (sends chat:send instead of event)
  */
 
 const { createElement: h, useState, useEffect, useRef, useCallback } = React;
@@ -28,6 +29,7 @@ export function Chat({ props }) {
     height = '500px',
     show_clear = false,
     persist = false,
+    llm_enabled = false,
   } = props;
 
   const [messages, setMessages] = useState([]);
@@ -105,16 +107,22 @@ export function Chat({ props }) {
     const text = inputText.trim();
     if (!text || isStreaming) return;
 
-    const eventName = on_send?.__event__ || on_send;
-    if (eventName) {
-      cacaoWs.sendEvent(eventName, { text });
+    if (llm_enabled && signalName) {
+      // LLM mode: send via chat:send protocol
+      cacaoWs.sendChatMessage(signalName, text);
+    } else {
+      // Manual mode: fire event
+      const eventName = on_send?.__event__ || on_send;
+      if (eventName) {
+        cacaoWs.sendEvent(eventName, { text });
+      }
     }
 
     setInputText('');
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [inputText, isStreaming, on_send]);
+  }, [inputText, isStreaming, on_send, llm_enabled, signalName]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -134,10 +142,43 @@ export function Chat({ props }) {
     }
   }, [on_clear, storageKey]);
 
+  // Render tool calls inline
+  const renderToolCalls = (toolCalls) => {
+    if (!toolCalls || !toolCalls.length) return null;
+    return toolCalls.map((tc, i) => {
+      let args = tc.arguments;
+      try {
+        args = JSON.stringify(JSON.parse(tc.arguments), null, 2);
+      } catch { /* keep as-is */ }
+
+      return h('div', { className: 'c-chat-tool-call', key: `tc-${i}` }, [
+        h('div', { className: 'c-chat-tool-call__header', key: 'hdr' }, [
+          h('span', { className: 'c-chat-tool-call__icon', key: 'icon' }, '\u2699'),
+          h('span', { className: 'c-chat-tool-call__name', key: 'name' }, tc.name),
+        ]),
+        h('pre', { className: 'c-chat-tool-call__args', key: 'args' }, args),
+      ]);
+    });
+  };
+
   // Render a single message bubble
   const renderMessage = (msg, index) => {
     const isUser = msg.role === 'user';
     const isError = msg.role === 'error';
+    const isTool = msg.role === 'tool';
+
+    // Tool result messages
+    if (isTool) {
+      return h('div', {
+        className: 'c-chat-message c-chat-message--tool',
+        key: index,
+      }, [
+        h('div', { className: 'c-chat-message__role', key: 'role' },
+          `\u2699 ${msg.name || 'Tool'}`
+        ),
+        h('div', { className: 'c-chat-message__content', key: 'content' }, msg.content),
+      ]);
+    }
 
     return h('div', {
       className: `c-chat-message c-chat-message--${isError ? 'error' : isUser ? 'user' : 'assistant'}`,
@@ -146,6 +187,8 @@ export function Chat({ props }) {
       h('div', { className: 'c-chat-message__role', key: 'role' },
         isError ? 'Error' : isUser ? 'You' : 'Assistant'
       ),
+      // Tool calls (shown before text content for assistant messages)
+      msg.tool_calls && renderToolCalls(msg.tool_calls),
       h('div', { className: 'c-chat-message__content', key: 'content' }, msg.content),
     ]);
   };

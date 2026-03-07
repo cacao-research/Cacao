@@ -1,0 +1,101 @@
+// Series component styles — chained interfaces
+.c-series {
+  border: 1px solid var(--border-color);
+  border-radius: @radius-lg;
+  background: var(--bg-secondary);
+  overflow: hidden;
+
+  &__steps {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-3 @space-6;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    overflow-x: auto;
+  }
+
+  &__step {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    white-space: nowrap;
+
+    &--active &-num {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    &--done &-num {
+      background: #48bb78;
+      color: #fff;
+    }
+
+    &--error &-num {
+      background: #f56565;
+      color: #fff;
+    }
+  }
+
+  &__step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: @font-weight-semibold;
+    transition: all @transition-fast;
+  }
+
+  &__step-title {
+    font-size: @font-size-sm;
+    color: var(--text-secondary);
+  }
+
+  &__step-arrow {
+    color: var(--text-muted);
+    font-size: @font-size-sm;
+    margin: 0 @space-1;
+  }
+
+  &__input {
+    padding: @space-4 @space-6;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  &__submit {
+    margin-top: @space-3;
+    width: 100%;
+  }
+
+  &__outputs {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__output {
+    padding: @space-4 @space-6;
+    min-height: 80px;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    &--has-result {
+      background: var(--bg-primary);
+    }
+  }
+
+  &__output-header {
+    font-size: @font-size-sm;
+    font-weight: @font-weight-semibold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: @space-2;
+  }
+}

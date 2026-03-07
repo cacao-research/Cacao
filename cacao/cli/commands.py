@@ -348,6 +348,9 @@ def run_without_reload(app_path: Path, host: str, port: int, verbose: bool) -> N
         module = load_app_module(app_path)
         app = find_app_instance(module)
 
+        if verbose:
+            app.debug = True
+
         # Run the app
         app.run(host=host, port=port, reload=False)
 
@@ -630,6 +633,10 @@ def build_command(args: list[str]) -> None:
     parser.add_argument(
         "--base-path", default="", help="Base path for deployment (e.g., /my-repo for GitHub Pages)"
     )
+    parser.add_argument(
+        "--embed-url", default="",
+        help="URL where the app will be hosted (generates embed snippet)",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     parsed_args = parser.parse_args(args)
@@ -854,6 +861,17 @@ def build_command(args: list[str]) -> None:
     print(f"  {CYAN}python -m http.server -d {output_dir}{RESET}")
     print()
 
+    # Print embed snippet if URL is provided
+    if parsed_args.embed_url:
+        from .gallery import generate_embed_snippet
+
+        embed_url = parsed_args.embed_url.rstrip("/")
+        print(f"{BOLD}Embed snippet:{RESET}")
+        snippet = generate_embed_snippet(embed_url, title=title)
+        for line in snippet.split("\n"):
+            print(f"  {DIM}{line}{RESET}")
+        print()
+
 
 def version_command(args: list[str]) -> None:
     """Show version information."""
@@ -871,6 +889,11 @@ def help_command(args: list[str]) -> None:
     print("Commands:")
     print(f"  {CYAN}run{RESET} <app.py>     Run a Cacao application with hot reload")
     print(f"  {CYAN}build{RESET} <app.py>   Build a static site (for GitHub Pages, etc.)")
+    print(f"  {CYAN}share{RESET} <app.py>   Share app via public URL (tunnel + QR code)")
+    print(f"  {CYAN}deploy{RESET} <app.py>  Deploy to cloud (HF Spaces, Railway, Render, Fly.io)")
+    print(f"  {CYAN}docker{RESET} <app.py>  Generate Dockerfile for containerized deployment")
+    print(f"  {CYAN}publish{RESET} <app.py> Publish app to the Cacao gallery")
+    print(f"  {CYAN}gallery{RESET}          Browse the Cacao app gallery")
     print(f"  {CYAN}create{RESET} [name]    Create a new Cacao project")
     print(f"  {CYAN}version{RESET}          Show version information")
     print(f"  {CYAN}help{RESET}             Show this help message")
@@ -885,6 +908,24 @@ def help_command(args: list[str]) -> None:
     print("  cacao build app.py                     Build static site to dist/")
     print("  cacao build app.py --base-path /repo   Set base path for GitHub Pages")
     print()
+    print(f"  {BOLD}Sharing:{RESET}")
+    print("  cacao share app.py                     Share via public tunnel URL")
+    print("  cacao share app.py --password secret    Password-protected sharing")
+    print("  cacao share app.py --expire 24          Auto-expire after 24 hours")
+    print()
+    print(f"  {BOLD}Deployment:{RESET}")
+    print("  cacao deploy app.py                    Guided cloud deployment")
+    print("  cacao deploy app.py hf                 Generate Hugging Face Spaces files")
+    print("  cacao deploy app.py railway             Generate Railway config")
+    print("  cacao docker app.py                    Generate Dockerfile")
+    print()
+    print(f"  {BOLD}Gallery:{RESET}")
+    print("  cacao publish app.py                   Publish app to gallery")
+    print("  cacao publish app.py --url https://...  With live URL + embed snippet")
+    print("  cacao gallery                          Browse all published apps")
+    print("  cacao gallery --embed my-app           Get embed snippet for an app")
+    print("  cacao gallery dashboard --tag ml        Search & filter apps")
+    print()
     print(
         f"{DIM}Ports are historic chocolate years (1502-1936). "
         f"If in use, auto-increments to next year.{RESET}"
@@ -892,10 +933,46 @@ def help_command(args: list[str]) -> None:
     print()
 
 
+# Lazy imports for commands to avoid heavy imports at CLI startup
+def _share_command_wrapper(args: list[str]) -> None:
+    from .share import share_command
+
+    share_command(args)
+
+
+def _deploy_command_wrapper(args: list[str]) -> None:
+    from .deploy import deploy_command
+
+    deploy_command(args)
+
+
+def _docker_command_wrapper(args: list[str]) -> None:
+    from .deploy import docker_command
+
+    docker_command(args)
+
+
+def _publish_command_wrapper(args: list[str]) -> None:
+    from .gallery import publish_command
+
+    publish_command(args)
+
+
+def _gallery_command_wrapper(args: list[str]) -> None:
+    from .gallery import gallery_command
+
+    gallery_command(args)
+
+
 # Command registry
 COMMANDS: dict[str, Callable[[list[str]], None]] = {
     "run": run_command,
     "build": build_command,
+    "share": _share_command_wrapper,
+    "deploy": _deploy_command_wrapper,
+    "docker": _docker_command_wrapper,
+    "publish": _publish_command_wrapper,
+    "gallery": _gallery_command_wrapper,
     "create": create_command,
     "version": version_command,
     "help": help_command,

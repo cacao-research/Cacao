@@ -1,0 +1,51 @@
+// Compare component styles — shared inputs, parallel outputs
+.c-compare {
+  border: 1px solid var(--border-color);
+  border-radius: @radius-lg;
+  background: var(--bg-secondary);
+  overflow: hidden;
+
+  &__inputs {
+    padding: @space-4 @space-6;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  &__submit {
+    margin-top: @space-3;
+    width: 100%;
+  }
+
+  &__outputs {
+    display: flex;
+
+    @media (max-width: 767px) {
+      flex-direction: column;
+    }
+  }
+
+  &__output {
+    flex: 1;
+    padding: @space-4 @space-6;
+    min-height: 150px;
+
+    &:not(:last-child) {
+      border-right: 1px solid var(--border-color);
+
+      @media (max-width: 767px) {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+    }
+  }
+
+  &__output-title {
+    font-size: @font-size-sm;
+    font-weight: @font-weight-semibold;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: @space-3;
+    padding-bottom: @space-2;
+    border-bottom: 1px solid var(--border-color);
+  }
+}

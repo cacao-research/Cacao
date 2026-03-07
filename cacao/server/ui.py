@@ -1034,6 +1034,19 @@ def chat(
     title: str | None = None,
     height: str = "500px",
     show_clear: bool = False,
+    provider: str | None = None,
+    model: str | None = None,
+    system_prompt: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    tools: list[Any] | None = None,
+    tool_handlers: dict[str, Callable[..., Any]] | None = None,
+    max_history: int = 100,
+    max_cost: float | None = None,
+    max_budget_tokens: int | None = None,
+    fallback_model: str | None = None,
     **props: Any,
 ) -> Component:
     """
@@ -1042,12 +1055,74 @@ def chat(
     Renders a message list with user/assistant bubbles, a text input,
     and supports real-time streaming of responses via WebSocket.
 
+    When ``provider`` is set, messages are automatically sent to the LLM
+    and streamed back. Otherwise, use ``on_send`` for custom handling.
+
+    Supports all Prompture providers: openai, anthropic/claude, google/gemini,
+    groq, grok/xai, ollama, lmstudio, azure, openrouter, and more.
+
     The signal should hold a list of messages: [{"role": "user"|"assistant", "content": "..."}]
 
-    Example:
+    Example (manual handler):
         messages = app.signal([], name="chat_messages")
         chat(signal=messages, on_send=handle_send, title="AI Chat")
+
+    Example (auto LLM):
+        chat(provider="openai", model="gpt-4o", system_prompt="You are helpful.")
+
+    Example (with budget):
+        chat(
+            provider="openai", model="gpt-4o",
+            max_cost=1.00,
+            fallback_model="gpt-4o-mini",
+        )
+
+    Example (with tools):
+        from cacao.server.llm import ToolSpec
+        weather_tool = ToolSpec(
+            name="get_weather",
+            description="Get weather for a city",
+            parameters={"type": "object", "properties": {"city": {"type": "string"}}},
+        )
+        chat(
+            provider="openai", model="gpt-4o",
+            tools=[weather_tool],
+            tool_handlers={"get_weather": get_weather_fn},
+        )
+
+    Args:
+        max_cost: Maximum USD cost per session. Stops responding when exceeded.
+        max_budget_tokens: Maximum total tokens per session.
+        fallback_model: Cheaper model to auto-degrade to when 80% of budget is used.
     """
+    # Auto-create signal if provider is set and no signal given
+    if provider and signal is None:
+        from .signal import Signal as _Signal
+
+        sig_name = f"chat_{id(provider)}_{id(model)}"
+        signal = _Signal([], name=sig_name)
+
+    # Register LLM config if provider is specified
+    if provider and signal is not None:
+        from .llm import ChatConfig, register_chat
+
+        config = ChatConfig(
+            provider=provider,
+            model=model or "gpt-4o",
+            system_prompt=system_prompt,
+            api_key=api_key,
+            base_url=base_url,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            tools=tools,
+            tool_handlers=tool_handlers or {},
+            max_history=max_history,
+            max_cost=max_cost,
+            max_budget_tokens=max_budget_tokens,
+            fallback_model=fallback_model,
+        )
+        register_chat(signal.name, config)
+
     return _add_to_current_container(
         Component(
             type="Chat",
@@ -1059,6 +1134,7 @@ def chat(
                 "title": title,
                 "height": height,
                 "show_clear": show_clear,
+                "llm_enabled": provider is not None,
                 **props,
             },
         )
@@ -1921,6 +1997,7 @@ _FORM_TYPES = {
     "Tabs",
     "Tab",
     "SearchInput",
+    "Interface",
 }
 _CHART_TYPES = {
     "LineChart",
@@ -1955,6 +2032,768 @@ def _types_to_categories(types: set[str]) -> set[str]:
         if cat:
             categories.add(cat)
     return categories
+
+
+# =============================================================================
+# AI / Prompture Components
+# =============================================================================
+
+
+def extract(
+    schema: dict[str, Any] | None = None,
+    *,
+    pydantic_model: Any = None,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    api_key: str | None = None,
+    title: str = "Extract",
+    description: str = "",
+    submit_label: str = "Extract",
+    height: str = "400px",
+    **props: Any,
+) -> Component:
+    """
+    Structured extraction UI — paste text and extract structured data.
+
+    Uses Prompture to extract data matching a JSON Schema or Pydantic model
+    from user-provided text.
+
+    Example:
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer"},
+                "email": {"type": "string"},
+            },
+        }
+        extract(schema, provider="openai", model="gpt-4o")
+
+    Args:
+        schema: JSON Schema for the desired output structure.
+        pydantic_model: A Pydantic BaseModel class (alternative to schema).
+        provider: LLM provider name.
+        model: Model name.
+        api_key: Optional API key override.
+        title: Component title.
+        description: Description text shown below title.
+        submit_label: Text for the submit button.
+        height: Component height.
+    """
+    from .signal import Signal as _Signal
+
+    sig_name = f"extract_{id(schema)}_{id(pydantic_model)}"
+    result_signal = _Signal({}, name=f"{sig_name}_result")
+
+    # Serialize schema for the frontend
+    schema_display = schema
+    if pydantic_model is not None:
+        try:
+            schema_display = pydantic_model.model_json_schema()
+        except Exception:
+            schema_display = {"note": "Pydantic model (schema not displayable)"}
+
+    return _add_to_current_container(
+        Component(
+            type="Extract",
+            props={
+                "schema": schema_display,
+                "pydantic_model_name": pydantic_model.__name__ if pydantic_model else None,
+                "provider": provider,
+                "model": model,
+                "title": title,
+                "description": description,
+                "submit_label": submit_label,
+                "height": height,
+                "result_signal": result_signal,
+                **props,
+            },
+        )
+    )
+
+
+def cost_dashboard(
+    *,
+    title: str = "Usage & Costs",
+    show_budget: bool = True,
+    show_breakdown: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Cost tracking dashboard — shows per-session token counts, USD costs,
+    and model comparison.
+
+    Reads from the session's cost tracker and updates in real-time.
+
+    Example:
+        c.cost_dashboard(title="API Usage", compact=True)
+
+    Args:
+        title: Dashboard title.
+        show_budget: Show budget gauge if budget is configured.
+        show_breakdown: Show per-model cost breakdown table.
+        compact: Use compact layout (single row of metrics).
+    """
+    from .signal import Signal as _Signal
+
+    sig_name = f"cost_dashboard_{id(title)}"
+    cost_signal = _Signal({}, name=sig_name)
+
+    return _add_to_current_container(
+        Component(
+            type="CostDashboard",
+            props={
+                "title": title,
+                "show_budget": show_budget,
+                "show_breakdown": show_breakdown,
+                "compact": compact,
+                "cost_signal": cost_signal,
+                **props,
+            },
+        )
+    )
+
+
+def document_upload(
+    *,
+    schema: dict[str, Any] | None = None,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    api_key: str | None = None,
+    title: str = "Document Upload",
+    accept: str = ".pdf,.docx,.csv,.xlsx,.md,.txt,.html",
+    show_preview: bool = True,
+    extract_on_upload: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Document ingestion component — upload PDF, DOCX, CSV, etc. and extract
+    structured data via Prompture.
+
+    Example:
+        schema = {"type": "object", "properties": {"summary": {"type": "string"}}}
+        c.document_upload(schema=schema, extract_on_upload=True)
+
+    Args:
+        schema: JSON Schema for extraction (optional). If not provided,
+                shows raw parsed text only.
+        provider: LLM provider for extraction.
+        model: Model name for extraction.
+        api_key: Optional API key override.
+        title: Component title.
+        accept: Accepted file types (comma-separated).
+        show_preview: Show parsed text preview.
+        extract_on_upload: Automatically extract when file is uploaded.
+    """
+    from .signal import Signal as _Signal
+
+    sig_name = f"docupload_{id(schema)}_{id(title)}"
+    doc_signal = _Signal({}, name=f"{sig_name}_doc")
+
+    return _add_to_current_container(
+        Component(
+            type="DocumentUpload",
+            props={
+                "schema": schema,
+                "provider": provider,
+                "model": model,
+                "title": title,
+                "accept": accept,
+                "show_preview": show_preview,
+                "extract_on_upload": extract_on_upload,
+                "doc_signal": doc_signal,
+                **props,
+            },
+        )
+    )
+
+
+def model_picker(
+    *,
+    signal: Signal[str] | None = None,
+    label: str = "Model",
+    grouped: bool = True,
+    default: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Model discovery picker — auto-detects available providers and models,
+    displays them in a searchable select component.
+
+    Example:
+        model = c.signal("openai/gpt-4o", name="selected_model")
+        c.model_picker(signal=model)
+
+    Args:
+        signal: Signal to bind the selected model string to.
+        label: Label for the picker.
+        grouped: Group models by provider.
+        default: Default model selection.
+    """
+    from .signal import Signal as _Signal
+
+    if signal is None:
+        sig_name = f"model_picker_{id(label)}"
+        signal = _Signal(default or "", name=sig_name)
+
+    return _add_to_current_container(
+        Component(
+            type="ModelPicker",
+            props={
+                "signal": signal,
+                "label": label,
+                "grouped": grouped,
+                "default": default,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
+# Tukuy Skills Integration
+# =============================================================================
+
+
+def skill(
+    fn: Any = None,
+    *,
+    title: str | None = None,
+    description: str | None = None,
+    show_metadata: bool = True,
+    show_timing: bool = True,
+    height: str = "auto",
+    **props: Any,
+) -> Component:
+    """
+    Wrap a Tukuy ``@skill`` decorated function into an interactive component.
+
+    Automatically generates input fields from the skill's input schema and
+    displays results with timing and metadata.
+
+    Example:
+        from tukuy import skill as tukuy_skill
+
+        @tukuy_skill(name="parse_date", description="Parse a date string")
+        def parse_date(text: str) -> str:
+            from dateutil import parser
+            return parser.parse(text).isoformat()
+
+        c.skill(parse_date)
+
+    Args:
+        fn: A Tukuy ``@skill``-decorated function or ``Skill`` object.
+        title: Override the skill's name as display title.
+        description: Override the skill's description.
+        show_metadata: Show skill metadata (category, tags, risk level).
+        show_timing: Show execution duration after invocation.
+        height: Container height.
+    """
+    # Extract skill descriptor
+    skill_obj = None
+    descriptor: dict[str, Any] = {}
+
+    if fn is not None:
+        # Check if it's a @skill-decorated function (has __skill__ attribute)
+        if hasattr(fn, "__skill__"):
+            skill_obj = fn.__skill__
+        # Or it's a Skill instance directly
+        elif hasattr(fn, "descriptor"):
+            skill_obj = fn
+
+    if skill_obj is not None:
+        desc = skill_obj.descriptor
+        descriptor = {
+            "name": desc.name,
+            "description": desc.description,
+            "version": getattr(desc, "version", "0.1.0"),
+            "category": getattr(desc, "category", ""),
+            "tags": list(getattr(desc, "tags", [])),
+            "input_schema": getattr(desc, "input_schema", {}),
+            "output_schema": getattr(desc, "output_schema", {}),
+            "risk_level": str(getattr(desc, "risk_level", "AUTO")),
+            "idempotent": getattr(desc, "idempotent", False),
+            "side_effects": getattr(desc, "side_effects", True),
+            "requires_network": getattr(desc, "requires_network", False),
+            "requires_filesystem": getattr(desc, "requires_filesystem", False),
+            "config_params": [
+                {"name": p.name, "type": str(p.type), "default": p.default, "description": p.description}
+                for p in getattr(desc, "config_params", [])
+            ],
+        }
+
+    display_title = title or descriptor.get("name", "Skill")
+    display_description = description or descriptor.get("description", "")
+
+    return _add_to_current_container(
+        Component(
+            type="SkillRunner",
+            props={
+                "skill_name": descriptor.get("name", ""),
+                "title": display_title,
+                "description": display_description,
+                "descriptor": descriptor,
+                "show_metadata": show_metadata,
+                "show_timing": show_timing,
+                "height": height,
+                **props,
+            },
+        )
+    )
+
+
+def skill_browser(
+    *,
+    title: str = "Skill Browser",
+    show_search: bool = True,
+    show_categories: bool = True,
+    compact: bool = False,
+    on_select: str | None = None,
+    height: str = "500px",
+    **props: Any,
+) -> Component:
+    """
+    Skill discovery widget showing all registered Tukuy skills with search.
+
+    Browses all available skills from Tukuy's plugin system, grouped by
+    category. Click a skill to see details and optionally run it.
+
+    Example:
+        c.skill_browser()
+        c.skill_browser(compact=True, height="300px")
+
+    Args:
+        title: Widget title.
+        show_search: Show the search input.
+        show_categories: Group skills by category/plugin.
+        compact: Compact display mode.
+        on_select: Event name to fire when a skill is selected.
+        height: Container height.
+    """
+    return _add_to_current_container(
+        Component(
+            type="SkillBrowser",
+            props={
+                "title": title,
+                "show_search": show_search,
+                "show_categories": show_categories,
+                "compact": compact,
+                "on_select": on_select,
+                "height": height,
+                **props,
+            },
+        )
+    )
+
+
+def chain_builder(
+    *,
+    title: str = "Chain Builder",
+    initial_steps: list[dict[str, Any]] | None = None,
+    show_output: bool = True,
+    height: str = "600px",
+    **props: Any,
+) -> Component:
+    """
+    Visual chain builder for Tukuy Chain/Branch/Parallel composition.
+
+    Drag-and-drop interface for composing Tukuy skills and transformers
+    into processing chains. Supports sequential chains, conditional branches,
+    and parallel execution.
+
+    Example:
+        c.chain_builder()
+        c.chain_builder(initial_steps=[
+            {"type": "transformer", "name": "strip"},
+            {"type": "transformer", "name": "lowercase"},
+        ])
+
+    Args:
+        title: Widget title.
+        initial_steps: Pre-configured chain steps.
+        show_output: Show output panel for chain results.
+        height: Container height.
+    """
+    return _add_to_current_container(
+        Component(
+            type="ChainBuilder",
+            props={
+                "title": title,
+                "initial_steps": initial_steps or [],
+                "show_output": show_output,
+                "height": height,
+                **props,
+            },
+        )
+    )
+
+
+def safety_policy(
+    *,
+    title: str = "Safety Policy",
+    preset: str | None = None,
+    show_presets: bool = True,
+    show_advanced: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Safety policy configuration UI for Tukuy skill execution.
+
+    Allows configuring which imports, network access, and filesystem access
+    are permitted during skill execution for the current session.
+
+    Example:
+        c.safety_policy()
+        c.safety_policy(preset="restrictive")
+
+    Args:
+        title: Widget title.
+        preset: Initial preset (restrictive, permissive, network_only, filesystem_only).
+        show_presets: Show preset selection buttons.
+        show_advanced: Show advanced configuration (custom imports, paths).
+        compact: Compact display mode.
+    """
+    return _add_to_current_container(
+        Component(
+            type="SafetyPolicy",
+            props={
+                "title": title,
+                "preset": preset,
+                "show_presets": show_presets,
+                "show_advanced": show_advanced,
+                "compact": compact,
+                **props,
+            },
+        )
+    )
+
+
+# =============================================================================
+# Agent Components (Phase 8.4)
+# =============================================================================
+
+
+def agent(
+    *,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    system_prompt: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    tools: list[Any] | None = None,
+    tool_handlers: dict[str, Callable[..., Any]] | None = None,
+    max_iterations: int = 10,
+    max_cost: float | None = None,
+    max_budget_tokens: int | None = None,
+    fallback_model: str | None = None,
+    title: str | None = None,
+    placeholder: str = "Ask the agent...",
+    height: str = "600px",
+    show_steps: bool = True,
+    show_cost: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Wrap a Prompture Agent with ReAct loop visualization.
+
+    Creates an interactive agent UI that shows the agent's reasoning steps,
+    tool calls, and responses in real-time. The agent follows the ReAct
+    (Reasoning + Acting) pattern with visual trace of each step.
+
+    Example (basic agent):
+        c.agent(
+            provider="openai",
+            model="gpt-4o",
+            system_prompt="You are a helpful research assistant.",
+        )
+
+    Example (with tools):
+        from cacao.server.llm import ToolSpec
+
+        weather_tool = ToolSpec(
+            name="get_weather",
+            description="Get weather for a city",
+            parameters={"type": "object", "properties": {"city": {"type": "string"}}},
+        )
+        c.agent(
+            provider="openai", model="gpt-4o",
+            tools=[weather_tool],
+            tool_handlers={"get_weather": get_weather_fn},
+            max_iterations=5,
+        )
+
+    Example (with budget):
+        c.agent(
+            provider="openai", model="gpt-4o",
+            max_cost=2.00, fallback_model="gpt-4o-mini",
+        )
+
+    Args:
+        provider: LLM provider name (15+ supported via Prompture).
+        model: Model name.
+        system_prompt: System message for the agent.
+        api_key: API key (or set via environment variable).
+        temperature: Sampling temperature.
+        max_tokens: Max tokens per LLM call.
+        tools: List of ToolSpec for function calling.
+        tool_handlers: Dict mapping tool names to handler functions.
+        max_iterations: Maximum ReAct loop iterations.
+        max_cost: Maximum USD cost per session.
+        max_budget_tokens: Maximum total tokens per session.
+        fallback_model: Cheaper model to degrade to at 80% budget.
+        title: Component title.
+        placeholder: Input placeholder text.
+        height: Component height.
+        show_steps: Show the step-by-step trace panel.
+        show_cost: Show cost/token usage inline.
+    """
+    import uuid as _uuid
+
+    from .agent import AgentConfig, register_agent
+
+    agent_id = f"agent_{_uuid.uuid4().hex[:8]}"
+
+    config = AgentConfig(
+        provider=provider,
+        model=model,
+        system_prompt=system_prompt,
+        api_key=api_key,
+        base_url=base_url,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        tools=tools,
+        tool_handlers=tool_handlers or {},
+        max_iterations=max_iterations,
+        max_cost=max_cost,
+        max_budget_tokens=max_budget_tokens,
+        fallback_model=fallback_model,
+    )
+    register_agent(agent_id, config)
+
+    return _add_to_current_container(
+        Component(
+            type="Agent",
+            props={
+                "agent_id": agent_id,
+                "title": title,
+                "placeholder": placeholder,
+                "height": height,
+                "show_steps": show_steps,
+                "show_cost": show_cost,
+                "has_tools": tools is not None and len(tools) > 0,
+                "model": model,
+                "provider": provider,
+                **props,
+            },
+        )
+    )
+
+
+def multi_agent(
+    *,
+    mode: str = "debate",
+    agents: list[dict[str, Any]] | None = None,
+    agent_names: list[str] | None = None,
+    rounds: int = 3,
+    router_prompt: str | None = None,
+    title: str | None = None,
+    height: str = "600px",
+    **props: Any,
+) -> Component:
+    """
+    Multi-agent UI — debate view, router dashboard, or sequential pipeline.
+
+    Supports three modes:
+    - ``debate``: Agents take turns responding to a prompt, building on each other.
+    - ``router``: A router agent decides which specialist handles the request.
+    - ``pipeline``: Agents process sequentially, each receiving the previous output.
+
+    Example (debate):
+        c.multi_agent(
+            mode="debate",
+            agents=[
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "You are optimistic."},
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "You are skeptical."},
+            ],
+            agent_names=["Optimist", "Skeptic"],
+            rounds=3,
+        )
+
+    Example (router):
+        c.multi_agent(
+            mode="router",
+            agents=[
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Expert in Python."},
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Expert in JavaScript."},
+            ],
+            agent_names=["Python Expert", "JS Expert"],
+        )
+
+    Example (pipeline):
+        c.multi_agent(
+            mode="pipeline",
+            agents=[
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Translate to French."},
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Summarize in one sentence."},
+            ],
+            agent_names=["Translator", "Summarizer"],
+        )
+
+    Args:
+        mode: Multi-agent mode — "debate", "router", or "pipeline".
+        agents: List of agent config dicts (provider, model, system_prompt, etc.).
+        agent_names: Display names for each agent.
+        rounds: Number of debate rounds (debate mode only).
+        router_prompt: Custom routing prompt (router mode only).
+        title: Component title.
+        height: Component height.
+    """
+    import uuid as _uuid
+
+    from .agent import AgentConfig, MultiAgentConfig, register_multi_agent
+
+    multi_id = f"multi_{_uuid.uuid4().hex[:8]}"
+    agents_raw = agents or []
+    names = agent_names or [f"Agent {i + 1}" for i in range(len(agents_raw))]
+
+    agent_configs = [
+        AgentConfig(
+            provider=a.get("provider", "openai"),
+            model=a.get("model", "gpt-4o"),
+            system_prompt=a.get("system_prompt"),
+            api_key=a.get("api_key"),
+            base_url=a.get("base_url"),
+            temperature=a.get("temperature", 0.7),
+            max_tokens=a.get("max_tokens", 4096),
+        )
+        for a in agents_raw
+    ]
+
+    config = MultiAgentConfig(
+        mode=mode,
+        agents=agent_configs,
+        agent_names=names,
+        rounds=rounds,
+        router_prompt=router_prompt,
+    )
+    register_multi_agent(multi_id, config)
+
+    return _add_to_current_container(
+        Component(
+            type="MultiAgent",
+            props={
+                "multi_id": multi_id,
+                "mode": mode,
+                "agent_names": names,
+                "rounds": rounds,
+                "title": title,
+                "height": height,
+                **props,
+            },
+        )
+    )
+
+
+def tool_timeline(
+    *,
+    agent_id: str | None = None,
+    title: str = "Tool Call Timeline",
+    height: str = "400px",
+    show_args: bool = True,
+    show_results: bool = True,
+    show_cost: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Visual trace of agent reasoning steps and tool invocations.
+
+    Displays a timeline view of all steps in an agent's ReAct loop,
+    including thinking, tool calls (with arguments and results),
+    and final responses. Can be used standalone or paired with ``c.agent()``.
+
+    Example (standalone):
+        c.tool_timeline(agent_id="my_agent_id")
+
+    Example (paired with agent):
+        agent_comp = c.agent(provider="openai", model="gpt-4o", tools=[...])
+        c.tool_timeline(agent_id=agent_comp.props["agent_id"])
+
+    Args:
+        agent_id: The agent ID to track. If None, tracks all agents.
+        title: Widget title.
+        height: Container height.
+        show_args: Show tool call arguments.
+        show_results: Show tool call results.
+        show_cost: Show per-step cost/tokens.
+        compact: Compact display mode.
+    """
+    return _add_to_current_container(
+        Component(
+            type="ToolTimeline",
+            props={
+                "agent_id": agent_id,
+                "title": title,
+                "height": height,
+                "show_args": show_args,
+                "show_results": show_results,
+                "show_cost": show_cost,
+                "compact": compact,
+                **props,
+            },
+        )
+    )
+
+
+def budget_gauge(
+    *,
+    max_cost: float | None = None,
+    max_tokens: int | None = None,
+    warn_threshold: float = 0.8,
+    title: str = "Budget",
+    show_breakdown: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Real-time cost/token usage widget with threshold alerts.
+
+    Displays a visual gauge showing current spending against budget limits,
+    with color-coded warnings when approaching thresholds. Updates
+    automatically as the agent or chat components consume tokens.
+
+    Example:
+        c.budget_gauge(max_cost=5.00, max_tokens=100000)
+
+    Example (compact):
+        c.budget_gauge(max_cost=1.00, compact=True)
+
+    Args:
+        max_cost: Maximum USD budget. If None, shows usage without limit.
+        max_tokens: Maximum token budget. If None, shows usage without limit.
+        warn_threshold: Fraction (0-1) at which to show warning color (default 0.8).
+        title: Widget title.
+        show_breakdown: Show per-model cost breakdown table.
+        compact: Compact single-line display mode.
+    """
+    return _add_to_current_container(
+        Component(
+            type="BudgetGauge",
+            props={
+                "max_cost": max_cost,
+                "max_tokens": max_tokens,
+                "warn_threshold": warn_threshold,
+                "title": title,
+                "show_breakdown": show_breakdown,
+                "compact": compact,
+                **props,
+            },
+        )
+    )
 
 
 # =============================================================================
@@ -2036,4 +2875,19 @@ __all__ = [
     "virtual_list",
     # Panel
     "panel",
+    # AI / Prompture
+    "extract",
+    "cost_dashboard",
+    "document_upload",
+    "model_picker",
+    # Tukuy Skills
+    "skill",
+    "skill_browser",
+    "chain_builder",
+    "safety_policy",
+    # Agent Components
+    "agent",
+    "multi_agent",
+    "tool_timeline",
+    "budget_gauge",
 ]
