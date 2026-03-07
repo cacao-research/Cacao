@@ -1,0 +1,134 @@
+// SkillRunner component styles
+.cacao-skill-runner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+}
+
+.cacao-skill-runner-header {
+  .cacao-skill-runner-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .cacao-skill-runner-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .cacao-skill-runner-description {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+}
+
+.cacao-skill-runner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.cacao-skill-runner-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cacao-skill-runner-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.cacao-skill-runner-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cacao-skill-runner-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.cacao-skill-runner-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.cacao-skill-required {
+  color: var(--error-color, #ef4444);
+}
+
+.cacao-skill-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.cacao-skill-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.cacao-skill-runner-no-inputs {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  padding: var(--spacing-md) 0;
+}
+
+.cacao-skill-runner-output {
+  display: flex;
+  flex-direction: column;
+}
+
+.cacao-skill-runner-result {
+  background: var(--bg-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  overflow: auto;
+  flex: 1;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cacao-skill-runner-timing {
+  margin-top: var(--spacing-xs);
+  color: var(--text-secondary);
+}
+
+.cacao-skill-runner-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 150px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}

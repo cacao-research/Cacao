@@ -1,0 +1,34 @@
+// MplChart (matplotlib) component
+
+.mpl-chart {
+  border-radius: @radius-md;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+
+  &__title {
+    padding: @space-3 @space-4;
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-base;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: @space-2;
+
+    svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+  }
+}

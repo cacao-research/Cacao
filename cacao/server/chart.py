@@ -20,8 +20,22 @@ from .ui import Component, _add_to_current_container
 
 
 def _normalize_data(data: Any) -> list[dict[str, Any]]:
-    """Convert various data formats to list of dicts."""
-    # Pandas DataFrame
+    """Convert various data formats to list of dicts.
+
+    Supports pandas DataFrame, polars DataFrame, list of dicts,
+    and dict of lists (columnar format).
+    """
+    # Polars DataFrame (check before generic to_dict)
+    try:
+        import polars as pl
+
+        if isinstance(data, pl.DataFrame):
+            polars_result: list[dict[str, Any]] = data.to_dicts()
+            return polars_result
+    except ImportError:
+        pass
+
+    # Pandas DataFrame (or anything with to_dict)
     if hasattr(data, "to_dict"):
         result: list[dict[str, Any]] = data.to_dict("records")
         return result

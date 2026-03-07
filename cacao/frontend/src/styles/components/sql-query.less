@@ -1,0 +1,101 @@
+// SqlQuery component
+
+.sql-query {
+  border: 1px solid var(--border-color);
+  border-radius: @radius-md;
+  overflow: hidden;
+  background: var(--bg-card);
+
+  &__title {
+    padding: @space-3 @space-4;
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-base;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  &__editor {
+    padding: @space-3 @space-4;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-secondary);
+  }
+
+  &__input {
+    width: 100%;
+    min-height: 60px;
+    padding: @space-3;
+    border: 1px solid var(--border-color);
+    border-radius: @radius-sm;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: @font-mono;
+    font-size: @font-size-sm;
+    resize: vertical;
+    outline: none;
+    transition: border-color @transition-fast;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: var(--accent-primary);
+    }
+
+    &::placeholder {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: @space-3;
+    margin-top: @space-2;
+  }
+
+  &__run-btn {
+    padding: @space-2 @space-4;
+    border: none;
+    border-radius: @radius-sm;
+    background: var(--accent-primary);
+    color: #fff;
+    font-weight: @font-weight-medium;
+    font-size: @font-size-sm;
+    cursor: pointer;
+    transition: all @transition-fast;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__hint {
+    font-size: @font-size-xs;
+    color: var(--text-muted);
+  }
+
+  &__error {
+    padding: @space-3 @space-4;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    font-family: @font-mono;
+    font-size: @font-size-sm;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  &__results {
+    padding: 0;
+  }
+
+  &__results-info {
+    padding: @space-2 @space-4;
+    font-size: @font-size-xs;
+    color: var(--text-muted);
+    font-family: @font-mono;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}

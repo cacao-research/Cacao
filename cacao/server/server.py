@@ -7,6 +7,7 @@ WebSocket connections, dispatches events, and syncs state to clients.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -19,6 +20,7 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
+from .errors import format_friendly_error
 from .log import get_logger, get_uvicorn_log_config
 from .plugin import get_registry
 from .session import Session
@@ -102,6 +104,14 @@ def create_server(app: App) -> Starlette:
                     continue
 
                 msg_type = message.get("type")
+                if app.debug:
+                    _preview = data[:200] + ("..." if len(data) > 200 else "")
+                    logger.debug(
+                        "WS recv [%s] %s",
+                        msg_type,
+                        _preview,
+                        extra={"label": "ws:recv"},
+                    )
 
                 if msg_type == "event":
                     event_name = message.get("name", "")
@@ -109,7 +119,316 @@ def create_server(app: App) -> Starlette:
 
                     logger.debug("Event: %s %s", event_name, event_data, extra={"label": "event"})
 
-                    await app.handle_event(session, event_name, event_data)
+                    try:
+                        await app.handle_event(session, event_name, event_data)
+                    except Exception as ev_exc:
+                        logger.exception(
+                            "Error handling event '%s'",
+                            event_name,
+                            extra={"label": "error"},
+                        )
+                        if app.debug:
+                            err = format_friendly_error(
+                                ev_exc,
+                                context=f"handling event '{event_name}'",
+                            )
+                            await session.send({"type": "server:error", **err})
+
+                elif msg_type == "chat:send":
+                    # LLM-powered chat message
+                    signal_name = message.get("signal", "")
+                    text = message.get("text", "")
+                    if signal_name and text:
+                        from .llm import handle_chat_message
+
+                        sig = Signal.get_all_signals().get(signal_name)
+                        if sig:
+                            asyncio.create_task(handle_chat_message(session, sig, text))
+
+                elif msg_type == "interface:submit":
+                    from .interface import handle_interface_event
+
+                    iface_id = message.get("id", "")
+                    input_values = message.get("inputs", {})
+                    logger.debug("Interface submit: %s", iface_id, extra={"label": "interface"})
+                    asyncio.create_task(handle_interface_event(session, iface_id, input_values))
+
+                elif msg_type == "interface:flag":
+                    from .interface import handle_interface_flag
+
+                    iface_id = message.get("id", "")
+                    input_values = message.get("inputs", {})
+                    output_value = message.get("output")
+                    note = message.get("note", "")
+                    await handle_interface_flag(session, iface_id, input_values, output_value, note)
+
+                elif msg_type == "extract:submit":
+                    from .llm import extract_structured
+
+                    text = message.get("text", "")
+                    schema = message.get("schema")
+                    model_str = message.get("model", "openai/gpt-4o")
+                    api_key = message.get("api_key")
+                    extract_id = message.get("id", "")
+
+                    async def _do_extract(
+                        _s: Session,
+                        _text: str,
+                        _schema: dict[str, Any],
+                        _model: str,
+                        _key: str | None,
+                        _eid: str,
+                    ) -> None:
+                        try:
+                            result = await extract_structured(
+                                _text,
+                                schema=_schema,
+                                model=_model,
+                                api_key=_key,
+                            )
+                            await _s.send(
+                                {
+                                    "type": "extract:result",
+                                    "id": _eid,
+                                    "result": result.get("result", {}),
+                                    "usage": result.get("usage", {}),
+                                }
+                            )
+                        except Exception as e:
+                            await _s.send(
+                                {
+                                    "type": "extract:error",
+                                    "id": _eid,
+                                    "error": str(e),
+                                }
+                            )
+
+                    asyncio.create_task(
+                        _do_extract(session, text, schema, model_str, api_key, extract_id)
+                    )
+
+                elif msg_type == "document:upload":
+                    from .llm import ingest_document
+
+                    file_path = message.get("file_path", "")
+                    file_type = message.get("file_type")
+                    schema = message.get("schema")
+                    model_str = message.get("model", "openai/gpt-4o")
+                    api_key = message.get("api_key")
+                    doc_id = message.get("id", "")
+
+                    async def _do_ingest(
+                        _s: Session,
+                        _path: str,
+                        _ft: str | None,
+                        _schema: dict[str, Any] | None,
+                        _model: str,
+                        _key: str | None,
+                        _did: str,
+                    ) -> None:
+                        try:
+                            result = await ingest_document(
+                                _path,
+                                file_type=_ft,
+                                schema=_schema,
+                                model=_model,
+                                api_key=_key,
+                            )
+                            await _s.send(
+                                {
+                                    "type": "document:result",
+                                    "id": _did,
+                                    "text": result.get("text", ""),
+                                    "metadata": result.get("metadata", {}),
+                                    "extracted": result.get("extracted"),
+                                    "extraction_usage": result.get("extraction_usage"),
+                                }
+                            )
+                        except Exception as e:
+                            await _s.send(
+                                {
+                                    "type": "document:error",
+                                    "id": _did,
+                                    "error": str(e),
+                                }
+                            )
+
+                    asyncio.create_task(
+                        _do_ingest(
+                            session, file_path, file_type, schema, model_str, api_key, doc_id
+                        )
+                    )
+
+                elif msg_type == "models:discover":
+                    from .llm import discover_models
+
+                    grouped = message.get("grouped", True)
+
+                    async def _do_discover(_s: Session, _grouped: bool) -> None:
+                        try:
+                            models = await asyncio.to_thread(
+                                discover_models,
+                                grouped=_grouped,
+                                include_capabilities=True,
+                            )
+                            await _s.send(
+                                {
+                                    "type": "models:result",
+                                    "models": models,
+                                }
+                            )
+                        except Exception as e:
+                            await _s.send(
+                                {
+                                    "type": "models:error",
+                                    "error": str(e),
+                                }
+                            )
+
+                    asyncio.create_task(_do_discover(session, grouped))
+
+                elif msg_type == "cost:get":
+                    from .llm import get_cost_tracker
+
+                    tracker = get_cost_tracker(session.id)
+                    await session.send(
+                        {
+                            "type": "cost:summary",
+                            "summary": tracker.summary(),
+                        }
+                    )
+
+                # ── Tukuy Skills ──────────────────────────────────
+                elif msg_type == "skill:invoke":
+                    from .tukuy_skills import handle_skill_invoke
+
+                    asyncio.create_task(
+                        handle_skill_invoke(
+                            session,
+                            skill_name=message.get("skill_name", ""),
+                            inputs=message.get("inputs", {}),
+                            invoke_id=message.get("id", ""),
+                        )
+                    )
+
+                elif msg_type == "skill:browse":
+                    from .tukuy_skills import handle_skill_browse
+
+                    asyncio.create_task(handle_skill_browse(session))
+
+                elif msg_type == "skill:search":
+                    from .tukuy_skills import handle_skill_search
+
+                    asyncio.create_task(
+                        handle_skill_search(
+                            session,
+                            query=message.get("query", ""),
+                            limit=message.get("limit", 20),
+                        )
+                    )
+
+                elif msg_type == "skill:details":
+                    from .tukuy_skills import handle_skill_details
+
+                    asyncio.create_task(
+                        handle_skill_details(
+                            session,
+                            skill_names=message.get("names", []),
+                        )
+                    )
+
+                elif msg_type == "chain:run":
+                    from .tukuy_skills import handle_chain_run
+
+                    asyncio.create_task(
+                        handle_chain_run(
+                            session,
+                            chain_id=message.get("id", ""),
+                            steps=message.get("steps", []),
+                            input_value=message.get("input", ""),
+                        )
+                    )
+
+                elif msg_type == "transform:run":
+                    from .tukuy_skills import handle_transform
+
+                    asyncio.create_task(
+                        handle_transform(
+                            session,
+                            transform_id=message.get("id", ""),
+                            transformer_name=message.get("name", ""),
+                            input_value=message.get("input", ""),
+                            params=message.get("params"),
+                        )
+                    )
+
+                elif msg_type == "transform:list":
+                    from .tukuy_skills import handle_transform_list
+
+                    asyncio.create_task(handle_transform_list(session))
+
+                elif msg_type == "safety:set":
+                    from .tukuy_skills import handle_safety_set
+
+                    asyncio.create_task(
+                        handle_safety_set(
+                            session,
+                            policy_config=message.get("policy", {}),
+                        )
+                    )
+
+                elif msg_type == "safety:get":
+                    from .tukuy_skills import handle_safety_get
+
+                    asyncio.create_task(handle_safety_get(session))
+
+                # ── Agent Components ──────────────────────────────
+                elif msg_type == "agent:run":
+                    from .agent import handle_agent_run
+
+                    asyncio.create_task(
+                        handle_agent_run(
+                            session,
+                            agent_id=message.get("agent_id", ""),
+                            text=message.get("text", ""),
+                        )
+                    )
+
+                elif msg_type == "multi_agent:run":
+                    from .agent import handle_multi_agent_run
+
+                    asyncio.create_task(
+                        handle_multi_agent_run(
+                            session,
+                            multi_id=message.get("multi_id", ""),
+                            text=message.get("text", ""),
+                        )
+                    )
+
+                elif msg_type == "budget:get":
+                    from .llm import get_cost_tracker
+
+                    tracker = get_cost_tracker(session.id)
+                    await session.send(
+                        {
+                            "type": "budget:summary",
+                            "summary": tracker.summary(),
+                        }
+                    )
+
+                # ── SQL Query ─────────────────────────────────────
+                elif msg_type == "sql_query":
+                    from .sql import handle_sql_query
+
+                    asyncio.create_task(
+                        handle_sql_query(
+                            session,
+                            connection=message.get("connection", ""),
+                            conn_type=message.get("connType", "unknown"),
+                            query=message.get("query", ""),
+                            max_rows=message.get("maxRows", 1000),
+                        )
+                    )
 
         except WebSocketDisconnect:
             pass
@@ -119,6 +438,11 @@ def create_server(app: App) -> Starlette:
             # Clean up
             for unsub in unsubscribers:
                 unsub()
+
+            # Clean up Tukuy session policy
+            from .tukuy_skills import cleanup_session_policy
+
+            cleanup_session_policy(session.id)
 
             await get_registry().run_hook("on_session_end", session)
             app.sessions.remove(session.id)
@@ -136,11 +460,19 @@ def create_server(app: App) -> Starlette:
 
     async def pages_handler(request: Any) -> JSONResponse:
         """Return the component tree for all pages."""
-        # Check if app has fluent UI pages
-        if hasattr(app, "get_all_pages"):
-            pages = app.get_all_pages()
-        else:
-            pages = {"/": []}
+        try:
+            # Check if app has fluent UI pages
+            if hasattr(app, "get_all_pages"):
+                pages = app.get_all_pages()
+            else:
+                pages = {"/": []}
+        except Exception as page_exc:
+            logger.exception("Error building pages", extra={"label": "error"})
+            err = format_friendly_error(page_exc, context="building the component tree")
+            return JSONResponse(
+                {"pages": {"/": []}, "metadata": {"title": "Error"}, "slots": {}, "error": err},
+                status_code=200,  # 200 so the frontend can display the overlay
+            )
 
         # Get app metadata
         metadata = {
@@ -232,6 +564,7 @@ def create_server(app: App) -> Starlette:
             categories=categories,
             custom_themes=custom_themes,
             plugin_scripts=plugin_scripts,
+            debug=app.debug,
         )
         return HTMLResponse(html)
 
@@ -381,6 +714,7 @@ def _get_dashboard_html(
     categories: set[str] | None = None,
     custom_themes: dict[str, dict[str, str]] | None = None,
     plugin_scripts: list[str] | None = None,
+    debug: bool = False,
 ) -> str:
     """Generate the dashboard HTML that links to external CSS and JS."""
     branding_html = _get_branding_html(branding)
@@ -395,6 +729,7 @@ def _get_dashboard_html(
     plugin_script_tags = ""
     for url in plugin_scripts or []:
         plugin_script_tags += f'\n    <script src="{url}"></script>'
+    debug_script = "\n    <script>window.__CACAO_DEBUG__ = true;</script>" if debug else ""
     return f'''<!DOCTYPE html>
 <html lang="en" data-theme="{theme}">
 <head>
@@ -408,7 +743,7 @@ def _get_dashboard_html(
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>{chartjs_tag}{theme_css}
 </head>
 <body>
-    <div id="root"><div class="loading">Loading...</div></div>{branding_html}
+    <div id="root"><div class="loading">Loading...</div></div>{branding_html}{debug_script}
     <script src="/static/cacao.js"></script>{plugin_script_tags}
 </body>
 </html>'''

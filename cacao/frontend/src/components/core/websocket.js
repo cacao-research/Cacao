@@ -136,9 +136,79 @@ class CacaoWebSocket {
         this.notifyListeners();
         break;
 
+      case 'chat:tool_call':
+        // Tool call notification — forwarded to chat listeners
+        this.chatListeners.forEach(listener => listener(message));
+        break;
+
+      case 'interface:result':
+      case 'interface:error':
+      case 'interface:progress':
+      case 'interface:stream':
+      case 'interface:stream_done':
+      case 'interface:flagged':
+        // Interface messages are handled directly by Interface component
+        // via raw WebSocket message listener — no action needed here
+        break;
+
+      // Agent messages — handled by Agent/MultiAgent/ToolTimeline/BudgetGauge components
+      case 'agent:started':
+      case 'agent:step':
+      case 'agent:delta':
+      case 'agent:done':
+      case 'agent:error':
+      case 'agent:budget_update':
+      case 'multi_agent:started':
+      case 'multi_agent:turn':
+      case 'multi_agent:delta':
+      case 'multi_agent:routing':
+      case 'multi_agent:done':
+      case 'multi_agent:error':
+      case 'budget:summary':
+        break;
+
+      // Tukuy skill/chain/transform/safety messages — handled by components
+      case 'skill:result':
+      case 'skill:error':
+      case 'skill:browse_result':
+      case 'skill:browse_error':
+      case 'skill:search_result':
+      case 'skill:search_error':
+      case 'skill:details_result':
+      case 'skill:details_error':
+      case 'chain:started':
+      case 'chain:step_result':
+      case 'chain:result':
+      case 'chain:error':
+      case 'transform:result':
+      case 'transform:error':
+      case 'transform:list_result':
+      case 'transform:list_error':
+      case 'safety:set_result':
+      case 'safety:set_error':
+      case 'safety:get_result':
+      case 'safety:get_error':
+        break;
+
+      // SQL query results — handled by SqlQuery component via message listener
+      case 'sql:result':
+      case 'sql:error':
+        break;
+
+      case 'server:error':
+        // Server-side error — show in dev overlay
+        console.error('[Cacao] Server error:', message.title, message.message);
+        if (window.__CACAO_DEBUG__ && window.__CACAO_ERROR_OVERLAY__) {
+          window.__CACAO_ERROR_OVERLAY__.addError(message);
+        }
+        break;
+
       default:
         console.log('[Cacao] Unknown message type:', type, message);
     }
+
+    // Forward all messages to message-level listeners
+    this.notifyMessageListeners(message);
   }
 
   sendEvent(eventName, eventData = {}) {
@@ -183,14 +253,53 @@ class CacaoWebSocket {
     return () => this.chatListeners.delete(listener);
   }
 
+  sendChatMessage(signalName, text) {
+    // Send a chat message to the LLM-powered chat backend
+    if (isStaticMode()) return;
+    if (!this.connected || !this.ws) {
+      console.warn('[Cacao] Cannot send chat message - not connected');
+      return;
+    }
+    this.ws.send(JSON.stringify({
+      type: 'chat:send',
+      signal: signalName,
+      text,
+    }));
+  }
+
   dispatchChat(msg) {
     // Dispatch a chat_delta or chat_done message to chat listeners.
     // Used by static mode JS handlers to drive chat streaming.
     this.chatListeners.forEach(listener => listener(msg));
   }
 
+  addListener(handler) {
+    // Message-level listener (receives parsed JSON messages)
+    if (!this._msgListeners) this._msgListeners = new Set();
+    this._msgListeners.add(handler);
+  }
+
+  removeListener(handler) {
+    if (this._msgListeners) this._msgListeners.delete(handler);
+  }
+
+  send(message) {
+    if (isStaticMode()) return;
+    if (!this.connected || !this.ws) {
+      console.warn('[Cacao] Cannot send message - not connected');
+      return;
+    }
+    this.ws.send(JSON.stringify(message));
+  }
+
   notifyListeners() {
     this.listeners.forEach(listener => listener(this.signals));
+  }
+
+  notifyMessageListeners(message) {
+    if (this._msgListeners) {
+      this._msgListeners.forEach(handler => handler(message));
+    }
   }
 }
 

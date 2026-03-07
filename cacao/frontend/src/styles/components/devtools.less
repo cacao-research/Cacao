@@ -1,0 +1,502 @@
+// Cacao DevTools — browser developer tools panel
+
+// ─── Toggle Button ──────────────────────────────────────────────────────
+
+.cacao-devtools__toggle {
+  position: fixed;
+  bottom: @space-3;
+  left: @space-3;
+  z-index: 9999;
+  width: 36px;
+  height: 36px;
+  border-radius: @radius-full;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s, transform 0.15s;
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    transform: scale(1.1);
+  }
+}
+
+// ─── Main Panel ─────────────────────────────────────────────────────────
+
+.cacao-devtools {
+  position: fixed;
+  z-index: 9998;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  font-family: @font-family;
+  font-size: @font-size-xs;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+
+  &--bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    max-height: 50vh;
+    border-top: 2px solid var(--accent);
+  }
+
+  &--right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 400px;
+    max-width: 40vw;
+    border-left: 2px solid var(--accent);
+  }
+
+  // ─── Header ─────────────────────────────────────────────────────────
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: @space-1 @space-3;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-sm;
+    color: var(--accent);
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: @space-1;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 @space-1;
+    line-height: 1;
+    &:hover { color: var(--text-primary); }
+  }
+
+  // ─── Tabs ───────────────────────────────────────────────────────────
+  &__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+
+  &__tab {
+    padding: @space-1 @space-3;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: @font-size-xs;
+    font-family: @font-family;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+
+    &--active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: @font-weight-medium;
+    }
+  }
+
+  // ─── Body ───────────────────────────────────────────────────────────
+  &__body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__tab-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // ─── Shared Controls ────────────────────────────────────────────────
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-2 @space-3;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+
+  &__search {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: @radius-xs;
+    padding: 3px @space-2;
+    font-size: @font-size-xs;
+    font-family: @font-family;
+    color: var(--text-primary);
+    outline: none;
+
+    &:focus {
+      border-color: var(--accent);
+    }
+
+    &::placeholder {
+      color: var(--text-tertiary);
+    }
+  }
+
+  &__btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: @radius-xs;
+    padding: 2px @space-2;
+    font-size: @font-size-xs;
+    font-family: @font-family;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    &--tiny {
+      padding: 1px @space-1;
+    }
+  }
+
+  &__count {
+    color: var(--text-tertiary);
+    font-size: @font-size-xs;
+    white-space: nowrap;
+  }
+
+  &__empty {
+    padding: @space-4;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-style: italic;
+  }
+
+  &__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: @space-1;
+    color: var(--text-secondary);
+    font-size: @font-size-xs;
+    white-space: nowrap;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      margin: 0;
+      accent-color: var(--accent);
+    }
+  }
+
+  // ─── Signal Inspector ───────────────────────────────────────────────
+  &__signal-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: @space-1 0;
+  }
+
+  &__signal-item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  &__signal-header {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-1 @space-3;
+    cursor: default;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  &__signal-name {
+    font-family: @font-mono;
+    font-weight: @font-weight-medium;
+    color: var(--accent);
+  }
+
+  &__signal-type {
+    color: var(--text-tertiary);
+    font-size: @font-size-xs;
+  }
+
+  &__signal-value {
+    color: var(--text-secondary);
+    font-family: @font-mono;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    text-align: right;
+  }
+
+  &__signal-expanded {
+    margin: 0;
+    padding: @space-2 @space-3 @space-2 (@space-3 + 20px);
+    background: var(--bg-tertiary);
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 150px;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+
+  &__expand-icon {
+    width: 12px;
+    font-size: 8px;
+    color: var(--text-tertiary);
+    text-align: center;
+    flex-shrink: 0;
+
+    &--leaf {
+      font-size: 12px;
+    }
+  }
+
+  // ─── Event Log ──────────────────────────────────────────────────────
+  &__event-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: @space-1 0;
+  }
+
+  &__event-item {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: 2px @space-3;
+    font-family: @font-mono;
+    border-bottom: 1px solid fade(@border-color, 30%);
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+
+    &--in {
+      .cacao-devtools__event-dir {
+        color: var(--success);
+      }
+    }
+
+    &--out {
+      .cacao-devtools__event-dir {
+        color: var(--warning);
+      }
+    }
+  }
+
+  &__event-dir {
+    width: 12px;
+    text-align: center;
+    font-size: @font-size-sm;
+    flex-shrink: 0;
+  }
+
+  &__event-time {
+    color: var(--text-tertiary);
+    font-size: @font-size-xs;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  &__event-type {
+    color: var(--accent);
+    font-weight: @font-weight-medium;
+    white-space: nowrap;
+  }
+
+  &__event-preview {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  // ─── Component Tree ─────────────────────────────────────────────────
+  &__tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: @space-2 0;
+  }
+
+  &__tree-page {
+    &-header {
+      display: flex;
+      align-items: center;
+      gap: @space-2;
+      padding: @space-1 @space-3;
+      font-weight: @font-weight-semibold;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--bg-hover);
+      }
+    }
+
+    &-name {
+      color: var(--text-primary);
+      font-family: @font-mono;
+    }
+  }
+
+  &__tree-children {
+    // nesting indent comes from inline paddingLeft
+  }
+
+  &__tree-node {
+    &-header {
+      display: flex;
+      align-items: center;
+      gap: @space-1;
+      padding: 1px @space-2;
+      cursor: default;
+
+      &:hover {
+        background: var(--bg-hover);
+      }
+    }
+  }
+
+  &__tree-type {
+    color: var(--accent);
+    font-family: @font-mono;
+    font-weight: @font-weight-medium;
+  }
+
+  &__tree-props {
+    color: var(--text-tertiary);
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  // ─── Session Info ───────────────────────────────────────────────────
+  &__session-info {
+    padding: @space-2 @space-3;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    gap: @space-4;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  &__session-row {
+    display: flex;
+    align-items: center;
+    gap: @space-1;
+  }
+
+  &__session-label {
+    color: var(--text-tertiary);
+  }
+
+  &__session-value {
+    font-family: @font-mono;
+    color: var(--text-primary);
+
+    &--ok { color: var(--success); }
+    &--err { color: var(--danger); }
+  }
+
+  // ─── Performance Profiler ───────────────────────────────────────────
+  &__perf-stat {
+    color: var(--text-secondary);
+    font-family: @font-mono;
+    white-space: nowrap;
+  }
+
+  &__perf-section {
+    padding: @space-2 @space-3;
+    border-bottom: 1px solid var(--border);
+  }
+
+  &__perf-heading {
+    margin: 0 0 @space-2;
+    font-size: @font-size-xs;
+    font-weight: @font-weight-semibold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__perf-heading-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: @space-2;
+
+    .cacao-devtools__perf-heading {
+      margin-bottom: 0;
+    }
+  }
+
+  &__perf-table {
+    font-family: @font-mono;
+  }
+
+  &__perf-row {
+    display: grid;
+    grid-template-columns: 1fr repeat(3, auto);
+    gap: @space-3;
+    padding: 2px 0;
+    align-items: center;
+
+    &--header {
+      color: var(--text-tertiary);
+      font-weight: @font-weight-medium;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: @space-1;
+      margin-bottom: @space-1;
+
+      span { font-family: @font-family; }
+    }
+
+    // 2-column variant for render counts
+    &:not(&--header) {
+      span:nth-child(n+3):empty { display: none; }
+    }
+  }
+}
+
+// ─── Variable fallback for border-color in fade() ───────────────────────
+@border-color: #333;

@@ -18,7 +18,7 @@ Fluent UI (Streamlit-like API):
 """
 
 # Fluent UI imports
-from . import chart, data, ui
+from . import agent, chart, data, llm, tukuy_skills, ui
 from .app import App
 from .batch import Batch, batch, batch_updates
 from .effects import Effect, Watch, effect
@@ -72,6 +72,9 @@ __all__ = [
     "ui",
     "chart",
     "data",
+    "llm",
+    "tukuy_skills",
+    "agent",
 ]
 
 try:

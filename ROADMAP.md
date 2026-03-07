@@ -1,281 +1,306 @@
 # Cacao v2 Development Roadmap
 
-## Current State (Phase 2 In Progress)
+> **Target competitor: Gradio** — Cacao should be what Gradio wishes it was: function-wrapping simplicity with real app-building power.
 
-### Server (Python) ✅ Complete
-- [x] `Signal` - Reactive state with session scoping
-- [x] `Computed` - Derived state from signals
-- [x] `Session` - Per-client session management
-- [x] `SessionManager` - Session lifecycle
-- [x] `EventRegistry` - Event handling with auto-binding
-- [x] `App` - Main class with decorators (@app.on, @app.route)
-- [x] WebSocket server (Starlette + Uvicorn) - **Port 1634**
+---
+
+## Completed Phases
+
+### Phase 1: Core Server ✅
+- [x] Signal — Reactive state with session scoping
+- [x] Computed — Derived state from signals
+- [x] Session / SessionManager — Per-client isolation
+- [x] EventRegistry — Event handling with auto-binding
+- [x] App — Main class with decorators (@app.on, @app.route)
+- [x] WebSocket server (Starlette + Uvicorn)
 - [x] State sync protocol (init, update, batch)
 
-### Client (React + TypeScript) ✅ Core Complete
-- [x] `CacaoProvider` - Context provider with WebSocket
-- [x] `useSignal` - Subscribe to signal values
-- [x] `useEvent` - Dispatch events to server
-- [x] `useConnectionStatus` - Connection state
-- [x] `useSessionId` - Session identifier
-- [x] `useSignalInput` - Form input binding
-- [x] `useSignalSelect` - Select binding
-- [x] `useSignalCheckbox` - Checkbox binding
-- [x] `useSignalSwitch` - Switch binding
-- [x] `useSignalForm` - Multi-field form binding
-- [x] WebSocket client with auto-reconnect
-- [x] State store with subscriptions
+### Phase 2: Component Library ✅
+- [x] Layout — Row, Col, Grid, Container, Stack, Split, Hero, AppShell, NavSidebar, Panel
+- [x] Form — Button, Input, Select, Checkbox, Switch, Slider, DatePicker, FileUpload, Textarea, SearchInput
+- [x] Display — Card, Metric, Table, Alert, Badge, Progress, Accordion, Modal, Tooltip, Timeline, Diff, JsonView, Steps, FileTree
+- [x] Typography — Title, Text, Code, Divider, Markdown, Html, Spacer
+- [x] Navigation — Tabs, Breadcrumb, Sidebar, SubNav
+
+### Phase 3: Charts & Data ✅
+- [x] 11 chart types — Line, Bar, Pie, Scatter, Area, Gauge, Heatmap, Funnel, Radar, Treemap, Donut
+- [x] DataFrame — Custom lightweight DataFrame with filter, sort, group_by, aggregate
+- [x] Data loaders — CSV, JSON, Parquet with auto-type conversion
+- [x] Sample data generators
+
+### Phase 4: Advanced Server ✅
+- [x] Effect / Watch — Side effects on signal changes
+- [x] Batch — Batch multiple signal updates
+- [x] Middleware chain — Rate limit, auth, validation, transform, timeout, logging
+- [x] Plugin registry — Lifecycle hooks, UI slots, event bus
+- [x] Auth system — SimpleAuthProvider, permissions, token-based
+- [x] Notifications — Toasts, persistent notifications, broadcast
+
+### Phase 5: Fluent API & Static Builds ✅
+- [x] Simple API — `import cacao as c` with lazy app creation
+- [x] Context managers — `with c.row():`, `with c.card():`
+- [x] Multi-page routing — Hash-based SPA routing
+- [x] Static export — `cacao build` for serverless deployment
+- [x] Built-in handlers — Encoders, generators, converters, text, crypto
+- [x] CLI — `cacao run`, `cacao build`, `cacao create`
+- [x] Hot reload — File watching with auto-restart
+- [x] Themes — Dark, light, tukuy, tukuy-light
+
+### Phase 6: cacao_tools Port ✅
+- [x] Encoders — Base64, URL, HTML, JWT, hex, CSV
+- [x] Generators — UUID, passwords, Lorem Ipsum, random data
+- [x] Converters — YAML, case conversion, number bases
+- [x] Text — Stats, regex, reverse, word wrap
+- [x] Crypto — SHA-256, MD5, HMAC
 
 ---
 
-## Phase 2: Component Library Foundation ✅ Complete
+## Competitive Analysis
 
-### 2.1 Layout Components (React) ✅
-- [x] `Box` - Flexible container with spacing/flex props
-- [x] `Stack` / `HStack` / `VStack` - Vertical/horizontal stack with gap
-- [x] `Grid` / `GridItem` - CSS Grid wrapper
-- [x] `Container` - Max-width centered container
-- [x] `Divider` - Horizontal/vertical divider
+### Why Gradio is the target
 
-### 2.2 Basic UI Components (React) ✅
-- [x] `Button` - Primary, secondary, danger, success, warning, ghost, outline variants
-- [x] `Text` - Typography component (h1-h6, body, small, caption, code)
-- [x] `Badge` - Status indicators with dot option
-- [x] `Card` / `CardSection` - Content container with header/footer
-- [x] `Alert` - Info, success, warning, error messages
+Gradio owns the "wrap a function, get a UI" space. Its `gr.Interface(fn, inputs, outputs)` pattern is the fastest way to go from Python function to shareable demo. But it hits a wall fast:
 
-### 2.3 Form Components (React + Python bindings) ✅
-- [x] `Input` - Text input with validation states
-- [x] `Textarea` - Multi-line text with resize options
-- [x] `Select` - Dropdown selection with options
-- [x] `Checkbox` - Boolean toggle with label/description
-- [x] `Switch` - Toggle switch
+- **Layout prison** — Stuck in input/output box model. Anything beyond a demo fights the framework.
+- **Not for real apps** — No state management, no multi-page, no middleware. It's a demo tool.
+- **No static builds** — Always needs a server running.
+- **No session isolation** — Shared state across users.
 
-### Examples
-- [x] Counter - Basic increment/decrement
-- [x] Todo - Form binding, list management (created)
+Cacao already beats Gradio on: layout flexibility, real reactivity, component richness, session isolation, static builds, plugin architecture. The roadmap closes the gaps where Gradio wins.
+
+### What we take from each competitor
+
+| Competitor | Steal this | Avoid this |
+|------------|-----------|------------|
+| **Gradio** | Function wrapping, auto-UI generation, HF Spaces integration | Input/output box prison, no real state |
+| **Streamlit** | One-file simplicity, instant gratification | Full-rerun model, session_state bolted on |
+| **Reflex** | Full-stack ambition, production-grade goal | Compilation complexity, breaking changes |
+| **Marimo** | Reactive notebook, export-as-app | Tiny ecosystem, breaks common Python patterns |
+| **NiceGUI** | Real-time sync, desktop-style feel | Scaling issues, laggy with complex state |
+| **Flet** | Cross-platform output (web + desktop) | Flutter bloat, massive runtime |
+| **Panel** | Plays well with data ecosystem | Steep learning curve, overwhelming API |
 
 ---
 
-## Phase 3: Data Components ✅ Complete
+## Phase 7: Function Wrapping (The Gradio Killer Feature) ✅
 
-### 3.1 Data Display
-- [x] `Table` - Data table with sorting, pagination, selection
-- [x] `List` - Vertical list with items
-- [x] `Descriptions` - Key-value pairs display
-- [x] `Tree` - Hierarchical data display
-- [x] `Avatar` / `AvatarGroup` - User profile images
-- [x] `Tag` / `TagGroup` - Labels and categories
+> **Goal:** Match Gradio's `gr.Interface()` simplicity, then surpass it with Cacao's layout system.
 
-### 3.2 Data Visualization
-- [ ] `Plot` - Chart integration (Chart.js or similar)
-- [x] `Progress` - Progress bars (line and circle)
-- [x] `Statistic` / `StatisticGroup` - Number display with label/trend
+### 7.1 Auto-Interface ✅
+- [x] `c.interface(fn, inputs, outputs)` — Wrap any function into a full UI
+- [x] Auto-detect input types from type hints (str -> input, int -> slider, bool -> checkbox, list -> select)
+- [x] Auto-detect output types (str -> text, dict -> json_view, list -> table, plt.Figure -> image)
+- [x] Support for `Annotated[str, c.TextArea()]` to override defaults
+- [x] Loading states while function runs
+- [x] Error display when function raises
 
----
+### 7.2 Composable Interfaces ✅
+- [x] `c.parallel(fn1, fn2)` — Side-by-side interfaces (Gradio's Parallel)
+- [x] `c.series(fn1, fn2)` — Chain function outputs to inputs (Gradio's Series)
+- [x] `c.compare(fn1, fn2)` — Run same inputs through multiple functions, compare outputs
+- [x] Mix interfaces with manual layout: `with c.row(): c.interface(fn); c.metric(...)`
 
-## Phase 4: Navigation ✅ Complete
+### 7.3 Advanced Input/Output Types ✅
+- [x] Image input/output with preview
+- [x] Audio input/output with waveform
+- [x] Video input/output with player
+- [x] File input/output with drag-and-drop
+- [x] DataFrame input (editable table) / output (rendered table)
+- [x] Plot output (matplotlib, plotly figures auto-rendered)
+- [x] Chatbot output type (streaming conversation)
 
-- [x] `Navbar` / `NavbarSection` / `NavbarItem` - Top navigation bar
-- [x] `Sidebar` / `SidebarGroup` / `SidebarItem` - Collapsible side navigation
-- [x] `Menu` / `MenuItem` / `MenuDivider` / `MenuLabel` - Vertical/horizontal menu
-- [x] `Tabs` / `Tab` - Tab navigation (line, card, pill variants)
-- [x] `Breadcrumb` - Navigation trail with max items
-
----
-
-## Phase 5: Advanced Features ✅ Complete
-
-### 5.1 Server Enhancements
-- [x] `Effect` / `Watch` - Side effects on signal changes
-- [x] `Batch` / `batch()` - Batch multiple signal updates
-- [x] `Persist` / `PersistManager` - Persist signals to storage (Memory, File)
-- [x] `MiddlewareChain` - Middleware system for events
-- [x] `rate_limit_middleware` - Rate limiting
-- [x] `auth_middleware` - Authentication middleware
-- [x] `validation_middleware` - Input validation
-- [x] `timeout_middleware` - Request timeout
-
-### 5.2 Client Enhancements
-- [x] `useComputed` - Client-side computed values
-- [x] `useLocalStorage` - Persist to localStorage
-- [x] `useDebounce` / `useDebouncedCallback` - Debounced values/callbacks
-- [x] `useThrottle` - Throttled values
-- [x] `useSignalDebounced` - Debounced signal updates
-- [x] `ErrorBoundary` / `ConnectionError` - Error boundaries
-- [x] `Spinner` / `DotsLoader` / `Skeleton` / `LoadingOverlay` - Loading states
-- [x] `EmptyState` - Empty state placeholder
-- [x] `usePrevious` / `useUpdateEffect` / `useTimeout` / `useInterval` - Utility hooks
-
-### 5.3 Developer Experience
-- [ ] CLI tool (`cacao create`, `cacao dev`)
-- [ ] TypeScript codegen from Python signals
-- [ ] Hot reload for both Python and React
-- [ ] DevTools extension
+### 7.4 Examples & Flagging ✅
+- [x] `c.interface(fn, examples=[[...], [...]])` — Clickable example inputs
+- [x] Flagging system — Users can flag bad outputs for review
+- [x] Output caching — Cache results for identical inputs
 
 ---
 
-## Phase 6: Fluent UI Builder (Streamlit Killer) ✅ In Progress
+## Phase 8: AI-Powered Apps (Tukuy + Prompture Integration)
 
-### 6.1 Python Fluent API
-- [x] `ui.App` - Application container with page routing
-- [x] `ui.row()`, `ui.col()`, `ui.grid()` - Layout context managers
-- [x] `ui.card()`, `ui.sidebar()`, `ui.tabs()` - Container components
-- [x] `ui.title()`, `ui.text()`, `ui.code()` - Typography
-- [x] `ui.metric()`, `ui.table()`, `ui.progress()` - Data display
-- [x] `ui.button()`, `ui.input_field()`, `ui.select()` - Form elements
-- [x] `ui.checkbox()`, `ui.switch()`, `ui.slider()` - Form controls
-- [x] `ui.badge()`, `ui.alert()` - Feedback components
+> **Goal:** Make Cacao the best framework for AI-powered apps by integrating [Prompture](https://github.com/jhd3197/prompture) (multi-provider LLM engine) and [Tukuy](https://github.com/jhd3197/Tukuy) (skills & transformation toolkit) as first-class backends.
 
-### 6.2 Chart Components
-- [x] `chart.line()` - Line charts
-- [x] `chart.bar()` - Bar charts
-- [x] `chart.pie()` / `chart.donut()` - Pie/donut charts
-- [x] `chart.scatter()` - Scatter plots
-- [x] `chart.area()` - Area charts
-- [x] `chart.gauge()` - Gauge/radial charts
-- [x] `chart.heatmap()` - Heatmaps
-- [x] `chart.funnel()` - Funnel charts
-- [x] `chart.radar()` - Radar/spider charts
-- [x] `chart.treemap()` - Treemaps
+### 8.1 Streaming & LLM Integration ✅
+- [x] `c.chat()` with real streaming backend (SSE + WebSocket)
+- [x] `c.stream(fn)` — Stream function output token-by-token
+- [x] Built-in adapters: OpenAI, Anthropic, local models (ollama)
+- [x] Conversation memory with session-scoped history
+- [x] System prompt configuration
+- [x] Tool/function calling UI (show tool calls inline)
 
-### 6.3 Data Utilities
-- [x] `data.DataFrame` - Lightweight DataFrame
-- [x] `data.load_csv()` - CSV loading
-- [x] `data.load_json()` - JSON loading
-- [x] `data.load_parquet()` - Parquet loading
-- [x] `data.sample_sales_data()` - Demo data generators
-- [x] DataFrame methods: filter, select, sort, group_by, aggregate
+### 8.2 Prompture Backend ✅
+- [x] Replace `llm.py` provider internals with Prompture drivers (15+ providers)
+- [x] Structured extraction UI — `c.extract(schema, text)` powered by Prompture
+- [x] Cost tracking dashboard — per-session token counts, USD costs, model comparison
+- [x] Budget enforcement — `max_cost`, `max_tokens`, auto-degrade to cheaper models
+- [x] Document ingestion — upload PDF/DOCX/CSV, extract structured data via Prompture
+- [x] Model discovery — auto-detect available providers/models, expose in UI
 
-### 6.4 Examples
-- [x] Dashboard example with charts and metrics
+### 8.3 Tukuy Skills UI ✅
+- [x] `c.skill(fn)` — Wrap a Tukuy `@skill` into an interactive component
+- [x] Skill browser — discovery widget showing all registered skills with search
+- [x] Chain visual builder — drag-and-drop Tukuy Chain/Branch/Parallel composition
+- [x] Replace Phase 6 JS handlers with Tukuy JS transformers (broader coverage, zero-dep)
+- [x] Safety policy UI — configure allowed imports, network, filesystem per session
 
-### 6.5 TODO: React Chart Components
-- [ ] LineChart React component
-- [ ] BarChart React component
-- [ ] PieChart React component
-- [ ] ScatterChart React component
-- [ ] Integration with Recharts or Chart.js
+### 8.4 Agent Components ✅
+- [x] `c.agent()` — Wrap Prompture Agent with ReAct loop visualization
+- [x] Multi-agent UIs — debate view, router dashboard, sequential pipeline monitor
+- [x] Tool call timeline — visual trace of agent reasoning steps and tool invocations
+- [x] Budget gauge — real-time cost/token usage widget with threshold alerts
 
 ---
 
-## Phase 7: Port cacao_tools
+## Phase 9: Sharing & Deployment
 
-- [ ] Encoders tool
-- [ ] Converters tool
-- [ ] Crypto tools
-- [ ] Generators tool
-- [ ] Text tools
+> **Goal:** Go from `cacao run` to "anyone can use this" in one command.
+
+### 9.1 One-Command Sharing ✅
+- [x] review CachiBot QR sharing implementation for inspiration for windows support as is a bit more mature maybe we can leverage some of that code or ideas from it or maybe is over complicating it and we can do something simpler
+- [x] `cacao share` — Expose local app via tunnel (like Gradio's share=True)
+- [x] Generate shareable URL with optional password protection
+- [x] Auto-expire after configurable time (default 72h)
+- [x] QR code for mobile access
+
+### 9.2 Deployment Targets ✅
+- [x] `cacao deploy` — Deploy to cloud with guided setup
+- [x] Hugging Face Spaces support (Dockerfile + app.py template)
+- [x] Docker export — `cacao docker app.py` generates Dockerfile
+- [x] Railway / Render / Fly.io one-click templates
+- [x] GitHub Pages (already works via `cacao build`)
+
+### 9.3 App Gallery ✅
+- [x] Public app registry / gallery for discovering Cacao apps
+- [x] `cacao publish` — Publish app to gallery
+- [x] Embed support — `<iframe>` snippet for embedding in docs/blogs
 
 ---
 
-## Strategic Goal: Streamlit Killer
+## Phase 10: Developer Experience & Polish
 
-See `STREAMLIT_KILLER_STUDY.md` for full analysis.
+> **Goal:** Make the 0-to-working-app experience flawless.
 
-### Key Differentiators
-1. **10x faster** - Signal-based reactivity vs full re-runs
-2. **Professional UI** - Modern component library out of the box
-3. **Multi-user ready** - Session-scoped state from day one
-4. **Python simplicity** - Streamlit-like API with context managers
-5. **React escape hatch** - Full React ecosystem when needed
+### 10.1 Error Experience ✅
+- [x] Friendly error messages with suggestions (not raw tracebacks)
+- [x] Component-level error boundaries with visual indicators
+- [x] "Did you mean?" for typos in component names/props
+- [x] Server-side errors rendered in browser overlay (dev mode)
 
-### Target API (Achieved)
+### 10.2 DevTools ✅
+- [x] Browser DevTools panel — Signal inspector, event log, session viewer
+- [x] `cacao --debug` mode with verbose WebSocket logging
+- [x] Component tree visualizer
+- [x] Performance profiler (signal update timings, render counts)
+
+### 10.3 Testing ✅
+- [x] `c.test()` — Test runner for Cacao apps
+- [x] Mock session/signals for unit testing event handlers
+- [x] Snapshot testing for UI definitions
+- [x] `cacao test app.py` CLI command
+
+### 10.4 Documentation ✅
+- [x] Interactive API reference (self-hosted Cacao app)
+- [x] Component playground — Edit props live, see result
+- [x] Cookbook with 20+ recipes (auth flow, CRUD app, dashboard, chat, etc.)
+- [ ] ~~Video tutorials / getting started guide~~ (deferred)
+
+---
+
+## Phase 11: Ecosystem & Integrations
+
+> **Goal:** Play well with the Python data stack, don't be an island.
+
+### 11.1 Data Ecosystem ✅
+- [x] Native pandas DataFrame support (auto-detect and render)
+- [x] Polars DataFrame support
+- [x] Plotly figure rendering (pass plotly fig, render natively)
+- [x] Matplotlib figure rendering (auto-convert to image/SVG)
+- [x] SQL query component with connection management
+
+### 11.2 Notebook Integration ✅
+- [x] `c.display()` for rendering Cacao components in Jupyter
+- [x] Notebook-to-app export (`cacao convert notebook.ipynb`)
+- [x] Marimo-style reactive mode in notebooks
+
+### 11.3 Extension System ✅
+- [x] Custom component SDK — Build React components, use from Python
+- [x] `cacao install <extension>` — Install community components
+- [x] Theme marketplace
+- [x] Handler plugins for static builds
+
+---
+
+## Phase 12: Production Hardening
+
+> **Goal:** Make Cacao trustworthy for real deployments.
+
+### 12.1 Performance
+- [ ] Component-level lazy loading
+- [ ] Virtual scrolling for large datasets (improve existing VirtualList)
+- [ ] Signal batching optimization (coalesce rapid updates)
+- [ ] WebSocket compression
+- [ ] CDN-ready asset fingerprinting
+
+### 12.2 Security
+- [ ] CSRF protection
+- [ ] Input sanitization framework
+- [ ] OAuth2 / OIDC provider support
+- [ ] Role-based access control (RBAC)
+- [ ] Audit logging
+
+### 12.3 Reliability
+- [ ] Configurable WebSocket reconnection strategy
+- [ ] Session persistence across server restarts
+- [ ] Health check endpoint
+- [ ] Graceful shutdown with session draining
+- [ ] Background task queue (not blocking the event loop)
+
+### 12.4 Observability
+- [ ] Structured logging with correlation IDs
+- [ ] Prometheus metrics export
+- [ ] OpenTelemetry tracing
+- [ ] Signal update rate monitoring
+
+---
+
+## Release Strategy
+
+| Version | Milestone | Key Feature |
+|---------|-----------|-------------|
+| **0.1.0** | Current | Fluent API + static builds + 67 components |
+| **0.2.0** | Phase 7 | Function wrapping (`c.interface()`) |
+| **0.3.0** | Phase 8 | AI-powered apps (Prompture + Tukuy integration) |
+| **0.4.0** | Phase 9 | Sharing & deployment (`cacao share`, HF Spaces) |
+| **0.5.0** | Phase 10 | DevTools, testing, documentation |
+| **0.6.0** | Phase 11 | Ecosystem integrations (pandas, plotly, jupyter) |
+| **1.0.0** | Phase 12 | Production-ready with security, performance, reliability |
+
+---
+
+## The Pitch (Post-Roadmap)
+
 ```python
-from cacao.ui import App, row, card, metric
-from cacao.chart import line, pie
-from cacao.data import load_csv
+# Gradio: demo a function
+import gradio as gr
+gr.Interface(fn=classify, inputs="image", outputs="label").launch()
 
-app = App(title="Dashboard")
+# Cacao: demo a function AND build the real app around it
+import cacao as c
 
-with app.page("/"):
-    with row():
-        metric("Revenue", "$45K", trend="+20%")
-        metric("Users", "2.3K", trend="+15%")
+c.config(title="Image Classifier", theme="dark")
 
-    with card("Trends"):
-        line(load_csv("sales.csv"), x="date", y="revenue")
+with c.sidebar():
+    c.text("Model Settings")
+    model = c.select("Model", ["ResNet50", "ViT", "CLIP"])
 
-app.run()
+with c.row():
+    with c.col(span=6):
+        c.interface(classify, inputs="image", outputs="label")
+    with c.col(span=6):
+        c.metric("Accuracy", "94.2%", trend="+1.2%")
+        c.line(history, x="date", y="accuracy")
+
+# Same function wrapping. Real app layout. Real state. Real deployment.
 ```
 
----
-
-## Architecture Decisions
-
-### Component Philosophy
-Unlike v1 which rendered components server-side as JSON, v2 uses:
-- **React components** for all UI rendering
-- **Python signals** only for state management
-- **Events** for all client-to-server communication
-
-### Why This Approach?
-1. **Leverage React ecosystem** - Use existing React component libraries
-2. **Better DX** - TypeScript types, React DevTools
-3. **Simpler mental model** - State in Python, UI in React
-4. **Performance** - React handles efficient DOM updates
-
-### Signal-Component Binding Pattern
-```python
-# Python - Define state
-name = Signal("", name="name")
-app.bind("name:input", name)  # Auto-update on input events
-```
-
-```tsx
-// React - Bind to state (simple)
-const nameProps = useSignalInput('name', '')
-<Input {...nameProps} />
-
-// React - Bind to state (manual)
-const name = useSignal('name', '')
-const updateName = useEvent('name:input')
-<Input value={name} onChange={e => updateName({ value: e.target.value })} />
-```
-
----
-
-## File Organization
-
-```
-cacao/
-├── server/                    # Python package
-│   ├── signal.py              # ✓ Signal, Computed
-│   ├── session.py             # ✓ Session management
-│   ├── events.py              # ✓ Event system
-│   ├── app.py                 # ✓ App class
-│   ├── server.py              # ✓ WebSocket server (port 1634)
-│   ├── effects.py             # TODO: Side effects
-│   └── middleware.py          # TODO: Event middleware
-│
-├── client/
-│   └── src/
-│       ├── cacao/             # Core library
-│       │   ├── hooks.tsx      # ✓ React hooks
-│       │   ├── useForm.ts     # ✓ Form binding hooks
-│       │   ├── store.ts       # ✓ State store
-│       │   ├── websocket.ts   # ✓ WS client
-│       │   └── types.ts       # ✓ TypeScript types
-│       │
-│       └── components/        # Component library
-│           ├── layout/        # ✓ Box, Stack, Grid, Container, Divider
-│           ├── ui/            # ✓ Button, Text, Badge, Card, Alert
-│           ├── forms/         # ✓ Input, Textarea, Select, Checkbox, Switch
-│           ├── data/          # TODO: Table, List
-│           └── navigation/    # TODO: Navbar, Tabs
-│
-└── examples/
-    ├── counter/               # ✓ Basic counter
-    ├── todo/                  # ✓ Todo list with forms
-    └── dashboard/             # TODO: Full dashboard
-```
-
----
-
-## Next Steps (Immediate)
-
-1. **Test Todo example** - Verify form binding works end-to-end
-2. **Create Table component** - Most requested data component
-3. **Create Navbar component** - Navigation foundation
-4. **Create Tabs component** - Common navigation pattern
-5. **Build Dashboard example** - Showcase all components
+**Cacao isn't a demo tool that wishes it was an app framework. It's an app framework that makes demos trivial.**

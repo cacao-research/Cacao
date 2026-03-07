@@ -116,8 +116,15 @@ def _get_app() -> _App:
             title=_global_config["title"],
             theme=_global_config["theme"],
             branding=_global_config.get("branding"),
+            debug=_global_config.get("debug", False),
         )
         _simple_mode = True
+
+        # Register marketplace themes so they're available via c.config(theme="...")
+        _register_marketplace_themes()
+
+        # Load installed extensions via entry points
+        _load_extensions()
 
         # Start the implicit "/" page context
         _start_implicit_page()
@@ -141,6 +148,32 @@ def _start_implicit_page() -> None:
 def _ensure_context() -> None:
     """Ensure we have a valid component context."""
     _get_app()  # This will create app and start implicit page if needed
+
+
+def _register_marketplace_themes() -> None:
+    """Register built-in marketplace themes with the app."""
+    global _global_app
+    if _global_app is None:
+        return
+
+    try:
+        from .extensions import BUILTIN_THEMES
+
+        for theme in BUILTIN_THEMES:
+            if theme.name not in _global_app._custom_themes:
+                _global_app._custom_themes[theme.name] = theme.variables
+    except Exception:
+        pass  # Extensions module not critical for app startup
+
+
+def _load_extensions() -> None:
+    """Load installed extensions via entry points."""
+    try:
+        from .extensions import load_extensions
+
+        load_extensions()
+    except Exception:
+        pass  # Extension loading should never block app startup
 
 
 # =============================================================================
@@ -193,6 +226,8 @@ def config(
             _global_app.theme = theme  # type: ignore[assignment]
         if branding is not None:
             _global_app.branding = branding  # type: ignore[assignment]
+        if debug is not None:
+            _global_app.debug = debug
 
 
 # =============================================================================
@@ -765,8 +800,164 @@ def export_static() -> dict[str, Any]:
         "signals": {s.name: s.default for s in Signal.get_all_signals().values()},
         "static_handlers": dict(_static_handlers),
         "static_scripts": list(_static_scripts),
+        "handler_plugins": _get_handler_plugin_handlers(),
     }
     return result
+
+
+# =============================================================================
+# Testing
+# =============================================================================
+
+
+def test(
+    target: str | None = None,
+    *,
+    verbose: bool = False,
+    pattern: str = "test_*.py",
+    update_snapshots: bool = False,
+) -> Any:
+    """
+    Run tests for a Cacao application.
+
+    Discovers and runs all functions starting with 'test_' in the target
+    file or directory. Both sync and async test functions are supported.
+
+    Args:
+        target: Path to a .py file or directory. If None, searches current dir.
+        verbose: Print detailed output for each test.
+        pattern: Glob pattern for discovering test files (default: test_*.py).
+        update_snapshots: Overwrite existing snapshots with current values.
+
+    Returns:
+        TestSuiteResult with pass/fail counts and timing.
+
+    Example:
+        # Run tests in a file
+        result = c.test("tests/test_app.py")
+        assert result.all_passed
+
+        # Run all test files in a directory
+        c.test("tests/", verbose=True)
+    """
+    from .testing import run_tests
+
+    if target is None:
+        target = "."
+
+    return run_tests(
+        target,
+        verbose=verbose,
+        pattern=pattern,
+        update_snapshots=update_snapshots,
+    )
+
+
+# =============================================================================
+# Notebook Integration
+# =============================================================================
+
+
+def display(
+    *components: Component,
+    theme: str | None = None,
+    width: str = "100%",
+    height: str = "400px",
+) -> Any:
+    """
+    Render Cacao components inline in a Jupyter notebook.
+
+    Takes one or more Component instances and renders them in an embedded
+    iframe using the full Cacao frontend. If no components are passed,
+    renders the current page's components.
+
+    Args:
+        *components: Cacao Component instances to render.
+        theme: Theme override ("dark" or "light").
+        width: CSS width for the display area.
+        height: CSS height (auto-resizes to content).
+
+    Returns:
+        IPython HTML display object.
+
+    Example:
+        import cacao as c
+
+        c.display(c.title("Hello"), c.metric("Users", 42))
+    """
+    _ensure_context()
+    from .notebook import display as _nb_display
+
+    return _nb_display(*components, theme=theme, width=width, height=height)
+
+
+def reactive(
+    *components: Component,
+    theme: str | None = None,
+    width: str = "100%",
+    height: str = "400px",
+) -> Any:
+    """
+    Create a reactive display that auto-updates when signals change.
+
+    Marimo-style reactivity: the output re-renders whenever any
+    referenced signal value changes.
+
+    Args:
+        *components: Cacao Components to render.
+        theme: Theme override.
+        width: CSS width.
+        height: CSS height.
+
+    Returns:
+        ReactiveDisplay handle.
+
+    Example:
+        import cacao as c
+
+        count = c.signal("count", 0)
+        rd = c.reactive(c.metric("Count", count))
+        # Changing the signal auto-updates the display
+    """
+    _ensure_context()
+    from .notebook import reactive as _nb_reactive
+
+    return _nb_reactive(*components, theme=theme, width=width, height=height)
+
+
+def convert_notebook(
+    notebook_path: str,
+    output_path: str | None = None,
+    *,
+    include_markdown: bool = True,
+    include_outputs: bool = False,
+) -> str:
+    """
+    Convert a Jupyter notebook to a Cacao app.
+
+    Extracts Python code cells from a .ipynb file and generates a
+    standalone app.py.
+
+    Args:
+        notebook_path: Path to the .ipynb file.
+        output_path: Output .py file path. Defaults to same name with .py.
+        include_markdown: Include markdown cells as c.markdown().
+        include_outputs: Include output cells as comments.
+
+    Returns:
+        Path to the generated .py file.
+
+    Example:
+        c.convert_notebook("analysis.ipynb")  # creates analysis.py
+    """
+    from .notebook import convert_notebook as _nb_convert
+
+    return _nb_convert(
+        notebook_path,
+        output_path,
+        include_markdown=include_markdown,
+        include_outputs=include_outputs,
+    )
 
 
 # =============================================================================
@@ -906,6 +1097,98 @@ def register_theme(name: str, variables: dict[str, str]) -> None:
     """
     app = _get_app()
     app._custom_themes[name] = variables
+
+
+# =============================================================================
+# Extension System
+# =============================================================================
+
+
+def custom(name: str, **props: Any) -> Any:
+    """
+    Render a custom component registered via the extension system.
+
+    Custom components are React components registered with
+    ``register_component(ComponentSpec(...))``.
+
+    Args:
+        name: Component name (PascalCase, e.g. "ColorPicker")
+        **props: Component properties
+
+    Example:
+        c.custom("ColorPicker", value="#ff0000", on_change=handle_color)
+    """
+    from .extensions import get_custom_component
+    from .server.ui import Component, _add_to_current_container
+
+    _ensure_context()
+    spec = get_custom_component(name)
+    if spec is None:
+        raise ValueError(
+            f"Custom component '{name}' not registered. "
+            f"Register it with c.register_component(ComponentSpec(name='{name}', ...))"
+        )
+    component = Component(type=f"Custom:{name}", props=props)
+    _add_to_current_container(component)
+    return component
+
+
+def register_component(spec: Any) -> None:
+    """
+    Register a custom React component for use from Python.
+
+    Args:
+        spec: A ComponentSpec instance from cacao.extensions.
+
+    Example:
+        from cacao.extensions import ComponentSpec
+        c.register_component(ComponentSpec(
+            name="ColorPicker",
+            js_code='export function ColorPicker({ value }) { ... }',
+        ))
+    """
+    from .extensions import register_component as _register
+
+    _register(spec)
+
+
+def register_handler_plugin(
+    name: str,
+    handlers: dict[str, str],
+    *,
+    description: str = "",
+    author: str = "",
+) -> None:
+    """
+    Register a handler plugin for static builds.
+
+    Handler plugins provide client-side JavaScript functions that extend
+    the built-in handlers (encoders, generators, converters, etc.).
+
+    Args:
+        name: Plugin name (e.g. "image-tools")
+        handlers: Dict of handler_name -> JS function expression
+        description: Human-readable description
+        author: Plugin author
+
+    Example:
+        c.register_handler_plugin("my-handlers", {
+            "process_data": '''async function(signals, event) {
+                const val = signals.get("input");
+                signals.set("output", val.toUpperCase());
+            }''',
+        })
+    """
+    from .extensions import register_handler_plugin as _register
+
+    _register(name, handlers, description=description, author=author)
+
+
+def _get_handler_plugin_handlers() -> dict[str, str]:
+    """Get all handler plugin handlers for static export."""
+    from .extensions import get_all_static_handlers
+
+    return get_all_static_handlers()
 
 
 # =============================================================================
@@ -1078,6 +1361,720 @@ def permission(perm: str) -> Callable[..., Any]:
 
 
 # =============================================================================
+# Interface (Function Wrapping)
+# =============================================================================
+
+
+def interface(
+    fn: Callable[..., Any],
+    *,
+    title: str | None = None,
+    description: str | None = None,
+    submit_label: str = "Submit",
+    layout: Literal["auto", "horizontal", "vertical"] = "auto",
+    examples: list[list[Any]] | None = None,
+    cache: bool = False,
+    flagging: bool = False,
+    flagging_dir: str = "./flags/",
+    live: bool = False,
+    timeout: float = 60.0,
+) -> Component:
+    """
+    Wrap a Python function into a full interactive UI.
+
+    Inspects type hints, defaults, and docstring to auto-generate
+    input fields and output displays. Fully composable.
+
+    Example:
+        def greet(name: str, excited: bool = False) -> str:
+            greeting = f"Hello, {name}!"
+            return greeting.upper() if excited else greeting
+
+        c.interface(greet)
+
+    Args:
+        fn: The function to wrap
+        title: Display title (default: from function name)
+        description: Description (default: from docstring)
+        submit_label: Submit button text
+        layout: "auto", "horizontal", or "vertical"
+        examples: List of example input lists
+        cache: Cache results per session
+        flagging: Enable output flagging
+        flagging_dir: Directory for flagged data
+        live: Auto-submit on input change
+        timeout: Max execution time in seconds
+    """
+    _ensure_context()
+    from .server.interface import interface as _interface_fn
+
+    return _interface_fn(
+        fn,
+        title=title,
+        description=description,
+        submit_label=submit_label,
+        layout=layout,
+        examples=examples,
+        cache=cache,
+        flagging=flagging,
+        flagging_dir=flagging_dir,
+        live=live,
+        timeout=timeout,
+    )
+
+
+def parallel(
+    *fns: Callable[..., Any],
+    titles: list[str] | None = None,
+    **kwargs: Any,
+) -> Component:
+    """Run multiple functions side-by-side."""
+    _ensure_context()
+    from .server.interface import parallel as _parallel_fn
+
+    return _parallel_fn(*fns, titles=titles, **kwargs)
+
+
+def series(
+    *fns: Callable[..., Any],
+    titles: list[str] | None = None,
+    **kwargs: Any,
+) -> Component:
+    """Chain functions — output of each feeds into the next."""
+    _ensure_context()
+    from .server.interface import series as _series_fn
+
+    return _series_fn(*fns, titles=titles, **kwargs)
+
+
+def compare(
+    *fns: Callable[..., Any],
+    titles: list[str] | None = None,
+    **kwargs: Any,
+) -> Component:
+    """Run same inputs through multiple functions, compare outputs."""
+    _ensure_context()
+    from .server.interface import compare as _compare_fn
+
+    return _compare_fn(*fns, titles=titles, **kwargs)
+
+
+# =============================================================================
+# Chat (LLM Integration)
+# =============================================================================
+
+
+def chat(
+    signal: Signal[list[Any]] | None = None,
+    on_send: Callable[..., Any] | str | None = None,
+    on_clear: Callable[..., Any] | str | None = None,
+    placeholder: str = "Type a message...",
+    title: str | None = None,
+    height: str = "500px",
+    show_clear: bool = False,
+    provider: str | None = None,
+    model: str | None = None,
+    system_prompt: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    tools: list[Any] | None = None,
+    tool_handlers: dict[str, Callable[..., Any]] | None = None,
+    max_history: int = 100,
+    max_cost: float | None = None,
+    max_budget_tokens: int | None = None,
+    fallback_model: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Interactive chat component with optional LLM streaming.
+
+    Without ``provider``, works as a manual chat (use ``on_send`` handler).
+    With ``provider``, automatically streams LLM responses.
+
+    Supports all Prompture providers: openai, anthropic/claude, google/gemini,
+    groq, grok/xai, ollama, lmstudio, azure, openrouter, and more.
+
+    Example (auto LLM):
+        c.chat(provider="openai", model="gpt-4o", system_prompt="You are helpful.")
+
+    Example (with budget):
+        c.chat(provider="openai", model="gpt-4o", max_cost=1.00, fallback_model="gpt-4o-mini")
+
+    Args:
+        provider: LLM provider name (15+ supported via Prompture)
+        model: Model name (e.g. "gpt-4o", "claude-sonnet-4-20250514")
+        system_prompt: System message for the LLM
+        api_key: API key (or set via environment variable)
+        tools: List of ToolSpec for function calling
+        tool_handlers: Dict mapping tool names to handler functions
+        max_cost: Maximum USD cost per session before stopping.
+        max_budget_tokens: Maximum total tokens per session.
+        fallback_model: Cheaper model to auto-degrade to at 80% budget.
+    """
+    _ensure_context()
+    from .server.ui import chat as _ui_chat
+
+    return _ui_chat(
+        signal=signal,
+        on_send=on_send,
+        on_clear=on_clear,
+        placeholder=placeholder,
+        title=title,
+        height=height,
+        show_clear=show_clear,
+        provider=provider,
+        model=model,
+        system_prompt=system_prompt,
+        api_key=api_key,
+        base_url=base_url,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        tools=tools,
+        tool_handlers=tool_handlers,
+        max_history=max_history,
+        max_cost=max_cost,
+        max_budget_tokens=max_budget_tokens,
+        fallback_model=fallback_model,
+        **props,
+    )
+
+
+# =============================================================================
+# Stream wrapper
+# =============================================================================
+
+
+def stream(
+    fn: Callable[..., Any],
+    *,
+    signal: Signal[list[Any]] | None = None,
+    title: str | None = None,
+    placeholder: str = "Type a message...",
+    height: str = "500px",
+    show_clear: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Stream a function's output token-by-token into a chat UI.
+
+    The function should be a generator or async generator that yields
+    string chunks. The first positional argument receives the user's text.
+
+    Example:
+        def my_llm(prompt: str):
+            for token in call_api(prompt):
+                yield token
+
+        c.stream(my_llm, title="My Streaming App")
+    """
+    _ensure_context()
+    from .server.llm import stream_to_chat
+
+    # Create signal for this stream instance
+    from .server.signal import Signal as _Signal
+    from .server.ui import chat as _ui_chat
+
+    sig_name = f"stream_{id(fn)}"
+    if signal is None:
+        signal = _Signal([], name=sig_name)
+
+    # Register the streaming function as the on_send handler
+    async def _handle_stream(session: Any, data: dict[str, Any]) -> None:
+        text = data.get("text", "")
+        if not text:
+            return
+        # Add user message first
+        history = list(signal.get(session))
+        history.append({"role": "user", "content": text})
+        signal.set(session, history)
+        # Stream the function
+        await stream_to_chat(session, signal, fn, text)
+
+    # Use the event system
+    event_name = f"Chat:on_send_{sig_name}"
+    app = _get_app()
+    app.events.register(event_name, _handle_stream)
+
+    return _ui_chat(
+        signal=signal,
+        on_send=event_name,
+        placeholder=placeholder,
+        title=title,
+        height=height,
+        show_clear=show_clear,
+        **props,
+    )
+
+
+# =============================================================================
+# Structured Extraction
+# =============================================================================
+
+
+def extract(
+    schema: dict[str, Any] | None = None,
+    *,
+    pydantic_model: Any = None,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    api_key: str | None = None,
+    title: str = "Extract",
+    description: str = "",
+    submit_label: str = "Extract",
+    height: str = "400px",
+    **props: Any,
+) -> Component:
+    """
+    Structured extraction UI — paste text and extract structured data.
+
+    Uses Prompture to extract data matching a JSON Schema or Pydantic model.
+
+    Example:
+        schema = {
+            "type": "object",
+            "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
+        }
+        c.extract(schema, provider="openai", model="gpt-4o")
+
+    Args:
+        schema: JSON Schema for desired output.
+        pydantic_model: A Pydantic BaseModel class (alternative to schema).
+        provider: LLM provider name.
+        model: Model name.
+    """
+    _ensure_context()
+    from .server.ui import extract as _ui_extract
+
+    return _ui_extract(
+        schema=schema,
+        pydantic_model=pydantic_model,
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        title=title,
+        description=description,
+        submit_label=submit_label,
+        height=height,
+        **props,
+    )
+
+
+# =============================================================================
+# Cost Dashboard
+# =============================================================================
+
+
+def cost_dashboard(
+    *,
+    title: str = "Usage & Costs",
+    show_budget: bool = True,
+    show_breakdown: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Cost tracking dashboard — per-session token counts, USD costs, model comparison.
+
+    Example:
+        c.cost_dashboard(title="API Usage")
+    """
+    _ensure_context()
+    from .server.ui import cost_dashboard as _ui_cost_dashboard
+
+    return _ui_cost_dashboard(
+        title=title,
+        show_budget=show_budget,
+        show_breakdown=show_breakdown,
+        compact=compact,
+        **props,
+    )
+
+
+# =============================================================================
+# Document Upload
+# =============================================================================
+
+
+def document_upload(
+    *,
+    schema: dict[str, Any] | None = None,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    api_key: str | None = None,
+    title: str = "Document Upload",
+    accept: str = ".pdf,.docx,.csv,.xlsx,.md,.txt,.html",
+    show_preview: bool = True,
+    extract_on_upload: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Document ingestion — upload PDF, DOCX, CSV, etc. and extract structured data.
+
+    Example:
+        schema = {"type": "object", "properties": {"summary": {"type": "string"}}}
+        c.document_upload(schema=schema, extract_on_upload=True)
+    """
+    _ensure_context()
+    from .server.ui import document_upload as _ui_document_upload
+
+    return _ui_document_upload(
+        schema=schema,
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        title=title,
+        accept=accept,
+        show_preview=show_preview,
+        extract_on_upload=extract_on_upload,
+        **props,
+    )
+
+
+# =============================================================================
+# Model Picker
+# =============================================================================
+
+
+def model_picker(
+    *,
+    signal: Signal[str] | None = None,
+    label: str = "Model",
+    grouped: bool = True,
+    default: str | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Model discovery picker — auto-detect available providers/models.
+
+    Example:
+        model = c.signal("openai/gpt-4o", name="selected_model")
+        c.model_picker(signal=model)
+    """
+    _ensure_context()
+    from .server.ui import model_picker as _ui_model_picker
+
+    return _ui_model_picker(
+        signal=signal,
+        label=label,
+        grouped=grouped,
+        default=default,
+        **props,
+    )
+
+
+# =============================================================================
+# Agent Components (Phase 8.4)
+# =============================================================================
+
+
+def agent(
+    *,
+    provider: str = "openai",
+    model: str = "gpt-4o",
+    system_prompt: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    tools: list[Any] | None = None,
+    tool_handlers: dict[str, Callable[..., Any]] | None = None,
+    max_iterations: int = 10,
+    max_cost: float | None = None,
+    max_budget_tokens: int | None = None,
+    fallback_model: str | None = None,
+    title: str | None = None,
+    placeholder: str = "Ask the agent...",
+    height: str = "600px",
+    show_steps: bool = True,
+    show_cost: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Wrap a Prompture Agent with ReAct loop visualization.
+
+    Example:
+        c.agent(provider="openai", model="gpt-4o", system_prompt="You are helpful.")
+
+    Example (with tools):
+        from cacao.server.llm import ToolSpec
+        tool = ToolSpec(name="search", description="Search the web", parameters={...})
+        c.agent(provider="openai", model="gpt-4o", tools=[tool], tool_handlers={"search": fn})
+    """
+    _ensure_context()
+    from .server.ui import agent as _ui_agent
+
+    return _ui_agent(
+        provider=provider,
+        model=model,
+        system_prompt=system_prompt,
+        api_key=api_key,
+        base_url=base_url,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        tools=tools,
+        tool_handlers=tool_handlers,
+        max_iterations=max_iterations,
+        max_cost=max_cost,
+        max_budget_tokens=max_budget_tokens,
+        fallback_model=fallback_model,
+        title=title,
+        placeholder=placeholder,
+        height=height,
+        show_steps=show_steps,
+        show_cost=show_cost,
+        **props,
+    )
+
+
+def multi_agent(
+    *,
+    mode: str = "debate",
+    agents: list[dict[str, Any]] | None = None,
+    agent_names: list[str] | None = None,
+    rounds: int = 3,
+    router_prompt: str | None = None,
+    title: str | None = None,
+    height: str = "600px",
+    **props: Any,
+) -> Component:
+    """
+    Multi-agent UI — debate view, router dashboard, or pipeline monitor.
+
+    Example:
+        c.multi_agent(
+            mode="debate",
+            agents=[
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Optimistic."},
+                {"provider": "openai", "model": "gpt-4o", "system_prompt": "Skeptical."},
+            ],
+            agent_names=["Optimist", "Skeptic"],
+        )
+    """
+    _ensure_context()
+    from .server.ui import multi_agent as _ui_multi_agent
+
+    return _ui_multi_agent(
+        mode=mode,
+        agents=agents,
+        agent_names=agent_names,
+        rounds=rounds,
+        router_prompt=router_prompt,
+        title=title,
+        height=height,
+        **props,
+    )
+
+
+def tool_timeline(
+    *,
+    agent_id: str | None = None,
+    title: str = "Tool Call Timeline",
+    height: str = "400px",
+    show_args: bool = True,
+    show_results: bool = True,
+    show_cost: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Visual trace of agent reasoning steps and tool invocations.
+
+    Example:
+        c.tool_timeline(agent_id="my_agent")
+    """
+    _ensure_context()
+    from .server.ui import tool_timeline as _ui_tool_timeline
+
+    return _ui_tool_timeline(
+        agent_id=agent_id,
+        title=title,
+        height=height,
+        show_args=show_args,
+        show_results=show_results,
+        show_cost=show_cost,
+        compact=compact,
+        **props,
+    )
+
+
+def budget_gauge(
+    *,
+    max_cost: float | None = None,
+    max_tokens: int | None = None,
+    warn_threshold: float = 0.8,
+    title: str = "Budget",
+    show_breakdown: bool = True,
+    compact: bool = False,
+    **props: Any,
+) -> Component:
+    """
+    Real-time cost/token usage widget with threshold alerts.
+
+    Example:
+        c.budget_gauge(max_cost=5.00, max_tokens=100000)
+    """
+    _ensure_context()
+    from .server.ui import budget_gauge as _ui_budget_gauge
+
+    return _ui_budget_gauge(
+        max_cost=max_cost,
+        max_tokens=max_tokens,
+        warn_threshold=warn_threshold,
+        title=title,
+        show_breakdown=show_breakdown,
+        compact=compact,
+        **props,
+    )
+
+
+def dataframe(
+    data: Any,
+    title: str | None = None,
+    searchable: bool = True,
+    sortable: bool = True,
+    paginate: bool = True,
+    page_size: int = 25,
+    max_rows: int = 5000,
+    show_dtypes: bool = True,
+    show_shape: bool = True,
+    striped: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Rich DataFrame display for pandas and polars DataFrames.
+
+    Example:
+        import pandas as pd
+        df = pd.read_csv("sales.csv")
+        c.dataframe(df, title="Sales Data")
+    """
+    _ensure_context()
+    from .server.ui import dataframe as _ui_dataframe
+
+    return _ui_dataframe(
+        data=data,
+        title=title,
+        searchable=searchable,
+        sortable=sortable,
+        paginate=paginate,
+        page_size=page_size,
+        max_rows=max_rows,
+        show_dtypes=show_dtypes,
+        show_shape=show_shape,
+        striped=striped,
+        **props,
+    )
+
+
+def plotly_chart(
+    figure: Any,
+    title: str | None = None,
+    height: int = 400,
+    responsive: bool = True,
+    config: dict[str, Any] | None = None,
+    **props: Any,
+) -> Component:
+    """
+    Render a Plotly figure natively.
+
+    Example:
+        import plotly.express as px
+        fig = px.scatter(df, x="x", y="y")
+        c.plotly_chart(fig)
+    """
+    _ensure_context()
+    from .server.ui import plotly_chart as _ui_plotly_chart
+
+    return _ui_plotly_chart(
+        figure=figure,
+        title=title,
+        height=height,
+        responsive=responsive,
+        config=config,
+        **props,
+    )
+
+
+def mpl(
+    figure: Any = None,
+    title: str | None = None,
+    format: str = "svg",
+    dpi: int = 150,
+    tight: bool = True,
+    **props: Any,
+) -> Component:
+    """
+    Render a matplotlib figure.
+
+    Example:
+        import matplotlib.pyplot as plt
+        plt.plot([1, 2, 3], [4, 5, 6])
+        c.mpl()
+    """
+    _ensure_context()
+    from .server.ui import mpl as _ui_mpl
+
+    return _ui_mpl(
+        figure=figure,
+        title=title,
+        format=format,
+        dpi=dpi,
+        tight=tight,
+        **props,
+    )
+
+
+def sql_query(
+    connection: str | Any,
+    query: str = "",
+    title: str | None = None,
+    editable: bool = True,
+    auto_run: bool = False,
+    page_size: int = 25,
+    max_rows: int = 1000,
+    on_query: Any = None,
+    **props: Any,
+) -> Component:
+    """
+    SQL query component with connection management.
+
+    Example:
+        c.sql_query("sqlite:///mydata.db", query="SELECT * FROM users")
+    """
+    _ensure_context()
+    from .server.ui import sql_query as _ui_sql_query
+
+    return _ui_sql_query(
+        connection=connection,
+        query=query,
+        title=title,
+        editable=editable,
+        auto_run=auto_run,
+        page_size=page_size,
+        max_rows=max_rows,
+        on_query=on_query,
+        **props,
+    )
+
+
+# Re-export I/O marker types for use in function signatures
+from .server.interface import (  # noqa: E402
+    Audio,
+    Code,
+    DataFrame,
+    File,
+    Image,
+    Markdown,
+    Plot,
+    Video,
+)
+
+# Re-export LLM types for tool calling
+from .server.llm import ChatConfig, ToolSpec  # noqa: E402
+
+# =============================================================================
 # Auto-discovery: wrap all ui.py component functions automatically
 # =============================================================================
 
@@ -1097,6 +2094,7 @@ _MANUAL_FUNCTIONS = {
     "input_field",
     "field",
     "date",
+    "chat",
     "date_picker",
     "upload",
     "file_upload",
@@ -1129,6 +2127,10 @@ _MANUAL_FUNCTIONS = {
     "shortcut",
     # Themes
     "register_theme",
+    # Extensions
+    "custom",
+    "register_component",
+    "register_handler_plugin",
     # Notifications
     "notify",
     # IPC
@@ -1137,6 +2139,26 @@ _MANUAL_FUNCTIONS = {
     # Auth
     "require_auth",
     "permission",
+    # Interface
+    "interface",
+    "parallel",
+    "series",
+    "compare",
+    # Data Ecosystem
+    "dataframe",
+    "plotly_chart",
+    "mpl",
+    "sql_query",
+    # AI / Prompture
+    "extract",
+    "cost_dashboard",
+    "document_upload",
+    "model_picker",
+    # Agent Components
+    "agent",
+    "multi_agent",
+    "tool_timeline",
+    "budget_gauge",
     # Internal ui.py helpers that shouldn't be exposed
     "_add_to_current_container",
     "_container_context",
@@ -1254,6 +2276,10 @@ __all__ = [
     "shortcut",
     # Themes
     "register_theme",
+    # Extensions
+    "custom",
+    "register_component",
+    "register_handler_plugin",
     # Notifications
     "notify",
     # IPC
@@ -1262,6 +2288,45 @@ __all__ = [
     # Auth
     "require_auth",
     "permission",
+    # Interface
+    "interface",
+    "parallel",
+    "series",
+    "compare",
+    # Chat & LLM
+    "chat",
+    "stream",
+    "ChatConfig",
+    "ToolSpec",
+    # Data Ecosystem
+    "dataframe",
+    "plotly_chart",
+    "mpl",
+    "sql_query",
+    # AI / Prompture
+    "extract",
+    "cost_dashboard",
+    "document_upload",
+    "model_picker",
+    # Agent Components
+    "agent",
+    "multi_agent",
+    "tool_timeline",
+    "budget_gauge",
+    "DataFrame",
+    "Image",
+    "Audio",
+    "Video",
+    "Code",
+    "Markdown",
+    "Plot",
+    "File",
+    # Testing
+    "test",
+    # Notebook integration
+    "display",
+    "reactive",
+    "convert_notebook",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]

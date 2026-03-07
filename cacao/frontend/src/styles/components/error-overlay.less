@@ -1,0 +1,257 @@
+// Error Overlay — dev-mode server error display
+// Error Boundary — component-level error catch
+// Unknown Component — "did you mean?" indicator
+
+// ─── Error Overlay (fixed bottom-right panel) ───────────────────────────
+
+.cacao-error-overlay {
+  position: fixed;
+  bottom: @space-4;
+  right: @space-4;
+  z-index: 10000;
+  width: 480px;
+  max-width: calc(100vw - @space-8);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--danger);
+  border-radius: @radius-md;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  font-family: @font-family;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    padding: @space-3 @space-4;
+    background: var(--danger);
+    color: #fff;
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-sm;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: @radius-full;
+    font-size: @font-size-xs;
+    font-weight: @font-weight-bold;
+  }
+
+  &__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0 @space-1;
+    line-height: 1;
+    opacity: 0.8;
+    &:hover { opacity: 1; }
+  }
+
+  &__btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: @radius-xs;
+    padding: 2px @space-2;
+    font-size: @font-size-xs;
+    cursor: pointer;
+    &:hover { background: rgba(255, 255, 255, 0.25); }
+
+    &--small {
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
+      border-color: var(--border);
+      padding: 2px @space-2;
+      &:hover { background: var(--bg-hover); }
+    }
+  }
+
+  &__list {
+    overflow-y: auto;
+    padding: @space-2;
+    display: flex;
+    flex-direction: column;
+    gap: @space-2;
+  }
+
+  &__item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: @radius-sm;
+    padding: @space-3;
+
+    &-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: @space-2;
+    }
+
+    &-type {
+      font-weight: @font-weight-semibold;
+      color: var(--danger);
+      font-size: @font-size-sm;
+    }
+
+    &-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0;
+      line-height: 1;
+      &:hover { color: var(--text-primary); }
+    }
+
+    &-message {
+      margin: 0 0 @space-2;
+      font-size: @font-size-sm;
+      color: var(--text-primary);
+      font-family: @font-mono;
+      word-break: break-word;
+    }
+
+    &-suggestion {
+      margin: 0 0 @space-2;
+      font-size: @font-size-sm;
+      color: var(--success);
+      font-weight: @font-weight-medium;
+    }
+
+    &-context {
+      margin: 0 0 @space-2;
+      font-size: @font-size-xs;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+  }
+
+  &__traceback-toggle {
+    margin-top: @space-2;
+  }
+
+  &__traceback {
+    margin-top: @space-2;
+    padding: @space-3;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: @radius-xs;
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+
+// ─── Error Boundary (inline component error) ────────────────────────────
+
+.cacao-error-boundary {
+  border: 1px dashed var(--danger);
+  border-radius: @radius-sm;
+  padding: @space-3;
+  background: fade(#e74c3c, 8%);
+  margin: @space-2 0;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: @space-2;
+    margin-bottom: @space-2;
+  }
+
+  &__icon {
+    font-size: 1rem;
+    color: var(--danger);
+  }
+
+  &__title {
+    font-weight: @font-weight-semibold;
+    font-size: @font-size-sm;
+    color: var(--danger);
+  }
+
+  &__details {
+    margin-bottom: @space-2;
+
+    code {
+      display: block;
+      font-family: @font-mono;
+      font-size: @font-size-xs;
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      padding: @space-2;
+      border-radius: @radius-xs;
+      word-break: break-word;
+    }
+  }
+
+  &__stack {
+    margin-top: @space-2;
+    font-family: @font-mono;
+    font-size: @font-size-xs;
+    color: var(--text-secondary);
+    max-height: 120px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+
+  &__retry {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: @radius-xs;
+    padding: @space-1 @space-3;
+    font-size: @font-size-xs;
+    color: var(--text-secondary);
+    cursor: pointer;
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+  }
+}
+
+// ─── Unknown Component indicator ────────────────────────────────────────
+
+.cacao-unknown-component {
+  display: flex;
+  align-items: center;
+  gap: @space-2;
+  padding: @space-2 @space-3;
+  border: 1px dashed var(--warning);
+  border-radius: @radius-sm;
+  background: fade(#f39c12, 8%);
+  color: var(--warning);
+  font-size: @font-size-sm;
+  margin: @space-1 0;
+
+  &__icon {
+    font-size: 0.875rem;
+  }
+
+  &__hint {
+    color: var(--text-secondary);
+    font-size: @font-size-xs;
+    font-style: italic;
+  }
+}

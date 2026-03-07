@@ -1,0 +1,139 @@
+// Cost Dashboard component styles
+.cacao-cost-dashboard {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+}
+
+.cacao-cost-empty {
+  p {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.cacao-cost-title {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.cacao-cost-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.cacao-cost-metric {
+  text-align: center;
+  padding: var(--spacing-md);
+  background: var(--bg-color);
+  border-radius: var(--radius-md);
+}
+
+.cacao-cost-metric-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.cacao-cost-metric-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Budget gauge
+.cacao-cost-budget {
+  margin-bottom: var(--spacing-md);
+}
+
+.cacao-cost-budget-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.cacao-cost-budget-bar {
+  height: 8px;
+  background: var(--bg-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cacao-cost-budget-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+
+  &.warning {
+    background: var(--warning-color, #f59e0b);
+  }
+  &.over {
+    background: var(--error-color, #ef4444);
+  }
+}
+
+.cacao-cost-budget-note {
+  font-size: var(--font-size-xs);
+  color: var(--warning-color, #f59e0b);
+  margin-top: var(--spacing-xs);
+}
+
+.cacao-cost-budget-over {
+  color: var(--error-color, #ef4444);
+  font-weight: 600;
+}
+
+// Breakdown table
+.cacao-cost-breakdown {
+  margin-top: var(--spacing-sm);
+}
+
+.cacao-cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+
+  th {
+    text-align: left;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// Compact mode
+.cacao-cost-compact {
+  .cacao-cost-metrics {
+    margin-bottom: 0;
+  }
+  .cacao-cost-metric {
+    padding: var(--spacing-sm);
+  }
+  .cacao-cost-metric-value {
+    font-size: var(--font-size-lg);
+  }
+}

@@ -46,6 +46,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+share = [
+    "qrcode>=7.4",
+]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.5.0",
@@ -90,6 +93,27 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tukuy",
+    "tukuy.*",
+    "prompture",
+    "prompture.*",
+    "polars",
+    "plotly",
+    "plotly.*",
+    "pyngrok",
+    "pyngrok.*",
+    "IPython",
+    "IPython.*",
+    "pandas",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cacao.notebook"
+disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

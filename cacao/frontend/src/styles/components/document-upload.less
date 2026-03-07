@@ -1,0 +1,104 @@
+// Document Upload component styles
+.cacao-document-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+
+  h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+}
+
+.cacao-document-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  padding: var(--spacing-lg);
+
+  &:hover {
+    border-color: var(--primary-color);
+    background: rgba(var(--primary-rgb, 99, 102, 241), 0.05);
+  }
+
+  &.loading {
+    border-color: var(--primary-color);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+.cacao-document-placeholder {
+  text-align: center;
+  color: var(--text-secondary);
+
+  div:first-child {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  small {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    opacity: 0.7;
+  }
+}
+
+.cacao-document-loading {
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+}
+
+.cacao-document-filename {
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+}
+
+.cacao-document-meta {
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.cacao-document-preview {
+  summary {
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+  }
+}
+
+.cacao-document-text {
+  background: var(--bg-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-color);
+}
+
+.cacao-document-extracted {
+  h4 {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+}

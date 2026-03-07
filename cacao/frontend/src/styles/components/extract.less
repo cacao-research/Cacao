@@ -1,0 +1,121 @@
+// Extract component styles
+.cacao-extract {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+}
+
+.cacao-extract-header {
+  .cacao-extract-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  .cacao-extract-description {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+}
+
+.cacao-extract-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cacao-extract-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.cacao-extract-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+}
+
+.cacao-extract-schema {
+  margin-top: var(--spacing-sm);
+
+  summary {
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  pre {
+    font-size: var(--font-size-xs);
+    background: var(--bg-color);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    max-height: 200px;
+  }
+}
+
+.cacao-extract-result {
+  background: var(--bg-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  overflow: auto;
+  flex: 1;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cacao-extract-usage {
+  margin-top: var(--spacing-xs);
+  color: var(--text-secondary);
+}
+
+.cacao-extract-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 200px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.cacao-extract-output {
+  display: flex;
+  flex-direction: column;
+}
+
+.cacao-extract-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}

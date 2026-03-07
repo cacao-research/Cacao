@@ -1,0 +1,276 @@
+// ChainBuilder component styles
+.cacao-chain-builder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  background: var(--surface-color);
+  overflow: hidden;
+}
+
+.cacao-chain-builder-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+
+  .cacao-chain-builder-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+}
+
+.cacao-chain-builder-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Editor panel (left)
+.cacao-chain-builder-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow: hidden;
+}
+
+.cacao-chain-builder-add {
+  display: flex;
+  gap: var(--spacing-sm);
+
+  .cacao-input {
+    flex: 1;
+  }
+}
+
+.cacao-chain-builder-steps {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100px;
+  padding: var(--spacing-sm);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s;
+
+  &:empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.cacao-chain-builder-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.cacao-chain-builder-connector {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  padding: var(--spacing-xs) 0;
+}
+
+// Step cards
+.cacao-chain-step {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-color);
+  cursor: grab;
+  transition: box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    border-color: var(--primary-color);
+  }
+
+  &:active {
+    cursor: grabbing;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.cacao-chain-step-transformer {
+  border-left: 3px solid var(--primary-color);
+}
+
+.cacao-chain-step-skill {
+  border-left: 3px solid var(--success-color, #22c55e);
+}
+
+.cacao-chain-step-branch {
+  border-left: 3px solid var(--warning-color, #f59e0b);
+}
+
+.cacao-chain-step-parallel {
+  border-left: 3px solid var(--info-color, #3b82f6);
+}
+
+.cacao-chain-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.cacao-chain-step-icon {
+  font-size: var(--font-size-md);
+  width: 20px;
+  text-align: center;
+}
+
+.cacao-chain-step-type {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cacao-chain-step-name {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono, monospace);
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cacao-chain-step-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.cacao-chain-step-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+
+  &:hover {
+    background: var(--border-color);
+    color: var(--text-color);
+  }
+}
+
+.cacao-chain-step-btn-remove:hover {
+  background: var(--error-color, #ef4444);
+  color: white;
+}
+
+.cacao-chain-step-body {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.cacao-chain-step-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+}
+
+// IO panel (right)
+.cacao-chain-builder-io {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow-y: auto;
+}
+
+.cacao-chain-builder-input,
+.cacao-chain-builder-output {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.cacao-chain-builder-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cacao-chain-builder-step-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.cacao-chain-builder-step-result {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  align-items: baseline;
+}
+
+.cacao-chain-builder-step-error {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.cacao-chain-builder-step-name {
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  color: var(--text-color);
+}
+
+.cacao-chain-builder-step-value {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cacao-chain-builder-result {
+  background: var(--bg-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  overflow: auto;
+  max-height: 200px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cacao-chain-builder-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}

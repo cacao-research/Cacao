@@ -140,7 +140,7 @@ if ($Mode -eq "validate") {
         # --- Python: pytest ---
         Write-Host "  pytest          " -ForegroundColor Cyan -NoNewline
         $savedEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-        $out = & pytest --tb=short -q 2>&1
+        $out = & python -m pytest --tb=short -q 2>&1
         $ErrorActionPreference = $savedEAP
         if ($LASTEXITCODE -eq 0) {
             $passLine = ($out | Select-String "passed").Line
