@@ -691,6 +691,124 @@ def get_app() -> _App:
     return _get_app()
 
 
+def enable_session_persistence(directory: str = ".cacao_sessions") -> Any:
+    """
+    Enable session persistence across server restarts.
+
+    When enabled, session signal state is saved to disk on shutdown
+    and restored when clients reconnect.
+
+    Args:
+        directory: Directory to store session state files
+
+    Returns:
+        The configured SessionStore
+    """
+    from .server.session_persist import enable_session_persistence as _enable
+
+    return _enable(directory)
+
+
+def background_task(
+    coro_func: Any,
+    *args: Any,
+    name: str = "",
+    **kwargs: Any,
+) -> Any:
+    """
+    Submit an async function to run in the background task queue.
+
+    The function runs without blocking the WebSocket event loop.
+
+    Args:
+        coro_func: Async function to run
+        *args: Positional arguments
+        name: Human-readable task name
+        **kwargs: Keyword arguments
+
+    Returns:
+        Task ID string (use to check status later)
+
+    Example:
+        async def export_data():
+            ...  # Long-running operation
+
+        task_id = await c.background_task(export_data, name="export")
+    """
+
+    app = _get_app()
+    if not hasattr(app, "_task_queue") or app._task_queue is None:
+        raise RuntimeError("Background task queue not available. Is the server running?")
+    return app._task_queue.submit(coro_func, *args, name=name, **kwargs)
+
+
+# =============================================================================
+# Observability
+# =============================================================================
+
+
+def enable_structured_logging(*, level: str = "INFO") -> None:
+    """Enable JSON structured logging with correlation IDs.
+
+    Replaces the default Cacao log format with one JSON object per line,
+    including timestamp, level, logger, message, and correlation_id fields.
+
+    Args:
+        level: Minimum log level (DEBUG, INFO, WARNING, ERROR).
+    """
+    from .server.observability import enable_structured_logging as _enable
+
+    _enable(level=level)
+
+
+def enable_metrics() -> Any:
+    """Enable Prometheus metrics collection.
+
+    Metrics are served at the ``/metrics`` endpoint in Prometheus text format.
+    Tracks WebSocket connections, events, signal updates, errors, and latencies.
+
+    Returns:
+        The PrometheusMetrics instance.
+    """
+    from .server.observability import enable_metrics as _enable
+
+    return _enable()
+
+
+def enable_tracing(service_name: str = "cacao") -> Any:
+    """Enable distributed tracing (OpenTelemetry).
+
+    If ``opentelemetry-sdk`` is installed, wraps the real OTel tracer.
+    Otherwise provides lightweight built-in span tracking.
+
+    Args:
+        service_name: Service name for trace identification.
+
+    Returns:
+        The Tracer instance.
+    """
+    from .server.observability import enable_tracing as _enable
+
+    return _enable(service_name=service_name)
+
+
+def enable_signal_monitoring(*, window_seconds: float = 60.0) -> Any:
+    """Enable signal update rate monitoring.
+
+    Tracks per-signal update counts and computes rolling rates.
+    Useful for detecting hot signals and runaway update loops.
+
+    Args:
+        window_seconds: Rolling window for rate calculations.
+
+    Returns:
+        The SignalRateMonitor instance.
+    """
+    from .server.observability import enable_signal_monitoring as _enable
+
+    return _enable(window_seconds=window_seconds)
+
+
 def is_simple_mode() -> bool:
     """Check if we're running in simple mode (implicit app)."""
     return _simple_mode
@@ -1358,6 +1476,247 @@ def permission(perm: str) -> Callable[..., Any]:
         return wrapper
 
     return decorator
+
+
+# =============================================================================
+# CSRF Protection
+# =============================================================================
+
+
+def enable_csrf(secret: str | None = None) -> Any:
+    """
+    Enable CSRF protection for the app.
+
+    Generates per-session tokens validated on state-changing events.
+
+    Args:
+        secret: Optional secret key. Auto-generated if not provided.
+
+    Returns:
+        CSRFProtection instance.
+
+    Example:
+        c.enable_csrf()
+    """
+    from .server.security import enable_csrf as _enable_csrf
+
+    return _enable_csrf(secret=secret)
+
+
+# =============================================================================
+# Input Sanitization
+# =============================================================================
+
+
+def sanitize(value: str, *, allow_html: bool = False) -> str:
+    """
+    Sanitize a string value against XSS, SQL injection, and path traversal.
+
+    Args:
+        value: Raw user input.
+        allow_html: If True, skip HTML escaping.
+
+    Returns:
+        Sanitized string.
+
+    Example:
+        safe = c.sanitize(user_input)
+    """
+    from .server.security import Sanitizer
+
+    return Sanitizer.sanitize(value, allow_html=allow_html)
+
+
+# =============================================================================
+# OAuth2 / OIDC
+# =============================================================================
+
+
+def oauth2(
+    provider: str,
+    *,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str = "",
+    scopes: list[str] | None = None,
+    # For custom providers:
+    authorize_url: str = "",
+    token_url: str = "",
+    userinfo_url: str = "",
+) -> Any:
+    """
+    Register an OAuth2 / OIDC provider.
+
+    Use a preset name (google, github, microsoft) or provide custom URLs.
+
+    Args:
+        provider: Provider name or preset (google, github, microsoft).
+        client_id: OAuth2 client ID.
+        client_secret: OAuth2 client secret.
+        redirect_uri: Redirect URI after authorization.
+        scopes: Requested scopes.
+        authorize_url: Custom authorization endpoint (for non-preset providers).
+        token_url: Custom token endpoint.
+        userinfo_url: Custom userinfo endpoint.
+
+    Returns:
+        OAuth2Provider instance.
+
+    Example:
+        c.oauth2("github", client_id="...", client_secret="...")
+        c.oauth2("custom", client_id="...", client_secret="...",
+                 authorize_url="https://...", token_url="https://...")
+    """
+    from .server.security import (
+        OAUTH2_PROVIDERS,
+        OAuth2Config,
+        OAuth2Provider,
+        register_oauth2,
+    )
+
+    if provider.lower() in OAUTH2_PROVIDERS:
+        oauth = OAuth2Provider.from_preset(
+            provider,
+            client_id,
+            client_secret,
+            redirect_uri=redirect_uri,
+            scopes=scopes,
+        )
+    else:
+        if not authorize_url or not token_url:
+            raise ValueError(f"Custom provider '{provider}' requires authorize_url and token_url")
+        config = OAuth2Config(
+            provider_name=provider,
+            client_id=client_id,
+            client_secret=client_secret,
+            authorize_url=authorize_url,
+            token_url=token_url,
+            userinfo_url=userinfo_url,
+            redirect_uri=redirect_uri,
+            scopes=scopes or ["openid", "profile", "email"],
+        )
+        oauth = OAuth2Provider(config)
+
+    register_oauth2(provider.lower(), oauth)
+    return oauth
+
+
+# =============================================================================
+# RBAC (Role-Based Access Control)
+# =============================================================================
+
+
+def role(
+    name: str,
+    *,
+    permissions: set[str] | None = None,
+    inherits: list[str] | None = None,
+    description: str = "",
+) -> Any:
+    """
+    Define a role in the RBAC system.
+
+    Args:
+        name: Role name.
+        permissions: Permissions granted by this role.
+        inherits: Parent roles to inherit permissions from.
+        description: Human-readable description.
+
+    Returns:
+        Role instance.
+
+    Example:
+        c.role("viewer", permissions={"read"})
+        c.role("editor", permissions={"write"}, inherits=["viewer"])
+        c.role("admin", permissions={"delete", "manage"}, inherits=["editor"])
+    """
+    from .server.security import get_rbac
+
+    return get_rbac().add_role(
+        name, permissions=permissions, inherits=inherits, description=description
+    )
+
+
+def assign_role(username: str, role_name: str) -> None:
+    """
+    Assign a role to a user.
+
+    Args:
+        username: The user to assign the role to.
+        role_name: The role to assign.
+
+    Example:
+        c.assign_role("alice", "admin")
+    """
+    from .server.security import get_rbac
+
+    get_rbac().assign_role(username, role_name)
+
+
+def require_role(*roles: str) -> Callable[..., Any]:
+    """
+    Decorator to require specific role(s) on an event handler.
+
+    The user must have at least one of the specified roles.
+
+    Args:
+        roles: Required role name(s).
+
+    Example:
+        @c.on("delete_user")
+        @c.require_role("admin")
+        async def delete_user(session, data):
+            ...
+    """
+    from .server.security import require_role as _require_role
+
+    return _require_role(*roles)
+
+
+# =============================================================================
+# Audit Logging
+# =============================================================================
+
+
+def audit_log(event_type: str, **details: Any) -> None:
+    """
+    Record a custom audit event.
+
+    Args:
+        event_type: Type of event to log.
+        **details: Additional event details.
+
+    Example:
+        c.audit_log("data_export", username="alice", records=1500)
+    """
+    from .server.security import get_audit_logger
+
+    get_audit_logger().log(event_type, **details)
+
+
+def get_audit_entries(
+    *,
+    event_type: str | None = None,
+    username: str | None = None,
+    limit: int = 100,
+) -> list[Any]:
+    """
+    Query audit log entries.
+
+    Args:
+        event_type: Filter by event type.
+        username: Filter by username.
+        limit: Maximum entries to return.
+
+    Returns:
+        List of AuditEntry objects, most recent first.
+
+    Example:
+        entries = c.get_audit_entries(event_type="login_failure", limit=50)
+    """
+    from .server.security import get_audit_logger
+
+    return get_audit_logger().get_entries(event_type=event_type, username=username, limit=limit)
 
 
 # =============================================================================
@@ -2139,6 +2498,15 @@ _MANUAL_FUNCTIONS = {
     # Auth
     "require_auth",
     "permission",
+    # Security
+    "enable_csrf",
+    "sanitize",
+    "oauth2",
+    "role",
+    "assign_role",
+    "require_role",
+    "audit_log",
+    "get_audit_entries",
     # Interface
     "interface",
     "parallel",
@@ -2288,6 +2656,15 @@ __all__ = [
     # Auth
     "require_auth",
     "permission",
+    # Security
+    "enable_csrf",
+    "sanitize",
+    "oauth2",
+    "role",
+    "assign_role",
+    "require_role",
+    "audit_log",
+    "get_audit_entries",
     # Interface
     "interface",
     "parallel",
@@ -2327,6 +2704,14 @@ __all__ = [
     "display",
     "reactive",
     "convert_notebook",
+    # Reliability
+    "enable_session_persistence",
+    "background_task",
+    # Observability
+    "enable_structured_logging",
+    "enable_metrics",
+    "enable_tracing",
+    "enable_signal_monitoring",
     # Auto-discovered UI components (from ui.py)
     *_auto_discovered,
 ]

@@ -1,4 +1,5 @@
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -169,5 +170,42 @@ execSync('npx esbuild src/components/index.js --bundle --outfile=dist/cacao.js -
   cwd: __dirname,
   stdio: 'inherit'
 });
+
+// =========================================================================
+// Asset fingerprinting — generate content-hashed copies and manifest
+// =========================================================================
+
+console.log('[Cacao] Fingerprinting assets...');
+
+/**
+ * Compute 8-char content hash for a file.
+ */
+function contentHash(filePath) {
+  const content = fs.readFileSync(filePath);
+  return crypto.createHash('md5').update(content).digest('hex').slice(0, 8);
+}
+
+const manifest = {};
+
+// Fingerprint all CSS and JS files in dist/
+const distFiles = fs.readdirSync(distDir).filter(f => f.endsWith('.css') || f.endsWith('.js'));
+
+for (const file of distFiles) {
+  const filePath = path.join(distDir, file);
+  const hash = contentHash(filePath);
+  const ext = path.extname(file);
+  const base = file.slice(0, -ext.length);
+  const fingerprinted = `${base}.${hash}${ext}`;
+  const fingerprintedPath = path.join(distDir, fingerprinted);
+
+  // Copy file with fingerprinted name
+  fs.copyFileSync(filePath, fingerprintedPath);
+  manifest[file] = fingerprinted;
+}
+
+// Write manifest.json
+const manifestPath = path.join(distDir, 'manifest.json');
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+console.log(`[Cacao] Generated manifest.json (${Object.keys(manifest).length} assets)`);
 
 console.log('[Cacao] Build complete!');
