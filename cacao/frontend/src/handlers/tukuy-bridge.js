@@ -6,6 +6,9 @@
  * transformer into Cacao's `handler(signals, data)` pattern.
  *
  * Single source of truth: add a transformer to Tukuy, it appears here.
+ *
+ * Tukuy is an optional dependency — when not installed (e.g. CI),
+ * the bridge exports an empty handler map and the build succeeds.
  */
 
 import { tukuy } from 'tukuy';
@@ -18,6 +21,7 @@ import { tukuy } from 'tukuy';
  * Output goes to the signal named `data.output || 'tukuy_out'`.
  */
 function buildTransformHandlers() {
+  if (!tukuy) return {};
   const handlers = {};
 
   for (const meta of tukuy.getMetadata()) {
@@ -47,6 +51,7 @@ function buildTransformHandlers() {
  * Steps come from `data.steps` or the `tukuy_chain_steps` signal (JSON string).
  */
 function buildChainHandler() {
+  if (!tukuy) return {};
   return {
     tukuy_chain: async (signals, data) => {
       const input = data.value !== undefined ? data.value : '';
@@ -87,6 +92,7 @@ function buildChainHandler() {
  * Browse handler — list available transformers (for discovery UIs).
  */
 function buildBrowseHandlers() {
+  if (!tukuy) return {};
   return {
     tukuy_browse: (signals) => {
       const byCategory = tukuy.getMetadataByCategory();

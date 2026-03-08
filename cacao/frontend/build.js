@@ -166,7 +166,34 @@ for (const cat of cssCategories) {
 // =========================================================================
 
 console.log('[Cacao] Bundling JS');
-execSync('npx esbuild src/components/index.js --bundle --outfile=dist/cacao.js --format=iife --external:React --external:ReactDOM --external:Chart', {
+
+// Check if Tukuy is available (local dev dependency)
+let hasTukuy = false;
+try {
+  require.resolve('tukuy');
+  hasTukuy = true;
+} catch {}
+
+const esbuildArgs = [
+  'src/components/index.js',
+  '--bundle',
+  '--outfile=dist/cacao.js',
+  '--format=iife',
+  '--external:React',
+  '--external:ReactDOM',
+  '--external:Chart',
+];
+
+// When Tukuy is not installed (CI), stub it out as empty module
+if (!hasTukuy) {
+  console.log('[Cacao] Tukuy not found — building without Tukuy handlers');
+  // Write a shim that exports a null tukuy object
+  const shimPath = path.join(__dirname, 'src', 'handlers', '_tukuy-shim.js');
+  fs.writeFileSync(shimPath, 'export const tukuy = null;\n');
+  esbuildArgs.push(`--alias:tukuy=./src/handlers/_tukuy-shim.js`);
+}
+
+execSync(`npx esbuild ${esbuildArgs.join(' ')}`, {
   cwd: __dirname,
   stdio: 'inherit'
 });
