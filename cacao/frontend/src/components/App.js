@@ -157,7 +157,7 @@ export function App({ renderers }) {
   }
 
   if (error) return h('div', { className: 'loading', style: { color: 'var(--danger)' } }, 'Error: ' + error);
-  if (!pages) return h('div', { className: 'loading' }, 'Loading...');
+  if (!pages) return h('div', { className: 'loading' }, h('div', { className: 'loading-spinner' }));
 
   const pageData = pages.pages || {};
   const components = pageData[currentPage] || [];
