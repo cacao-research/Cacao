@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "marked": "^17.0.4"
+  },
+  "optionalDependencies": {
+    "tukuy": "file:../../../Tukuy/js"
   }
 }

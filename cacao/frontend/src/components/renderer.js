@@ -78,7 +78,7 @@ export function renderComponent(comp, key, setActiveTab, activeTab, renderers) {
   const children = (comp.children || []).map((c, i) => renderComponent(c, i, setActiveTab, activeTab, renderers));
   const element = h(
     ErrorBoundary,
-    { key, componentType: comp.type },
+    { key, componentType: comp.type, type: comp.type },
     h(Renderer, { props: comp.props || {}, children, setActiveTab, activeTab, type: comp.type }),
   );
 

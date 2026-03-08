@@ -11,6 +11,7 @@ import { NotificationCenter } from './core/NotificationCenter.js';
 import { LoginPage } from './core/LoginPage.js';
 import { ErrorOverlay } from './core/ErrorOverlay.js';
 import { DevTools } from './core/DevTools.js';
+import { validateTree } from './core/validateTree.js';
 
 // Extract route from URL (supports both pathname and hash-based routing)
 function getRouteFromPath() {
@@ -91,6 +92,8 @@ export function App({ renderers }) {
     // In static mode, pages are embedded in window.__CACAO_PAGES__
     if (isStaticMode() && window.__CACAO_PAGES__) {
       setPages(window.__CACAO_PAGES__);
+      const sp = window.__CACAO_PAGES__.pages || {};
+      Object.values(sp).forEach(comps => validateTree(comps));
       return;
     }
 
@@ -120,6 +123,8 @@ export function App({ renderers }) {
             }
           }, 100);
         }
+        const dp = data.pages || {};
+        Object.values(dp).forEach(comps => validateTree(comps));
         return setPages(data);
       })
       .catch(e => setError(e.message));
