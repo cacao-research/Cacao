@@ -12,6 +12,7 @@
     "less": "^4.2.0"
   },
   "dependencies": {
-    "marked": "^17.0.4"
+    "marked": "^17.0.4",
+    "tukuy": "file:../../../Tukuy/js"
   }
 }
