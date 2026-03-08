@@ -214,8 +214,15 @@ function contentHash(filePath) {
 
 const manifest = {};
 
-// Fingerprint all CSS and JS files in dist/
-const distFiles = fs.readdirSync(distDir).filter(f => f.endsWith('.css') || f.endsWith('.js'));
+// Fingerprint only base (non-fingerprinted) CSS and JS files in dist/
+// Base files have at most one dot (the extension), e.g. "cacao.js", "cacao-core.css"
+// Fingerprinted files have extra dot-separated hashes, e.g. "cacao.abc123.js"
+const baseNames = new Set([
+  'cacao.js', 'cacao.css',
+  'cacao-core.css', 'cacao-cat-layout.css', 'cacao-cat-display.css',
+  'cacao-cat-typography.css', 'cacao-cat-form.css', 'cacao-cat-charts.css',
+]);
+const distFiles = fs.readdirSync(distDir).filter(f => baseNames.has(f));
 
 for (const file of distFiles) {
   const filePath = path.join(distDir, file);
